@@ -1,0 +1,110 @@
+?>	
+		<tr>
+			<td><?=$row['nodeName'];?></td>
+			<td><?=$row['nodePath'];?></td>
+			<td><?=$row['idDeviceProtocol'];?></td>
+			<td><?=$row['connectionParameters'];?></td>
+			<td><button class="detailsBtn" onClick="detailsClick('<?=$row['nodeName'];?>','<?=$row['nodePath'];?>',<?=$row['idDeviceProtocol'];?>,'<?=$row['connectionParameters'];?>')">Details</button></td>
+		</tr>
+<?php	
+
+			// while($row = $result->fetch_assoc()) 
+			// {
+				
+			// }
+
+var table = $('<table>').addClass('foo');
+for(i=0; i<3; i++){
+    var row = $('<tr>').addClass('bar').text('result ' + i);
+    table.append(row);
+}
+
+$('#here_table').append(table);
+
+        function constructTable(selector) {
+             
+            // Getting the all column names
+            var cols = Headers(list, selector); 
+  
+            // Traversing the JSON data
+            for (var i = 0; i < list.length; i++) {
+                var row = $('<tr/>');  
+                for (var colIndex = 0; colIndex < cols.length; colIndex++)
+                {
+                    var val = list[i][cols[colIndex]];
+                     
+                    // If there is any key, which is matching
+                    // with the column name
+                    if (val == null) val = ""; 
+                        row.append($('<td/>').html(val));
+                }
+                 
+                // Adding each row to the table
+                $(selector).append(row);
+            }
+        }
+         
+        function Headers(list, selector) {
+            var columns = [];
+            var header = $('<tr/>');
+             
+            for (var i = 0; i < list.length; i++) {
+                var row = list[i];
+                 
+                for (var k in row) {
+                    if ($.inArray(k, columns) == -1) {
+                        columns.push(k);
+                         
+                        // Creating the header
+                        header.append($('<th/>').html(k));
+                    }
+                }
+            }
+             
+            // Appending the header to the table
+            $(selector).append(header);
+                return columns;
+        }  
+		
+		
+?>
+            <option value="<?=$row['ProtocolName'];?>"><?=$row['ProtocolName'];?></option>
+<?php
+
+
+BOTON DE 3 ESTADOS!!!!
+https://stackoverflow.com/questions/67729844/how-to-make-a-3-button-sliding-toggle-switch
+
+
+[{"idDevices":4,"name":"dummyDevice4","idMode":2,"idType":4,"channelPath":"\/dummyPath4","idParentNode":4},{"idDevices":3,"name":"dummyDevice3","idMode":1,"idType":3,"channelPath":"\/dummyPath3","idParentNode":4},{"idDevices":2,"name":"dummyDevice2","idMode":2,"idType":2,"channelPath":"\/dummyPath2","idParentNode":3}]
+
+	// $('#saveNodeBtn').prop('disabled', true);
+	// $('#deleteNodeBtn').prop('disabled', true);
+	// $('#createNodeBtn').prop('disabled', false);
+	// InputFieldsState = 0;
+	//var NameStr = $(item).val();
+	//var regex = /^\w+$/;//only letters numbers and underscore
+	//var regexStr = "^[A-Za-z0-9_-]*$";
+	// let patt = /^(\w|\.|-)+$/;
+	// NameStr.replace(/^(?!((\w|\.|-)+$))/,'');
+	//alert(NameStr);
+	//$(item).val('');
+    //if(!patt.test(NameStr)) ;;
+	//alert(NameStr);
+	
+	// $.ajax({
+		// url: "deviceActions.php",
+		// type: "POST",
+		// data:({actionOption:"fetchConfigs"}),
+		// cache: false,
+		// success: function(data)
+		// {
+			// loadSelectOptions('#nodeProtocol',JSON.parse(data));
+			// InputFieldsClearMode();
+		// }
+	// });
+	
+			<h2>View data</h2>
+		<table id="tableDevices" class="table table-bordered table-sm" >
+		<tbody >
+		</tbody>
