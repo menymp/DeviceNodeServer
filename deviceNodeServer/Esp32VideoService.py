@@ -26,9 +26,7 @@ class Esp32VideoService(BaseVideoService):
 			#cv2.imshow("img", img)
 			#cv2.waitKey(10)
 			self._updateImage(img)
-'''
-simple test code
-'''
+#test code
 #http://#####:8072/video
 connArgs = {
 	"host":"",
