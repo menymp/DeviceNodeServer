@@ -41,3 +41,10 @@ class BaseVideoService():
 		self.writeEvent.wait()
 		imageTmp = self.image
 		return True, imageTmp
+	
+	def getJpg(self):
+		rs, img = self.getImage()
+		if not rs:
+			return False, None
+		ret, jpeg = cv2.imencode('.jpg', img)
+		return jpeg.tobytes()

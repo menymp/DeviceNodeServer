@@ -28,20 +28,6 @@ class Esp32VideoService(BaseVideoService):
 			self._updateImage(img)
 #test code
 #http://#####:8072/video
-connArgs = {
-	"host":"",
-	"port":8072
-}
-
-camObj = Esp32VideoService(connArgs)
-camObj.start()
-cnt = 0
-
-while cnt < 100:
-	state, img = camObj.getImage()
-	if state:
-		cnt = cnt + 1
-		cv2.imshow("img", img)
-		cv2.waitKey(10)
-camObj.stop()
-print("bye")
+#    connArgs = {"host": '192.168.1.99', "port": 8072}
+#    cam = Esp32VideoService(connArgs)
+#    cam.start()

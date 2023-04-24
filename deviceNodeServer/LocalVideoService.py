@@ -81,6 +81,7 @@ class LocalVideoService(BaseVideoService):
 '''
 simple test code
 '''
+'''
 connArgs = {
 	"cameraId":0,
 	"height":600,
@@ -99,3 +100,4 @@ while cnt < 200:
 		cv2.waitKey(10)
 camObj.stop()
 print("bye")
+'''
