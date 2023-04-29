@@ -60,11 +60,44 @@ class FrameConstructor():
 	}
 	'''
 	#ToDo: stack images there per row
+	#ToDo: deep test of every case of failure
+	#create the no image from cam driver
 	def buildFrame(self, argsObj):
 		toggleFlag = 0
+		frameRow = None
 		frame = None
 		for id in argsObj.idList:
-			if toggleFlag < 
+			img = self.deviceDict[id].getImage()
+			if frameRow is None:
+				frameRow = img
+				toggleFlag = toggleFlag + 1
+				continue
+			elif toggleFlag < argsObj["rowLen"]:
+				frameRow = np.hstack((frame,img))
+				toggleFlag = toggleFlag + 1
+				continue
+			elif toggleFlag == argsObj["rowLen"] and frame is None:
+				frame = np.copy(frameRow)
+				frameRow = img
+				toggleFlag =  1
+				continue
+			elif toggleFlag == argsObj["rowLen"] and frame is not None:
+				frame = np.vstack((frame,frameRow))
+				frameRow = None
+				frameRow = img
+				toggleFlag = toggleFlag + 1
+				continue
+		
+		if toggleFlag > 0 and toggleFlag < argsObj["rowLen"] and frameRow is not None:
+			h,w,_ = img.shape
+			paddWidth = argsObj["rowLen"] - toggleFlag
+			paddImg = np.zeros((h,w*paddWidth,3))
+			frameRow = np.hstack((frame,img))
+			frame = np.vstack((frame,frameRow))
+		return frame
+		#print("frame "+str(id)+"could not be loaded")
+				
+				
 			
 		return frame
 	
