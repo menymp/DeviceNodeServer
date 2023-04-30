@@ -15,7 +15,7 @@ ESP32CAM = 1
 LOCALCAM = 2
 
 class FrameConstructor():
-	def __init__():
+	def __init__(self):
 		self.deviceDict = {}
 		pass
 	'''
@@ -43,7 +43,7 @@ class FrameConstructor():
 				camObj = LocalVideoService(argsObj)
 				camObj.start()
 				self.deviceDict[argsObj["id"]] = camObj
-			else
+			else:
 				raise Exception("Camera type not supported")
 		except Exception as e:
 			camObj.stop()
@@ -59,21 +59,22 @@ class FrameConstructor():
 		"rowLen":2 #how many images stack in the horizontal
 	}
 	'''
-	#ToDo: stack images there per row
 	#ToDo: deep test of every case of failure
 	#create the no image from cam driver
 	def buildFrame(self, argsObj):
 		toggleFlag = 0
 		frameRow = None
 		frame = None
-		for id in argsObj.idList:
-			img = self.deviceDict[id].getImage()
+		for id in argsObj["idList"]:
+			flag, img = self.deviceDict[id].getImage()
+			img = cv2.resize(img, (argsObj["height"], argsObj["width"]))
+			#print(frame.shape)
 			if frameRow is None:
 				frameRow = img
 				toggleFlag = toggleFlag + 1
 				continue
 			elif toggleFlag < argsObj["rowLen"]:
-				frameRow = np.hstack((frame,img))
+				frameRow = np.hstack((frameRow,img))
 				toggleFlag = toggleFlag + 1
 				continue
 			elif toggleFlag == argsObj["rowLen"] and frame is None:
@@ -88,17 +89,20 @@ class FrameConstructor():
 				toggleFlag = toggleFlag + 1
 				continue
 		
+		if frame is None:
+			frame = frameRow
+		
 		if toggleFlag > 0 and toggleFlag < argsObj["rowLen"] and frameRow is not None:
-			h,w,_ = img.shape
+			h = img.shape[0]
+			w = img.shape[1]
 			paddWidth = argsObj["rowLen"] - toggleFlag
-			paddImg = np.zeros((h,w*paddWidth,3))
-			frameRow = np.hstack((frame,img))
+			#print(paddImg.shape)
+			#paddImg = np.ones((h,w*paddWidth,3), dtype=np.int8)
+			#ToDo: check the reason why stacking a zeros image result in gray screen
+			#print(paddImg)
+			#print(img)
+			frameRow = np.hstack((frameRow,img))
 			frame = np.vstack((frame,frameRow))
-		return frame
-		#print("frame "+str(id)+"could not be loaded")
-				
-				
-			
 		return frame
 	
 	def getImage(self, id):
@@ -107,3 +111,4 @@ class FrameConstructor():
 	def stopAllCameras(self):
 		for key, value in self.deviceDict.items:
 			value.stop
+

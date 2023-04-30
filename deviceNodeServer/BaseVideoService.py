@@ -9,7 +9,7 @@ import numpy as np
 class BaseVideoService():
 	def __init__(self, connectionArgs):
 		self.connectionArgs = connectionArgs
-		self.image = None
+		self.image = np.zeros((600,600,3))
 		pass
 	
 	def start(self):
