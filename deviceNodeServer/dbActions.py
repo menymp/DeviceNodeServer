@@ -87,3 +87,19 @@ class dbDevicesActions(dbConnectorBase):
     def getDeviceByNameNode(self, idParentNode, deviceName):
         records = self.dbConn.execute("SELECT devices.idDevices, devices.name, devicesmodes.mode, devicestype.type, devices.channelpath, devices.idParentNode, nodestable.nodeName, nodestable.nodePath, supportedprotocols.ProtocolName, nodestable.idOwnerUser, nodestable.connectionParameters FROM devices INNER JOIN devicesmodes ON devicesmodes.idDevicesModes = devices.idMode INNER JOIN devicestype ON devicestype.idDevicesType = devices.idType INNER JOIN nodestable ON devices.idParentNode = nodestable.idNodesTable INNER JOIN supportedprotocols ON nodestable.idDeviceProtocol = supportedprotocols.idSupportedProtocols WHERE devices.idParentNode = %s AND devices.name = %s",(idParentNode,deviceName,))
         return records
+
+class dbVideoActions(dbConnectorBase):
+	def getVideoSources(self):
+		records = self.dbConn.execute("SELECT * FROM videoSources")
+		return records
+	
+	def addVideoSource(self, name, parameterObject):
+		records = self.dbConn.execute("INSERT INTO videoSources VALUES ")
+		return "OK"
+	
+	def updateVideoSource(self, parameterObject):
+		return "OK"
+	
+	def removeVideoSource(self, parameterObject):
+		return "OK"
+		

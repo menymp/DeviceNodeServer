@@ -3,27 +3,31 @@ from nodeManager import nodeDeviceManager
 from deviceManager import deviceManager
 from websocketHandler import wSocketServerManager
 from configsCreate import configsParser
+from videoHttpController import videoHandler
 import threading
 import time
 import json
 
 
 class serverManager():
-    def init(self, args):
-        #iniciar tareas principales
-        #
-        self.args = args
-
-        self.taskLoopSearch = threading.Thread(target=self.startLoopSearch, args=(args,20,))
-        self.taskLoopSearch.start()
-
-        self.taskDeviceManager = threading.Thread(target=self.startDeviceManager, args=(args, 10,))
-        self.taskDeviceManager.start()
-        time.sleep(6)
-        #self.taskWSocketServer = threading.Thread(target=self.startWebSocketServer, args=(args, self.deviceManager.executeCMDJson))
-        #self.taskWSocketServer.start()
-        self.startWebSocketServer(args, self.deviceManager.executeCMDJson)
-        pass
+	def init(self, args):
+		#iniciar tareas principales
+		#
+		self.args = args
+		
+		self.taskLoopSearch = threading.Thread(target=self.startLoopSearch, args=(args,20,))
+		self.taskLoopSearch.start()
+		
+		self.taskDeviceManager = threading.Thread(target=self.startDeviceManager, args=(args, 10,))
+		self.taskDeviceManager.start()
+		time.sleep(6)
+		
+		self.taskDeviceManager = threading.Thread(self.startVideoServer, args=(args, 10,))
+		self.taskDeviceManager.start()
+		#self.taskWSocketServer = threading.Thread(target=self.startWebSocketServer, args=(args, self.deviceManager.executeCMDJson))
+		#self.taskWSocketServer.start()
+		self.startWebSocketServer(args, self.deviceManager.executeCMDJson)
+		pass
 
     def startLoopSearch(self, args, timePoll):
         devMgr = nodeDeviceManager()
@@ -55,6 +59,8 @@ class serverManager():
         pass
 	
 	def startVideoServer(self, args):
+		self.videoHandlerObj = videoHandler(args)
+		self.videoHandlerObj.serverListen()
 		pass
 
 

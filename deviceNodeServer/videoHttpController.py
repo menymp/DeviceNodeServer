@@ -1,5 +1,4 @@
 import time
-
 import tornado.ioloop
 import tornado.web
 import tornado.httpserver
@@ -8,6 +7,8 @@ import tornado.template
 import gen
 import os
 
+
+from dbActions import dbDevicesActions
 from FrameConstructor import *
 
 class videoFeedHandler(tornado.web.RequestHandler):
@@ -36,14 +37,27 @@ class videoFeedHandler(tornado.web.RequestHandler):
 
 
 class videoHandler():
-	def __init__(self):
+	def __init__(self, args):
+		self.dbHost = initArgs[0]
+		self.dbName = initArgs[1]
+		self.dbUser = initArgs[2]
+		self.dbPass = initArgs[3]
+		
 		app = self._make_app(frameObjConstructor)
 		self.server = tornado.httpserver.HTTPServer(app)
 		pass
 	
 	def _initVideoSources(self):
 		#ToDo:  this list should be loaded from database
+		self.dbActions = dbVideoActions()
+		self.dbActions.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
+		self.videoSources = self.dbActions.getVideoSources()
+		
 		self.frameObjConstructor = FrameConstructor()
+		#ToDo: create db schemma, parse data and init object
+		for deviceInfo in self.videoSources:
+			#connArgs = {"id": 1,"host": '192.168.1.99', "port": 8072, "height":600, "width":800, "type":ESP32CAM}
+			pass
 		#connArgs should be fetch from database
 		#frameObjConstructor.initNewCamera(connArgs3)
 		pass
