@@ -53,6 +53,9 @@ class serverManager():
             time.sleep(timePoll)
             pass
         pass
+	
+	def startVideoServer(self, args):
+		pass
 
 
 if __name__ == "__main__":

@@ -9,7 +9,8 @@ import numpy as np
 class BaseVideoService():
 	def __init__(self, connectionArgs):
 		self.connectionArgs = connectionArgs
-		self.image = np.zeros((600,600,3))
+		self.image = np.zeros((connectionArgs["height"],connectionArgs["width"],3), dtype=np.uint8)
+		cv2.putText(self.image, "No Image", (10,50), cv2.FONT_HERSHEY_SIMPLEX, 3, (255,255,255), 2, cv2.LINE_AA)
 		pass
 	
 	def start(self):

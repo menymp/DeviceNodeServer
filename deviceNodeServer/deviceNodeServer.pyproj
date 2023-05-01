@@ -31,6 +31,7 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="deviceNodeServer.py" />
+    <Compile Include="FrameConstructor.py" />
     <Compile Include="mySqlConn.py" />
     <Compile Include="nodeDiscoveryTool.py" />
     <Compile Include="nodeManager.py" />

@@ -56,7 +56,8 @@ class FrameConstructor():
 		"height":600,
 		"width":600,
 		"idsList":[1,2,3], #expected ids to be concatenated
-		"rowLen":2 #how many images stack in the horizontal
+		"rowLen":2, #how many images stack in the horizontal
+		"idText":True #enable video id for source
 	}
 	'''
 	#ToDo: deep test of every case of failure
@@ -68,7 +69,10 @@ class FrameConstructor():
 		for id in argsObj["idList"]:
 			flag, img = self.deviceDict[id].getImage()
 			img = cv2.resize(img, (argsObj["height"], argsObj["width"]))
-			#print(frame.shape)
+			
+			if argsObj["idText"] == True:
+				img = cv2.putText(img, "Source " + str(id), (10,argsObj["height"] - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255), 1, cv2.LINE_AA)
+			
 			if frameRow is None:
 				frameRow = img
 				toggleFlag = toggleFlag + 1
@@ -86,24 +90,29 @@ class FrameConstructor():
 				frame = np.vstack((frame,frameRow))
 				frameRow = None
 				frameRow = img
-				toggleFlag = toggleFlag + 1
+				toggleFlag = 1
 				continue
 		
 		if frame is None:
 			frame = frameRow
 		
+		if frame is not None and frameRow is not None and toggleFlag == argsObj["rowLen"]:
+			frame = np.vstack((frame,frameRow))
+		
 		if toggleFlag > 0 and toggleFlag < argsObj["rowLen"] and frameRow is not None:
 			h = img.shape[0]
 			w = img.shape[1]
 			paddWidth = argsObj["rowLen"] - toggleFlag
-			#print(paddImg.shape)
-			#paddImg = np.ones((h,w*paddWidth,3), dtype=np.int8)
-			#ToDo: check the reason why stacking a zeros image result in gray screen
-			#print(paddImg)
-			#print(img)
-			frameRow = np.hstack((frameRow,img))
+			paddImg = np.zeros((h,w*paddWidth,3), dtype=np.uint8)
+			frameRow = np.hstack((frameRow,paddImg))
+			
 			frame = np.vstack((frame,frameRow))
 		return frame
+	
+	def getJpg(self, argsObj):
+		img = self.buildFrame(argsObj)
+		ret, jpeg = cv2.imencode('.jpg', img)
+		return jpeg.tobytes()
 	
 	def getImage(self, id):
 		return self.deviceDict[id].getImage()
@@ -111,4 +120,3 @@ class FrameConstructor():
 	def stopAllCameras(self):
 		for key, value in self.deviceDict.items:
 			value.stop
-

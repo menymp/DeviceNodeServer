@@ -29,7 +29,9 @@ import os
 import sys
 sys.path.append("..")
 
-from Esp32VideoService import Esp32VideoService
+from FrameConstructor import *
+#from Esp32VideoService import Esp32VideoService
+#from LocalVideoService import LocalVideoService
 
 #cam = None
 html_page_path = dir_path = os.path.dirname(os.path.realpath(__file__)) + '/www/'
@@ -83,14 +85,23 @@ class StreamHandler(tornado.web.RequestHandler):
 
         self.served_image_timestamp = time.time()
         my_boundary = "--jpgboundary"
+        
+        argsObj={
+	        "height":600,
+	        "width":600,
+	        "idList":[1,2,3], #expected ids to be concatenated
+	        "rowLen":2, #how many images stack in the horizontal
+			"idText":True
+        }
+        
         while True:
             # Generating images for mjpeg stream and wraps them into http resp
             if self.get_argument('fd') == "true":
                 #img = cam.get_frame(True)
-                img = self.cam.getJpg()
+                img = self.cam.getJpg(argsObj)
             else:
                 #img = cam.get_frame(False)
-                img = self.cam.getJpg()
+                img = self.cam.getJpg(argsObj)
             interval = 0.1
             if self.served_image_timestamp + interval < time.time():
                 self.write(my_boundary)
@@ -109,12 +120,38 @@ class StreamHandler(tornado.web.RequestHandler):
                     pass
                 ioloop.add_timeout(ioloop.time() + interval, _callbackF)
 
+class videoFeedHandler(tornado.web.RequestHandler):
+	def initialize(self, frameConstObj):
+		self.frameConstObj = frameConstObj
+	
+	@tornado.gen.coroutine
+	def get(self):
+		self.set_header('Cache-Control', 'no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0')
+		self.set_header( 'Pragma', 'no-cache')
+		self.set_header( 'Content-Type', 'multipart/x-mixed-replace;boundary=--jpgboundary')
+		self.set_header('Connection', 'close')
+		
+		my_boundary = "--jpgboundary"
+		
+		argsObj={"height":600,"width":600,"idList":[1,2,3],"rowLen":2,"idText":True}
+		img = self.frameConstObj.getJpg(argsObj)
+		
+		
+		self.write(my_boundary)
+		self.write("Content-type: image/jpeg\r\n")
+		self.write("Content-length: %s\r\n\r\n" % len(img))
+		self.write(img)
+		
+		self.flush()
 
-def make_app(cam):
+#https://stackoverflow.com/questions/55995128/how-can-i-constantly-update-an-image
+def make_app(frameObjConstructor):
     # add handlers
     return tornado.web.Application([
         (r'/', HtmlPageHandler),
-        (r'/video_feed', StreamHandler, {'cam': cam}),
+        #(r'/video_feed', StreamHandler, {'cam': frameObjConstructor}),
+		(r'/video_feed', videoFeedHandler, {'frameConstObj': frameObjConstructor}),
+		#(r'/video_feed2', StreamHandler, {'cam': cam}),
         (r'/setparams', SetParamsHandler),
         (r'/(?P<file_name>[^\/]+htm[l]?)+', HtmlPageHandler),
         (r'/(?:image)/(.*)', tornado.web.StaticFileHandler, {'path': './image'}),
@@ -127,11 +164,17 @@ def make_app(cam):
 if __name__ == "__main__":
     #creates camera
     #cam = video.UsbCamera()
-    connArgs = {"host": '192.168.1.99', "port": 8072}
-    cam = Esp32VideoService(connArgs)
-    cam.start()
-
+    frameObjConstructor = FrameConstructor()
+    connArgs = {"id": 1,"host": '192.168.1.99', "port": 8072, "height":600, "width":800, "type":ESP32CAM}
+    frameObjConstructor.initNewCamera(connArgs)
+    connArgs2 = {"id": 2,"cameraId":0, "height":600, "width":800, "type":LOCALCAM}  
+    frameObjConstructor.initNewCamera(connArgs2)
+    connArgs3 = {"id": 3, "cameraId":"http://192.168.1.76:8072/video", "height":600, "width":800, "type":LOCALCAM}
+    frameObjConstructor.initNewCamera(connArgs3)
+    
     # bind server on 8080 port
-    app = make_app(cam)
-    app.listen(9090)
+    app = make_app(frameObjConstructor)
+    server = tornado.httpserver.HTTPServer(app)
+    server.listen(9090)
+    #app.listen(9090)
     tornado.ioloop.IOLoop.current().start()

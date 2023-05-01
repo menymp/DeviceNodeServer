@@ -1,5 +1,18 @@
 $(document).ready(function(){
 
+
+	function getFrame()
+	{
+		var image = document.getElementById("videofield");
+		image.src = "/video_feed?fd=true"
+	}
+	
+	function videoLoopStart() {
+		getFrame();
+		setTimeout(() => {
+			videoLoopStart();
+		}, 10);
+	}
     $(':checkbox').checkboxpicker();
 
     function ChangeRes(w, h){
@@ -13,15 +26,18 @@ $(document).ready(function(){
     }
 
     $("#low").click(function(){
-        ChangeRes(320, 240);
+        //ChangeRes(320, 240);
+		videoLoopStart();
 	})
 
 	$("#norm").click(function(){
-        ChangeRes(640, 480);
+        //ChangeRes(640, 480);
+		videoLoopStart();
 	})
 
 	$("#hi").click(function(){
-        ChangeRes(800, 600);
+        //ChangeRes(800, 600);
+		videoLoopStart();
 	})
 
 	$(':checkbox').checkboxpicker().change(function() {
