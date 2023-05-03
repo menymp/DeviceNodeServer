@@ -93,13 +93,15 @@ class dbVideoActions(dbConnectorBase):
 		records = self.dbConn.execute("SELECT * FROM videoSources")
 		return records
 	
-	def addVideoSource(self, name, parameterObject):
-		records = self.dbConn.execute("INSERT INTO videoSources VALUES ")
+	def addVideoSource(self, name, idCreator, parameterObject):
+		records = self.dbConn.execute("INSERT INTO videoSources (name, idCreator, sourceParameters) VALUES (%s, %s, %s)")
 		return "OK"
 	
 	def updateVideoSource(self, parameterObject):
+		#not needed for now
 		return "OK"
 	
 	def removeVideoSource(self, parameterObject):
+		#not needed for now
 		return "OK"
 		

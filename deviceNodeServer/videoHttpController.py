@@ -57,6 +57,11 @@ class videoHandler():
 		#ToDo: create db schemma, parse data and init object
 		for deviceInfo in self.videoSources:
 			#connArgs = {"id": 1,"host": '192.168.1.99', "port": 8072, "height":600, "width":800, "type":ESP32CAM}
+			connArgs=deviceInfo[3]
+			connArgs["name"]=deviceInfo[1]
+			connArgs["id"]=deviceInfo[0]
+			connArgs["idCreator"]=deviceInfo[2]
+			self.frameObjConstructor.initNewCamera(connArgs)
 			pass
 		#connArgs should be fetch from database
 		#frameObjConstructor.initNewCamera(connArgs3)
