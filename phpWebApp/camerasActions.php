@@ -77,6 +77,64 @@
 		}
 		//echo EncodeJSONClientResponse(['Message' => "ERROR: Node not found!","Result" =>"Error"]);
 	}
+	if($operationOption == "AddCam")
+	{
+
+		if(!isset($_POST['name']))
+		{
+			exit();
+		}
+		
+		if(!isset($_POST['sourceParameters']))
+		{
+			exit();
+		}
+		
+		$name = $_POST['name'];
+		$sourceParameters = $_POST['sourceParameters'];
+		
+		if(isset($_POST['idVideoSource']))
+		{
+			//update operation, check if exists
+			$idVideoSource = $_POST['idCreator'];
+			$sql = "SELECT * FROM VideoSources WHERE idCreator=?";
+			$result = $dbObj1->dbQuery($sql, "i", [$idVideoSource]);
+			if ($result->num_rows == 0)
+			{
+				echo EncodeJSONClientResponse(['Message' => "id does not exists","Result" =>"Error"]);
+			}
+			else
+			{
+				$sql = "UPDATE VideoSources SET
+							name = ?, 
+							idCreator = ?,  
+							sourceParameters = ?
+						WHERE
+							ID = ?";
+				$result = $dbObj1->dbQuery($sql, "i", [$name,$userId,$sourceParameters,$idVideoSource]);
+			}
+		}
+		else
+		{
+			$sql = "INSERT INTO VideoSources
+						(name, idCreator,  sourceParameters)
+					VALUES 
+						(?, ?, ?)";
+			$result = $dbObj1->dbQuery($sql, "i", [$name,$userId,$sourceParameters]);			
+		}
+
+		echo EncodeJSONClientResponse(['Message' => "0 results","Result" =>"Success"]);
+	}
+	if($operationOption == "DelCam")
+	{
+		if(!isset($_POST['idVideoSource']))
+		{
+			exit();
+		}
+		$idVideoSource = $_POST['idVideoSource'];
+		$sql = "DELETE FROM VideoSources WHERE idVideoSource = ?";
+		$result = $dbObj1->dbQuery($sql, "i", [$idVideoSource]);	
+	}
 	$dbObj1->disconect();
 	
 ?>
