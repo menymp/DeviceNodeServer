@@ -31,6 +31,7 @@
 				<a href="devices.php">Devices</a>
 				<a href="nodes.php">Nodes</a>
 				<a href="cameras.php">Cameras</a>
+				<a href="camerasDashboard.php">video Dash</a>
 				<a href="signup.php">Signup</a>
 				
 				<div class="loginforms">

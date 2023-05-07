@@ -86,22 +86,23 @@ class StreamHandler(tornado.web.RequestHandler):
         self.served_image_timestamp = time.time()
         my_boundary = "--jpgboundary"
         
+        '''
         argsObj={
 	        "height":600,
 	        "width":600,
-	        "idList":[1,2,3], #expected ids to be concatenated
+	        "idList":[1], #expected ids to be concatenated
 	        "rowLen":2, #how many images stack in the horizontal
 			"idText":True
         }
-        
+        '''
+		
         while True:
             # Generating images for mjpeg stream and wraps them into http resp
-            if self.get_argument('fd') == "true":
-                #img = cam.get_frame(True)
-                img = self.cam.getJpg(argsObj)
-            else:
-                #img = cam.get_frame(False)
-                img = self.cam.getJpg(argsObj)
+            argsObj = json.loads(self.get_argument('vidArgs'))
+            #img = cam.get_frame(True)
+            img = self.cam.getJpg(argsObj)
+            #img = cam.get_frame(False)
+            #img = self.cam.getJpg(argsObj)
             interval = 0.1
             if self.served_image_timestamp + interval < time.time():
                 self.write(my_boundary)
@@ -133,7 +134,7 @@ class videoFeedHandler(tornado.web.RequestHandler):
 		
 		my_boundary = "--jpgboundary"
 		
-		argsObj={"height":600,"width":600,"idList":[1,2,3],"rowLen":2,"idText":True}
+		argsObj={"height":600,"width":600,"idList":[1],"rowLen":2,"idText":True}
 		img = self.frameConstObj.getJpg(argsObj)
 		
 		
@@ -164,15 +165,7 @@ def make_app(frameObjConstructor):
 if __name__ == "__main__":
     #creates camera
     #cam = video.UsbCamera()
-    frameObjConstructor = FrameConstructor()
-    connArgs = {"id": 1,"host": '192.168.1.99', "port": 8072, "height":600, "width":800, "type":ESP32CAM}
-    frameObjConstructor.initNewCamera(connArgs)
-    connArgs2 = {"id": 2,"cameraId":0, "height":600, "width":800, "type":LOCALCAM}  
-    frameObjConstructor.initNewCamera(connArgs2)
-    connArgs3 = {"id": 3, "cameraId":"http://192.168.1.76:8072/video", "height":600, "width":800, "type":LOCALCAM}
-    frameObjConstructor.initNewCamera(connArgs3)
-    
-    # bind server on 8080 port
+	# bind server on 8080 port
     app = make_app(frameObjConstructor)
     server = tornado.httpserver.HTTPServer(app)
     server.listen(9090)

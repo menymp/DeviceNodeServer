@@ -10,24 +10,27 @@ import json
 
 
 class serverManager():
-	def init(self, args):
-		#iniciar tareas principales
-		#
-		self.args = args
-		
-		self.taskLoopSearch = threading.Thread(target=self.startLoopSearch, args=(args,20,))
-		self.taskLoopSearch.start()
-		
-		self.taskDeviceManager = threading.Thread(target=self.startDeviceManager, args=(args, 10,))
-		self.taskDeviceManager.start()
-		time.sleep(6)
-		
-		self.taskDeviceManager = threading.Thread(self.startVideoServer, args=(args, 10,))
-		self.taskDeviceManager.start()
-		#self.taskWSocketServer = threading.Thread(target=self.startWebSocketServer, args=(args, self.deviceManager.executeCMDJson))
-		#self.taskWSocketServer.start()
-		self.startWebSocketServer(args, self.deviceManager.executeCMDJson)
-		pass
+    def init(self, args):
+        #iniciar tareas principales
+        #
+        self.args = args
+        
+        self.taskLoopSearch = threading.Thread(target=self.startLoopSearch, args=(args,20,))
+        self.taskLoopSearch.start()
+        
+        self.taskDeviceManager = threading.Thread(target=self.startDeviceManager, args=(args, 10,))
+        self.taskDeviceManager.start()
+        
+        self.taskVideoServer = threading.Thread(target=self.startVideoServer, args=(args, ))
+        self.taskVideoServer.start()
+        time.sleep(10)
+        #self.taskWSocketServer = threading.Thread(target=self.startWebSocketServer, args=(args, self.deviceManager.executeCMDJson))
+        #self.taskWSocketServer.start()
+        #ToDo: review exception, deviceManager is not being created
+        self.startWebSocketServer(args, self.deviceManager.executeCMDJson)
+        #self.startWebSocketServer.start()
+        
+        pass
 
     def startLoopSearch(self, args, timePoll):
         devMgr = nodeDeviceManager()
@@ -57,11 +60,11 @@ class serverManager():
             time.sleep(timePoll)
             pass
         pass
-	
-	def startVideoServer(self, args):
-		self.videoHandlerObj = videoHandler(args)
-		self.videoHandlerObj.serverListen()
-		pass
+    
+    def startVideoServer(self, args):
+        self.videoHandlerObj = videoHandler(args)
+        self.videoHandlerObj.serverListen()
+        pass
 
 
 if __name__ == "__main__":

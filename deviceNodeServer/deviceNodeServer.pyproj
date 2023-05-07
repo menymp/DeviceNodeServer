@@ -22,6 +22,8 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="BaseVideoService.py" />
+    <Compile Include="cameraServiceController.py" />
     <Compile Include="Cliente.py" />
     <Compile Include="configsCreate.py">
       <SubType>Code</SubType>
@@ -31,12 +33,17 @@
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="deviceNodeServer.py" />
+    <Compile Include="Esp32VideoService.py" />
     <Compile Include="FrameConstructor.py" />
+    <Compile Include="LocalVideoService.py" />
     <Compile Include="mySqlConn.py" />
     <Compile Include="nodeDiscoveryTool.py" />
     <Compile Include="nodeManager.py" />
     <Compile Include="pythonServer.py" />
     <Compile Include="pythonServerExample2.py" />
+    <Compile Include="telegramBotUtil.py" />
+    <Compile Include="videoHttpController.py" />
+    <Compile Include="webcamTest.py" />
     <Compile Include="websocketHandler.py" />
   </ItemGroup>
   <ItemGroup>

@@ -51,6 +51,12 @@ class FrameConstructor():
 			result["msg"] = e
 		return result
 	
+	def getDeviceIds(self):
+		devIdArr = []
+		for deviceD in self.deviceDict:
+			devIdArr.append(deviceD)
+		return devIdArr
+	
 	'''
 	argsObj={
 		"height":600,
@@ -93,9 +99,6 @@ class FrameConstructor():
 				toggleFlag = 1
 				continue
 		
-		if frame is None:
-			frame = frameRow
-		
 		if frame is not None and frameRow is not None and toggleFlag == argsObj["rowLen"]:
 			frame = np.vstack((frame,frameRow))
 		
@@ -106,7 +109,13 @@ class FrameConstructor():
 			paddImg = np.zeros((h,w*paddWidth,3), dtype=np.uint8)
 			frameRow = np.hstack((frameRow,paddImg))
 			
-			frame = np.vstack((frame,frameRow))
+			if frame is None:
+				frame = frameRow
+			else:
+				frame = np.vstack((frame,frameRow))
+			
+		if frame is None:
+			frame = frameRow
 		return frame
 	
 	def getJpg(self, argsObj):
