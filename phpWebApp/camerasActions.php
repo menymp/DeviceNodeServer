@@ -60,7 +60,7 @@
 					users.username, 
 					VideoSources.sourceParameters
 				FROM VideoSources 
-					INNER JOIN users ON VideoSources.idCreator = users.username
+					INNER JOIN users ON VideoSources.idCreator = users.idUser
 				ORDER BY VideoSources.name DESC LIMIT ? OFFSET ?";
 				
 		$result = $dbObj1->dbQuery($sql, "i", [$pageSize,$pageCount]);
@@ -116,10 +116,12 @@
 		{
 			exit();
 		}
+		$idCameraUpdate = $_POST['idVideoSource'];
+		$name = $_POST['name'];
+		$sourceParameters = $_POST['sourceParameters'];
 		
-		$idVideoSource = $_POST['idCreator'];
-		$sql = "SELECT * FROM VideoSources WHERE idCreator=?";
-		$result = $dbObj1->dbQuery($sql, "i", [$idVideoSource]);
+		$sql = "SELECT * FROM VideoSources WHERE idVideoSource=?";
+		$result = $dbObj1->dbQuery($sql, "i", [$idCameraUpdate]);
 		if ($result->num_rows == 0)
 		{
 			echo EncodeJSONClientResponse(['Message' => "id does not exists","Result" =>"Error"]);
@@ -131,8 +133,8 @@
 				idCreator = ?,  
 				sourceParameters = ?
 				WHERE
-					ID = ?";
-			$result = $dbObj1->dbQuery($sql, "i", [$name,$userId,$sourceParameters,$idVideoSource]);
+					 idVideoSource= ?";
+			$result = $dbObj1->dbQuery($sql, "i", [$name,$userId,$sourceParameters,$idCameraUpdate]);
 		}
 		echo EncodeJSONClientResponse(['Message' => "0 results","Result" =>"Success"]);
 	}

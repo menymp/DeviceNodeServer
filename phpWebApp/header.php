@@ -30,6 +30,7 @@
 				<a href="dashboard.php">Dashboard</a>
 				<a href="devices.php">Devices</a>
 				<a href="nodes.php">Nodes</a>
+				<a href="cameras.php">Cameras</a>
 				<a href="signup.php">Signup</a>
 				
 				<div class="loginforms">

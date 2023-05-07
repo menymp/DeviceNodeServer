@@ -45,7 +45,8 @@ $("#previous").click(function(){
 });
 
 $(document).ready(function () {
-	FetchCamssResponse();
+	InputFieldsClearMode();
+	FetchCamsResponse();
 });
 
 $("#createCamBtn").click(function(){
@@ -56,7 +57,6 @@ $("#createCamBtn").click(function(){
 	{
 		alert("a name is needed!");
 	}
-	s
 	if(camArgs == "")
 	{
 		alert("init arguments are required!");
@@ -65,15 +65,13 @@ $("#createCamBtn").click(function(){
 	$.ajax({
 		url: "camerasActions.php",
 		type: "POST",
-		data:({actionOption:"AddCam",camName:camName,sourceParameters:camArgs}),
+		data:({actionOption:"AddCam",name:camName,sourceParameters:camArgs}),
 		cache: false,
 		success: function(data)
 		{
-			//$('#table').html(data); 
 			var decodedData = JSON.parse(data);
 			if("Message" in decodedData)
 			{
-				//alert(decodedData['Message']);
 				$('#outputMessage').text(decodedData['Message']);
 			}
 			if("Result" in decodedData && decodedData['Result'] == 'Success')
@@ -94,18 +92,17 @@ $("#saveCamBtn").click(function(){
 		alert("Select a camera to perform this action!");
 		return;
 	}
+	
 	$.ajax({
 		url: "camerasActions.php",
 		type: "POST",
-		data:({actionOption:"UpdateCam",name:camName,camArgs:camArgs,idVideoSource:selectedId}),
+		data:({actionOption:"UpdateCam",name:camName,sourceParameters:camArgs,idVideoSource:selectedId}),
 		cache: false,
 		success: function(data)
 		{
-			//$('#table').html(data); 
 			var decodedData = JSON.parse(data);
 			if("Message" in decodedData)
 			{
-				//alert(decodedData['Message']);
 				$('#outputMessage').text(decodedData['Message']);
 			}
 			if("Result" in decodedData && decodedData['Result'] == 'Success')
@@ -122,7 +119,7 @@ function InputFieldsClearMode()
 	$('#saveCamBtn').prop('disabled', true);
 	$('#deleteCamBtn').prop('disabled', true);
 	$('#createCamBtn').prop('disabled', false);
-	$('#canName').val('');
+	$('#camName').val('');
 	$('#camArgs').val('');
 	selectedId = -1;
 	InputFieldsState = 0;
@@ -144,11 +141,9 @@ $("#deleteCamBtn").click(function(){
 			cache: false,
 			success: function(data)
 			{
-				//$('#table').html(data); 
 				var decodedData = JSON.parse(data);
 				if("Message" in decodedData)
 				{
-					//alert(decodedData['Message']);
 					$('#outputMessage').text(decodedData['Message']);
 				}
 				if("Result" in decodedData && decodedData['Result'] == 'Success')
@@ -172,11 +167,9 @@ function FetchCamsResponse()
 		cache: false,
 		success: function(data)
 		{
-			//alert(data);
 			var decodedData = JSON.parse(data);
 			if("Message" in decodedData)
 			{
-				//alert(decodedData['Message']);
 				$('#outputMessage').text(decodedData['Message']);
 			}
 			DisplayCamsTable(data);
@@ -187,7 +180,7 @@ function FetchCamsResponse()
 function DisplayCamsTable(data)
 {
 	headList = ['id','name','creator','source parameters'];
-	selectList = ['idVideoSource','name','username','sourceParameters'];
+	selectList = ['idVideoSource','name','username','sourceParameters','btnDetail'];
 	var tableWithButtons = AddCamFunctionBtns(JSON.parse(data));
 	displayTable('#tableCams',headList,selectList,tableWithButtons);
 }
@@ -196,7 +189,7 @@ function AddCamFunctionBtns(camFetchTable)//specific
 {
 	for(var i = 0, len = camFetchTable.length; i < len; i++)
 	{
-		camFetchTable[i]['btnDetail'] = '<button class="camDetailsBtn" onclick="camDetailsClick()" id="'+camFetchTable[i]['idVideoSource']+'" name="'+camFetchTable[i]['name']+'" creator="'+camFetchTable[i]['username']+'" sourceParameters="'+camFetchTable[i]['sourceParameters']+'"">Details</button>';
+		camFetchTable[i]['btnDetail'] = '<button class="camDetailsBtn" onclick="camDetailsClick()" id="'+camFetchTable[i]['idVideoSource']+'" name="'+camFetchTable[i]['name']+'" creator="'+camFetchTable[i]['username']+'" sourceParameters=\''+camFetchTable[i]['sourceParameters']+'\'">Details</button>';
 	}
 	return camFetchTable;
 }
@@ -244,12 +237,6 @@ function camDetailsClick()
 	
 	$('#camName').val(camName);
 	$('#camArgs').val(sourceParameters);
-
-	//alert(nodeParameters);
-	//if (typeof nodeParameters === "undefined")
-	//$('#nodeParameters').val('');
-	//else
-	//$('#nodeParameters').val(nodeParameters);	
 
 	$('#saveCamBtn').prop('disabled', false);
 	$('#deleteCamBtn').prop('disabled', false);
