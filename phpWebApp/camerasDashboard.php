@@ -10,6 +10,19 @@ echo '<div class="container">
 	<h2>User view name</h2>
 	<button id="startVideo">start video</button>
 	<button id="stopVideo">stop video</button>
+	<button id="editConfig">delete view</button>
+	<button id="deleteConfig">edit view</button>
+	<button id="newConfig">new view</button>
+	<select id="frameConfig">
+	</select>
+	<form id="newConfigForm">
+      <input id="heightIn" type="text" placeholder="height..."/>
+      <input id="widthIn" type="text" placeholder="width..."/>
+      <input id="rowLen" type="text" placeholder="row len..."/>
+	  <input id="rowLen" type="text" placeholder="row len..."/>
+	  <button id="hideForm">cancel</button>
+	  <button id="submitNewView">create</button>
+    </form>
 	<img id="videofield" class="video" src="http://localhost:9090/video_feed?fd=false">
 	<div id="outputMessage"></div>	
 </div>';
@@ -21,7 +34,35 @@ let flagStop = 0;
 
 $(document).ready(function () {
 	fetchVideoConfigResponse();
+	hideViewForm();
 });
+
+$("#submitNewView").click(function(){
+	showViewForm();
+});
+
+$("#newConfig").click(function(){
+	showViewForm();
+});
+
+$("#editConfig").click(function(){
+	showViewForm();
+});
+
+$("#deleteConfig").click(function(){
+});
+
+function hideViewForm()
+{
+	$('#newConfigForm').hide();
+	$('#videofield').show();
+}
+
+function showViewForm()
+{
+	$('#newConfigForm').show();
+	$('#videofield').hide();
+}
 
 function getFrame()
 {
