@@ -1,1 +1,15 @@
+https://pimylifeup.com/raspberry-pi-apache/#:~:text=Raspberry%20Pi%20Install%20Apache%201%20Before%20we%20install,web%20server%20up%20and%20running.%20...%20See%20More.
+sudo apt install php7.4 libapache2-mod-php7.4 php7.4-mbstring php7.4-mysql php7.4-curl php7.4-gd php7.4-zip -y
+https://pimylifeup.com/raspberry-pi-mysql/
+
+mariadb
+sudo mysql -u root -p
+CREATE DATABASE 'yourDB';
+SHOW DATABASES;
+CREATE USER 'user1'@localhost IDENTIFIED BY 'password1';
+SELECT User FROM mysql.user;
+GRANT ALL PRIVILEGES ON 'yourDB'.* TO 'user1'@localhost;
+FLUSH PRIVILEGES;
+SHOW GRANTS FOR 'user1'@localhost;
+
 https://phoenixnap.com/kb/how-to-create-mariadb-user-grant-privileges#:~:text=1%20Access%20MariaDB%20Server.%20Enter%20your%20password%20and,MariaDB%20shell.%204%20Remove%20MariaDB%20User%20Account.%20
