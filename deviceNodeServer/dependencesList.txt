@@ -1,0 +1,10 @@
+numpy
+opencv
+tornado6
+PIL
+websockets
+paho.mqtt
+mysql.connector
+telegram
+gen
+

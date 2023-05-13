@@ -1,0 +1,1 @@
+https://phoenixnap.com/kb/how-to-create-mariadb-user-grant-privileges#:~:text=1%20Access%20MariaDB%20Server.%20Enter%20your%20password%20and,MariaDB%20shell.%204%20Remove%20MariaDB%20User%20Account.%20
