@@ -2,4 +2,4 @@
 /dependencias.txt
 /deviceNodeServer/configs.ini
 /deviceNodeServer/__pycache__
-/ESP32 Nodes Network
+*.ini
