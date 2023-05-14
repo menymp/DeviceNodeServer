@@ -7,9 +7,9 @@
 #define SENSOR_PIR 3
 //#define SENSOR_VIBRATION 3
 
-const char* ssid = "MechLab24";
-const char* password = "menynet1";
-const char* mqtt_server = "192.168.1.137";
+const char* ssid = "";
+const char* password = "";
+const char* mqtt_server = "";
 
 WiFiClient wlanclient;
 PubSubClient mqttClient(wlanclient);
