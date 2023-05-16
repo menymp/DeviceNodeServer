@@ -3,6 +3,10 @@
 //MQTT Node Firmware for esp 32
 //
 //
+//OTA Headers
+#include <ESPmDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 //
 #include <ArduinoJson.h>
 #include "DHT.h"
@@ -24,7 +28,6 @@
 
 const char* ssid = "";
 const char* password = "";
-//const char* mqtt_server = "test.mosquitto.org";
 const char* mqtt_server = "";
 
 LiquidCrystal My_LCD(14, 27, 26, 25, 33, 32);
@@ -52,13 +55,43 @@ double watt;
 
 void setup()
 {
+  Serial.begin(9600);
+  
   adc2_config_channel_atten(ADC2_CHANNEL_4, ADC_ATTEN_DB_11);
   analogReadResolution(10);
   
-  Serial.begin(9600);
   My_LCD.begin(16, 2);
   CreateManifest();
   setup_wifi();
+
+ArduinoOTA
+    .onStart([]() {
+      String type;
+      if (ArduinoOTA.getCommand() == U_FLASH)
+        type = "sketch";
+      else // U_SPIFFS
+        type = "filesystem";
+
+      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+      Serial.println("Start updating " + type);
+    })
+    .onEnd([]() {
+      Serial.println("\nEnd");
+    })
+    .onProgress([](unsigned int progress, unsigned int total) {
+      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    })
+    .onError([](ota_error_t error) {
+      Serial.printf("Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+      else if (error == OTA_END_ERROR) Serial.println("End Failed");
+    });
+
+  ArduinoOTA.begin();
+  
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
   emon1.current(ADC_INPUT, 30);
@@ -330,6 +363,7 @@ void TaskPublishData(void *pvParameters)
 
 void loop()
 {
+  ArduinoOTA.handle(); 
   if (!client.connected()) {
     reconnect();
   }
