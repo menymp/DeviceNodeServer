@@ -1,28 +1,16 @@
 /*********
-  Rui Santos
-  Complete project details at https://RandomNerdTutorials.com/esp32-cam-take-photo-display-web-server/
-  
-  IMPORTANT!!! 
-   - Select Board "AI Thinker ESP32-CAM"
-   - GPIO 0 must be connected to GND to upload a sketch
-   - After connecting GPIO 0 to GND, press the ESP32-CAM on-board RESET button to put your board in flashing mode
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
+  cam photo socket server for device node server menymp
 *********/
+//OTA Headers
+#include <ESPmDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 
 #include <WiFi.h>
 #include "esp_camera.h"
 #include "esp_timer.h"
 #include "img_converters.h"
 #include "Arduino.h"
-//#include "soc/soc.h"           // Disable brownour problems
-//#include "soc/rtc_cntl_reg.h"  // Disable brownour problems
-//#include "driver/rtc_io.h"
-//#include <ESPAsyncWebServer.h>
-//#include <StringArray.h>
-//#include <SPIFFS.h>
-//#include <FS.h>
 
 
 #include <PubSubClient.h>
@@ -30,23 +18,11 @@
 
 #define CAMERA_MODEL_AI_THINKER
 
-//const char* mqtt_server = "test.mosquitto.org";
 const char* mqtt_server = "";
 
 // Replace with your network credentials
-//const char* ssid = "REPLACE_WITH_YOUR_SSID";
-//const char* password = "REPLACE_WITH_YOUR_PASSWORD";
 const char* ssid = "";
 const char* password = "";
-
-
-// Create AsyncWebServer object on port 80
-//AsyncWebServer server(80);
-
-//boolean takeNewPhoto = false;
-
-// Photo File Name to save in SPIFFS
-//#define FILE_PHOTO "/photo.jpg"
 
 // OV2640 camera module pins (CAMERA_MODEL_AI_THINKER)
 #define PWDN_GPIO_NUM     32
@@ -66,45 +42,7 @@ const char* password = "";
 #define HREF_GPIO_NUM     23
 #define PCLK_GPIO_NUM     22
 
-/*const char index_html[] PROGMEM = R"rawliteral{
-<!DOCTYPE HTML><html>
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <style>
-    body { text-align:center; }
-    .vert { margin-bottom: 10%; }
-    .hori{ margin-bottom: 0%; }
-  </style>
-</head>
-<body>
-  <div id="container">
-    <h2>ESP32-CAM Last Photo</h2>
-    <p>It might take more than 5 seconds to capture a photo.</p>
-    <p>
-      <button onclick="rotatePhoto();">ROTATE</button>
-      <button onclick="capturePhoto()">CAPTURE PHOTO</button>
-      <button onclick="location.reload();">REFRESH PAGE</button>
-    </p>
-  </div>
-  <div><img src="saved-photo" id="photo" width="70%"></div>
-</body>
-<script>
-  var deg = 0;
-  function capturePhoto() {
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', "/capture", true);
-    xhr.send();
-  }
-  function rotatePhoto() {
-    var img = document.getElementById("photo");
-    deg += 90;
-    if(isOdd(deg/90)){ document.getElementById("container").className = "vert"; }
-    else{ document.getElementById("container").className = "hori"; }
-    img.style.transform = "rotate(" + deg + "deg)";
-  }
-  function isOdd(n) { return Math.abs(n % 2) == 1; }
-</script>
-</html>)rawliteral";*/
+
 WiFiServer wifiServer(8072);
 WiFiClient cliente;
 
@@ -129,18 +67,38 @@ void setup() {
     delay(1000);
     Serial.println("Connecting to WiFi...");
   }
-  /*if (!SPIFFS.begin(true)) {
-    Serial.println("An Error has occurred while mounting SPIFFS");
-    ESP.restart();
-  }
-  else {
-    delay(500);
-    Serial.println("SPIFFS mounted successfully");
-  }*/
 
   // Print ESP32 Local IP Address
   Serial.print("IP Address: http://");
   Serial.println(WiFi.localIP());
+
+ArduinoOTA
+    .onStart([]() {
+      String type;
+      if (ArduinoOTA.getCommand() == U_FLASH)
+        type = "sketch";
+      else // U_SPIFFS
+        type = "filesystem";
+
+      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
+      Serial.println("Start updating " + type);
+    })
+    .onEnd([]() {
+      Serial.println("\nEnd");
+    })
+    .onProgress([](unsigned int progress, unsigned int total) {
+      Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+    })
+    .onError([](ota_error_t error) {
+      Serial.printf("Error[%u]: ", error);
+      if (error == OTA_AUTH_ERROR) Serial.println("Auth Failed");
+      else if (error == OTA_BEGIN_ERROR) Serial.println("Begin Failed");
+      else if (error == OTA_CONNECT_ERROR) Serial.println("Connect Failed");
+      else if (error == OTA_RECEIVE_ERROR) Serial.println("Receive Failed");
+      else if (error == OTA_END_ERROR) Serial.println("End Failed");
+    });
+
+  ArduinoOTA.begin();
 
   // Turn-off the 'brownout detector'
   //WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0);
@@ -191,23 +149,6 @@ void setup() {
   }
   
   wifiServer.begin();
-  
-  // Route for root / web page
-  /*server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
-    request->send_P(200, "text/html", index_html);
-  });
-
-  server.on("/capture", HTTP_GET, [](AsyncWebServerRequest * request) {
-    takeNewPhoto = true;
-    request->send_P(200, "text/plain", "Taking Photo");
-  });
-
-  server.on("/saved-photo", HTTP_GET, [](AsyncWebServerRequest * request) {
-    request->send(SPIFFS, FILE_PHOTO, "image/jpg", false);
-  });
-
-  // Start server
-  server.begin();*/
   CreateManifest();
   client.setServer(mqtt_server, 1883);
 
@@ -221,11 +162,6 @@ void setup() {
 }
 
 void loop() {
-  //if (takeNewPhoto) {
-  //  capturePhotoSaveSpiffs();
-  //  takeNewPhoto = false;
-  //}
-  //delay(1);
   cliente = wifiServer.available();
  
   if (cliente) 
@@ -285,6 +221,7 @@ void TaskPublishData(void *pvParameters)
     if (!client.connected()) {
       reconnect();
     }
+    ArduinoOTA.handle(); 
     client.loop();
     delay(500);
     
@@ -306,22 +243,10 @@ void TaskPublishData(void *pvParameters)
   vTaskDelete( NULL );
 }
 
-
-// Check if photo capture was successful
-/*bool checkPhoto( fs::FS &fs ) {
-  File f_pic = fs.open( FILE_PHOTO );
-  unsigned int pic_sz = f_pic.size();
-  return ( pic_sz > 100 );
-}*/
-
 // Capture Photo and Save it to SPIFFS
 void capturePhotoSaveSpiffs( void ) {
   camera_fb_t * fb = NULL; // pointer
   bool ok = 0; // Boolean indicating if the picture has been taken correctly
-
-  //do {
-  // Take a photo with the camera
-  //Serial.println("Taking a photo...");
 
   fb = esp_camera_fb_get();
   if (!fb) 
@@ -329,32 +254,11 @@ void capturePhotoSaveSpiffs( void ) {
       Serial.println("Camera capture failed");
       return;
   }
-
-    // Photo file name
-    //Serial.printf("Picture file name: %s\n", FILE_PHOTO);
-    //File file = SPIFFS.open(FILE_PHOTO, FILE_WRITE);
-
-    // Insert the data in the photo file
-    //if (!file) {
-    //  Serial.println("Failed to open file in writing mode");
-    //}
   else 
   {
       cliente.write(fb->buf, fb->len); // payload (image), payload length
-      //file.write(fb->buf, fb->len); // payload (image), payload length
-      //Serial.print("The picture has been saved in ");
-      //Serial.print(FILE_PHOTO);
-      //Serial.print(" - Size: ");
-      //Serial.print(file.size());
-      //Serial.println(" bytes");
   }
-    // Close the file
-    //file.close();
   esp_camera_fb_return(fb);
-  
-    // check if file has been correctly saved in SPIFFS
-  //  ok = checkPhoto(SPIFFS);
-  //} while ( !ok );
 }
 
 void reconnect() 
