@@ -9,11 +9,12 @@ class TelegramBotUtil():
 		pass
 	
 	def run(self):
-		app.run_polling()
+		self.app.run_polling()
 	
 	def addHandler(self, handler, command):
 		self.app.add_handler(CommandHandler(command, handler))
 		
 #command example
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(f'Hello {update.effective_user.first_name}')
+    await update.message.reply_text(f'Hello rr {update.effective_user.first_name}')
+
