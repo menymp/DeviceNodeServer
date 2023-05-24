@@ -1,5 +1,4 @@
 #python db Wrapper for actions
-
 from mySqlConn import dbConn
 
 class dbConnectorBase():
@@ -104,4 +103,9 @@ class dbVideoActions(dbConnectorBase):
 	def removeVideoSource(self, parameterObject):
 		#not needed for now
 		return "OK"
+
+class dbUserActions(dbConnectorBase):
+	def getUserTelegramTokens():
+		records = self.dbConn.execute("SELECT telegrambotToken FROM users")
+		return records
 		

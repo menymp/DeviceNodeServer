@@ -3,3 +3,4 @@
 /deviceNodeServer/configs.ini
 /deviceNodeServer/__pycache__
 *.ini
+/phpWebApp/config.php

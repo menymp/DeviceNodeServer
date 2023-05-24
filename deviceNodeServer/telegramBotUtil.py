@@ -1,6 +1,6 @@
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
-
+from functools import partial
 
 #main class handler
 class TelegramBotUtil():
@@ -11,10 +11,7 @@ class TelegramBotUtil():
 	def run(self):
 		self.app.run_polling()
 	
-	def addHandler(self, handler, command):
-		self.app.add_handler(CommandHandler(command, handler))
-		
-#command example
-async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(f'Hello rr {update.effective_user.first_name}')
+	def addHandler(self, handler, command, refArg):
+		self.app.add_handler(CommandHandler(command, partial(handler, refArg=refArg)))
+
 
