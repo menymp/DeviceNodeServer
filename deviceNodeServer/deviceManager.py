@@ -53,7 +53,23 @@ class deviceManager():
         dictionary = {'result':result}
         jsonString = json.dumps(dictionary, indent=4)
         return jsonString 
-
+		
+		#toDo: still in proof of concept expect for a better approach
+	def execCommand(inputText):
+		#parses the command
+		#list devices
+		
+		inTks = inputText.split(' ')
+		
+		if inTks[0] == 'ls':
+			return str(self.Devices)
+		elif inTks[0] == "run":
+			result = self.executeCMD(inTks[1],inTks[2],inTks[3])
+			return result
+		else:
+			return "unknown command"
+		pass
+	
     def jsonDumpResult(self,value,key):
         pass
 

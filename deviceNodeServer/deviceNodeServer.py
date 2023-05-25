@@ -10,27 +10,30 @@ import json
 
 
 class serverManager():
-    def init(self, args):
-        #iniciar tareas principales
-        #
-        self.args = args
+	def init(self, args):
+		#iniciar tareas principales
+		#
+		self.args = args
+		
+		self.taskLoopSearch = threading.Thread(target=self.startLoopSearch, args=(args,20,))
+		self.taskLoopSearch.start()
+		
+		self.taskDeviceManager = threading.Thread(target=self.startDeviceManager, args=(args, 10,))
+		self.taskDeviceManager.start()
         
-        self.taskLoopSearch = threading.Thread(target=self.startLoopSearch, args=(args,20,))
-        self.taskLoopSearch.start()
-        
-        self.taskDeviceManager = threading.Thread(target=self.startDeviceManager, args=(args, 10,))
-        self.taskDeviceManager.start()
-        
-        self.taskVideoServer = threading.Thread(target=self.startVideoServer, args=(args, ))
-        self.taskVideoServer.start()
-        time.sleep(10)
-        #self.taskWSocketServer = threading.Thread(target=self.startWebSocketServer, args=(args, self.deviceManager.executeCMDJson))
-        #self.taskWSocketServer.start()
-        #ToDo: review exception, deviceManager is not being created
-        self.startWebSocketServer(args, self.deviceManager.executeCMDJson)
-        #self.startWebSocketServer.start()
-        
-        pass
+		self.taskVideoServer = threading.Thread(target=self.startVideoServer, args=(args, ))
+		self.taskVideoServer.start()
+		
+		self.taskVideoServer = threading.Thread(startTelegramServer, args=(args, ))
+		self.taskVideoServer.start()
+		time.sleep(10)
+		#self.taskWSocketServer = threading.Thread(target=self.startWebSocketServer, args=(args, self.deviceManager.executeCMDJson))
+		#self.taskWSocketServer.start()
+		#ToDo: review exception, deviceManager is not being created
+		self.startWebSocketServer(args, self.deviceManager.executeCMDJson)
+		#self.startWebSocketServer.start()
+		
+		pass
 
     def startLoopSearch(self, args, timePoll):
         devMgr = nodeDeviceManager()
@@ -65,6 +68,19 @@ class serverManager():
         self.videoHandlerObj = videoHandler(args)
         self.videoHandlerObj.serverListen()
         pass
+	
+	def startTelegramServer(self, args):
+		#init video server
+		objInstances = {
+			"devices":self.deviceManager,
+			"cameras":self.videoHandlerObj
+		}
+		self.objTelegramServer = TelegramCommandExecutor(objInstances)
+		self.objTelegramServer.fetchUserTokens()
+		#expect a better approach since its not suitable to add every device each thread
+		self.objTelegramServer.start()
+		
+		pass
 
 
 if __name__ == "__main__":
