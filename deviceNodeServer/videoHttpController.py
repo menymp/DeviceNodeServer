@@ -79,6 +79,33 @@ class videoHandler():
 		self.stop = False
 		pass
 	
+	def execCommand(inputText):
+		#parses the command
+		#list cameras
+		#default generic object
+		argsObj={
+			"height":600,
+			"width":600,
+			"idsList":[], #expected ids to be concatenated
+			"rowLen":1, #how many images stack in the horizontal
+			"idText":True #enable video id for source
+		}
+		
+		inTks = inputText.split(' ')
+		#ToDo: implement full command set
+		if inTks[0] == 'ls':
+			return str(self.frameObjConstructor.getDeviceIds())
+		elif inTks[0] == "get":
+			if inTks.length() == 2:
+				argsObj["idsList"].append(int(inTks[1]))
+				result = self.frameObjConstructor.buildFrame(argsObj)
+				return result
+			else:
+				return None
+		else:
+			return "unknown command"
+		pass
+	
 	#ToDo: need to implement a char update method to restart the camera obj when a change
 	#		is detected, for now leave this as it is
 	def _timerGetNewVideoSources(self):

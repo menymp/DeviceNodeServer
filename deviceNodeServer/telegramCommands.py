@@ -2,6 +2,7 @@
 from telegramBotUtil import TelegramBotUtil
 import threading
 from dbActions import dbUserActions
+import cv2
 #
 #objInstances expect to hold the main instances, for now just
 # video and device commands
@@ -65,4 +66,13 @@ async def deviceCmdHandler(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
 async def videoCmdHandler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 	#execute operations related to the cameras
+	rawCommandText = userInputArguments ################
+	result = args.execCommand(rawCommandText) #############
+	if rawCommandText.contains('ls'):
+		await update.message.reply_text(result)
+	elif(rawCommandText.contains('get'))
+		imgPath = update.effective_user.first_name.replace(' ','' ) + '.jpg'
+		cv2.imwrite(imgPath, result) #ToDo: what happens if user have spaces
+		chat_id = update.message.chat_id
+		bot.send_photo(chat_id=chat_id, photo=imgPath)
 	await update.message.reply_text(f'result {update.effective_user.first_name}')
