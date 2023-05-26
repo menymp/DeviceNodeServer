@@ -8,6 +8,7 @@ Updates List
 | Task				       |State	  |
 | ------------------------ | ---------|
 | video interface	  	   | done  	  |
+| OTA Firmware Update	   | done  	  |
 | telegram cmds	 	  	   | progress |
 | base dashboard items	   | pending  |
 | user signup info	  	   | pending  |
