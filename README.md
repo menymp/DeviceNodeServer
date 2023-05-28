@@ -9,8 +9,8 @@ Updates List
 | ------------------------ | ---------|
 | video interface	  	   | done  	  |
 | OTA Firmware Update	   | done  	  |
-| telegram cmds	 	  	   | progress |
-| base dashboard items	   | pending  |
+| telegram cmds	 	  	   | done 	  |
+| base dashboard items	   | progress |
 | user signup info	  	   | pending  |
 | trigger jobs	 	  	   | pending  |
 | refract server to process| pending  |
