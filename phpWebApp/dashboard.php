@@ -139,6 +139,10 @@ function BuildControlApperance(data)
 			nIntervId = setInterval(commandHandler,intervall ,iddev, cmdstr);
 			intervalsIds.push(nIntervId);
 		}
+		if(data[i]["typename"] === "SENSORREAD")
+		{
+			
+		}
 		
 	}
 }
