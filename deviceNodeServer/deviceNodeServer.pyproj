@@ -42,6 +42,7 @@
     <Compile Include="pythonServer.py" />
     <Compile Include="pythonServerExample2.py" />
     <Compile Include="telegramBotUtil.py" />
+    <Compile Include="telegramCommands.py" />
     <Compile Include="videoHttpController.py" />
     <Compile Include="webcamTest.py" />
     <Compile Include="websocketHandler.py" />

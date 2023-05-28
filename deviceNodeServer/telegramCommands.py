@@ -1,8 +1,11 @@
 #contains the logic for the telegram api telemetry
+from telegram import Update
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from telegramBotUtil import TelegramBotUtil
 import threading
 from dbActions import dbUserActions
 import cv2
+import asyncio
 #
 #objInstances expect to hold the main instances, for now just
 # video and device commands
@@ -22,10 +25,10 @@ class TelegramCommandExecutor():
 		pass
 	
 	def start(self):
-		self.fetchUserTokens()
+		userTks = self.fetchUserTokens()
 		
 		for token in userTks:
-			self.initNewUserApi(token)
+			self.initNewUserApi(token[0])
 			pass
 		pass
 	
@@ -39,10 +42,11 @@ class TelegramCommandExecutor():
 	def initNewUserApi(self, token):
 		#call for init a new user token
 		# should a better approach other than the use of a thread for each new user be expected?
-		userProcessHandler = TelegramBotUtil()
-		for handler in self.definedHandlers:
-			userProcessHandler.addHandler(handler[1],handler[0],handler[2])
-			pass
+		userProcessHandler = TelegramBotUtil(token)
+		#for handler in self.definedHandlers:
+		#	userProcessHandler.addHandler(handler[1],handler[0],handler[2])
+		#	pass
+		userProcessHandler.addHandlers(self.definedHandlers)
 		userThread = threading.Thread(target=loopThreadForever, args=(userProcessHandler,))
 		userThread.start()
 		
@@ -50,6 +54,8 @@ class TelegramCommandExecutor():
 		pass
 
 def loopThreadForever(telegramBotObject):
+	loop = asyncio.new_event_loop()
+	asyncio.set_event_loop(loop)
 	telegramBotObject.run()
 	pass
 #command example
@@ -72,9 +78,12 @@ async def deviceCmdHandler(update: Update, context: ContextTypes.DEFAULT_TYPE, r
 async def videoCmdHandler(update: Update, context: ContextTypes.DEFAULT_TYPE, refArg) -> None:
 	#execute operations related to the cameras
 	result = refArg.execCommand(context.args)
-	if context.args.contains('ls'):
+	if result is None:
+		return
+
+	if ('ls' in context.args):
 		await update.message.reply_text(result)
-	elif(rawCommandText.contains('get'))
+	elif('get' in context.args):
 		imgPath = update.effective_user.first_name.replace(' ','' ) + '.jpg'
 		cv2.imwrite(imgPath, result) #ToDo: what happens if user have spaces
 		chat_id = update.message.chat_id

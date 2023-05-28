@@ -79,14 +79,14 @@ class videoHandler():
 		self.stop = False
 		pass
 	
-	def execCommand(inputArgs):
+	def execCommand(self, inputArgs):
 		#parses the command
 		#list cameras
 		#default generic object
 		argsObj={
 			"height":600,
 			"width":600,
-			"idsList":[], #expected ids to be concatenated
+			"idList":[], #expected ids to be concatenated
 			"rowLen":1, #how many images stack in the horizontal
 			"idText":True #enable video id for source
 		}
@@ -96,8 +96,8 @@ class videoHandler():
 		if inTks[0] == 'ls':
 			return str(self.frameObjConstructor.getDeviceIds())
 		elif inTks[0] == "get":
-			if inTks.length() == 2:
-				argsObj["idsList"].append(int(inTks[1]))
+			if len(inTks) == 2:
+				argsObj["idList"].append(int(inTks[1]))
 				result = self.frameObjConstructor.buildFrame(argsObj)
 				return result
 			else:

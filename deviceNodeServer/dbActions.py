@@ -105,7 +105,7 @@ class dbVideoActions(dbConnectorBase):
 		return "OK"
 
 class dbUserActions(dbConnectorBase):
-	def getUserTelegramTokens():
+	def getUserTelegramTokens(self):
 		records = self.dbConn.execute("SELECT telegrambotToken FROM users")
 		return records
 		
