@@ -54,25 +54,28 @@ def loopThreadForever(telegramBotObject):
 	pass
 #command example
 #for now just add interface for interaction with devices and cameras
-async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+
+#for command args example
+#https://stackoverflow.com/questions/71551866/python-telegram-bot-pass-arguments-to-the-bot
+#for object pass as a parameter end of the page
+#https://github.com/python-telegram-bot/python-telegram-bot/issues/1002
+
+async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE, refArg) -> None:
     await update.message.reply_text(f'Hello {update.effective_user.first_name}')
 
-async def deviceCmdHandler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def deviceCmdHandler(update: Update, context: ContextTypes.DEFAULT_TYPE, refArg) -> None:
 	#execute operations related to the commands
-	#ToDo: just placeholder, test this case
-	rawCommandText = userInputArguments ################
-	result = args.execCommand(rawCommandText) #############
+	#the current object returns an array
+	result = refArg.execCommand(context.args) # the object is passed as partial refArg
 	await update.message.reply_text(result)
 
-async def videoCmdHandler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def videoCmdHandler(update: Update, context: ContextTypes.DEFAULT_TYPE, refArg) -> None:
 	#execute operations related to the cameras
-	rawCommandText = userInputArguments ################
-	result = args.execCommand(rawCommandText) #############
-	if rawCommandText.contains('ls'):
+	result = refArg.execCommand(context.args)
+	if context.args.contains('ls'):
 		await update.message.reply_text(result)
 	elif(rawCommandText.contains('get'))
 		imgPath = update.effective_user.first_name.replace(' ','' ) + '.jpg'
 		cv2.imwrite(imgPath, result) #ToDo: what happens if user have spaces
 		chat_id = update.message.chat_id
-		bot.send_photo(chat_id=chat_id, photo=imgPath)
-	await update.message.reply_text(f'result {update.effective_user.first_name}')
+		await context.bot.sendPhoto(chat_id=chat_id, photo=imgPath)

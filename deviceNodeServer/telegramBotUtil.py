@@ -14,4 +14,3 @@ class TelegramBotUtil():
 	def addHandler(self, handler, command, refArg):
 		self.app.add_handler(CommandHandler(command, partial(handler, refArg=refArg)))
 
-

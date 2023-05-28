@@ -79,7 +79,7 @@ class videoHandler():
 		self.stop = False
 		pass
 	
-	def execCommand(inputText):
+	def execCommand(inputArgs):
 		#parses the command
 		#list cameras
 		#default generic object
@@ -91,7 +91,7 @@ class videoHandler():
 			"idText":True #enable video id for source
 		}
 		
-		inTks = inputText.split(' ')
+		inTks = inputArgs
 		#ToDo: implement full command set
 		if inTks[0] == 'ls':
 			return str(self.frameObjConstructor.getDeviceIds())

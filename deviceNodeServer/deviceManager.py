@@ -55,11 +55,11 @@ class deviceManager():
         return jsonString 
 		
 		#toDo: still in proof of concept expect for a better approach
-	def execCommand(inputText):
+	def execCommand(inputArgs):
 		#parses the command
 		#list devices
 		
-		inTks = inputText.split(' ')
+		inTks = inputArgs
 		
 		if inTks[0] == 'ls':
 			return str(self.Devices)
