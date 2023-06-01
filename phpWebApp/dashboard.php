@@ -23,6 +23,11 @@ let ws;
 let showSize = 3;
 let currentCount = 0;
 let intervalsIds = [];
+flagBussy = false; //flag used to indicate a pending response from wSocket
+
+let controls = [];
+let controlsCommands = null;//holds the current visible controls
+let userCommands = []; //inmediate user command
 
 $("#next").click(function(){
 	currentCount = currentCount + 1;
@@ -156,18 +161,71 @@ function commandHandler(deviceId,cmd)
 	var cmdObj = new Object();
 	cmdObj.idDevice = deviceId;
 	cmdObj.command = cmd;
-	cmdObj.args = "";
+	cmdObj.args = ""; //ToDo: remember what the f*** is this field for
 	// cmdObj.set('idDevice',deviceId);
 	// cmdObj.set('command',cmd);
 	// cmdObj.set('args','');
 	//var jsonCmdStr = JSON.stringify(cmdObj);
 	//alert(jsonCmdStr)
-	ws_send(cmdObj);
+	
+	//loads the collection with a new command
+	userCommands.append(cmdObj);
+	
+	//ws_send(cmdObj);
 }
+
+//ToDo: call it!!!
+function initCommandsUpdate()
+{
+	cmds = []
+	controls.forEach((command)=>{
+		var cmdObj = new Object();
+		cmdObj.idDevice = command.deviceId;
+		cmdObj.command = command.cmd;
+		cmdObj.args = command.args;
+		cmds.append(cmdObj);
+	});
+	controlsCommands = JSON.stringify(cmds);
+}
+//ToDo: initialize the array of controls
+//		based on controls array init commands array
+
+//this function is called continuously to update the UI
+//sends the current user input first to the wSocket and
+//cleans the interface, if no user input exists, sends 
+//the periodic control update status request.
+function commandScheduler()
+{
+	//if user data
+	if(len(userCommands))
+	{
+		jsonStr = JSON.stringify(userCommands);
+	}
+	else
+	{
+
+		jsonStr = controlsCommands; //already stringified
+	}
+	ws_send(jsonStr);
+	flagBussy = true;
+}
+
 
 function responseHandler(evt)
 {
 	alert(evt.data);
+	//process the response
+	var responses = JSON.parse(evt.data);
+	
+	//ToDo: process the response logic
+	
+	setTimeout(() => {
+		if(flagStop == 1)//ToDo: define flag stop
+		{
+			commandScheduler();
+		}
+	}, 10);	//define this time elsewhere
+	flagBussy = false;
 }
 
 $(document).ready(function () {

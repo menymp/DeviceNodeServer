@@ -36,13 +36,37 @@ class deviceManager():
             if (deviceObj.name == deviceName and deviceObj.idParentNode == parentNodeId):
                 flagExists = True
         return flagExists
-
+	
+	#handle command object as an array in order to process an object
+	#this approach is better since a fast processing is posible by large
+	#objects in the backend, also one request allow the system to 
+	#keep the latency at minimun instead of individual requests
+	'''
+	example of response object
+	cmdResult = {
+		"result":"24",
+		"state":"OK"
+	}
+	'''
     def executeCMDJson(self, jsonArgs):
-        objCmd = json.loads(jsonArgs)
-        #strVal = objCmd['idDevice']
-        #strVal2 = objCmd['command']
-        #strVal3 = objCmd['args']
-        return self.executeCMD(objCmd['idDevice'], objCmd['command'], objCmd['args'])
+        cmdArrayObj = json.loads(jsonArgs)
+        results = []
+		
+		for cmd in cmdArrayObj["cmds"]:
+			state = "SUCCESS"
+			try:
+				result = self.executeCMD(cmd['idDevice'], cmd['command'], cmd['args'])
+			except:
+				state = "ERROR"
+				
+			cmdResult = {
+				"idDevice":cmd['idDevice'],
+				"command":cmd['command'],
+				"result":result,
+				"state":state
+			}
+			results.append(cmdResult)
+        return json.dumps(results)
 
     def executeCMD(self, idDevice, command, args):
         result = ""

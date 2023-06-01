@@ -52,7 +52,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 
     def on_close(self):
         pass
-    #
+    #process an array with commands to execute
     def on_message(self, message):
         #print(message)
         #json_message = json.dumps(message)
