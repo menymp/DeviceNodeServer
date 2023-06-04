@@ -36,12 +36,12 @@ class deviceManager():
             if (deviceObj.name == deviceName and deviceObj.idParentNode == parentNodeId):
                 flagExists = True
         return flagExists
-	
+    
 	#handle command object as an array in order to process an object
 	#this approach is better since a fast processing is posible by large
 	#objects in the backend, also one request allow the system to 
 	#keep the latency at minimun instead of individual requests
-	'''
+    '''
 	example of response object
 	cmdResult = {
 		"result":"24",
@@ -49,23 +49,24 @@ class deviceManager():
 	}
 	'''
     def executeCMDJson(self, jsonArgs):
-        cmdArrayObj = json.loads(jsonArgs)
+        cmdArrayObj1 = json.loads(jsonArgs)
+        cmdArrayObj = json.loads(cmdArrayObj1)#ToDo: fix, for some weird reason, objects are stringified with dual quotes
         results = []
-		
-		for cmd in cmdArrayObj["cmds"]:
-			state = "SUCCESS"
-			try:
-				result = self.executeCMD(cmd['idDevice'], cmd['command'], cmd['args'])
-			except:
-				state = "ERROR"
-				
-			cmdResult = {
-				"idDevice":cmd['idDevice'],
-				"command":cmd['command'],
-				"result":result,
-				"state":state
-			}
-			results.append(cmdResult)
+        
+        for cmd in cmdArrayObj["cmds"]:
+            state = "SUCCESS"
+            try:
+                result = self.executeCMD(cmd['idDevice'], cmd['command'], cmd['args'])
+            except:
+                state = "ERROR"
+            
+            cmdResult = {
+                "idDevice":cmd['idDevice'],
+                "command":cmd['command'],
+                "result":result,
+                "state":state
+            }
+            results.append(cmdResult)
         return json.dumps(results)
 
     def executeCMD(self, idDevice, command, args):
@@ -77,7 +78,7 @@ class deviceManager():
         dictionary = {'result':result}
         jsonString = json.dumps(dictionary, indent=4)
         return jsonString 
-		
+    
     #toDo: still in proof of concept expect for a better approach
     def execCommand(self, inputArgs):
         #parses the command
@@ -128,18 +129,34 @@ class device():
         if protocol == "MQTT":
             self.Driver = mqttDriver()
             if self.mode == "PUBLISHER":
+                #a publisher just updates its internal value
                 self.Driver.init(self.ParentConnectionParameters, self.channelPath)
             if self.mode == "SUBSCRIBER":
-                self.Driver.init(self.ParentConnectionParameters)
+                #if a subscriber type, in order to get the value we subscribe to the publish path
+                self.Driver.init(self.ParentConnectionParameters, self.ParentNodePath + self.name)
         else:
             raise Exception("Protocol "+args[4]+"not supported")
 
     def executeCMD(self, cmd, args):
         result = ""
-        if self.mode == 'PUBLISHER':
+        '''
+        ToDo:	now that i saw again this implementation, this is not a suitable approach
+        		current protocol works like:
+        		the nodeDevicesDiscoveryTool read each given node and initialze the existing devices with its manifest
+				and the devices table is updated in the database, then the device manager performs an initialization of
+				the expected existing devices preriodicaly in the devices list. then, the front end sends the commands
+				to getValue and read the current devices or to execute a command execution.
+				
+				this makes a complex situation where there is no way to know the true current state of the device.
+				
+				a better architecture should move the behavior of the command to the current device and create a dual
+				channel to perform a response for each existing device
+        '''
+        if cmd == 'getValue' or self.mode == 'PUBLISHER':
             result = self.Driver.getValue()
             self.value = result
-        if self.mode == 'SUBSCRIBER':
+        if cmd != 'getValue' and self.mode == 'SUBSCRIBER':
+            #currently the only thing that accepts commands are SUBSCRIBER nodes
             self.Driver.sendCommand(cmd, self.channelPath)
             result = "OK"
         return result

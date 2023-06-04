@@ -24,6 +24,7 @@ let showSize = 3;
 let currentCount = 0;
 let intervalsIds = [];
 flagBussy = false; //flag used to indicate a pending response from wSocket
+let flagStop = 1; //ToDo: use this when the update process should not continue
 
 let controls = [];
 let controlsCommands = null;//holds the current visible controls
@@ -58,6 +59,8 @@ function FetchControlsResponse()
 			}
 			BuildControlApperance(decodedData);
 			initCommandsUpdate(); 
+			commandScheduler(); //detonates the scheduler for the first time
+								//ToDo: what happens if a timeout and no response is received??
 		}
 	});
 }
@@ -85,10 +88,10 @@ function BuildControlApperance(data)
 		var ctrlName = data[i]["name"]
 		if(data[i]["typename"] === "DIGITALOUTPUT")
 		{
-			var controlClass = ctrlDigitalOutput(ctrlName, controlParameters);
-			var ControlElementContainer = controlClass.constructUiApperance(commandHandler)
+			var controlClass = new ctrlDigitalOutput(ctrlName, controlParameters, commandHandler);
+			var ControlElementContainer = controlClass.constructUiApperance()
 			$("#controlsContainer").append(ControlElementContainer);
-			controls.append(controlClass);
+			controls.push(controlClass);
 			// var controlParameters = JSON.parse(data[i]["parameters"]);
 			// //alert(controlParameters["idDevice"]);
 			// //alert("button");
@@ -180,14 +183,15 @@ function BuildControlApperance(data)
 
 class ctrlDigitalOutput
 {
-	constructor(name, controlParameters)
+	constructor(name, controlParameters, usrCommandHandler)
 	{
 		this.name = name;
 		this.idDevice = controlParameters["idDevice"];
 		this.cmdOn = controlParameters["onCmdStr"];
 		this.cmdOff = controlParameters["offCmdStr"];
-		this.cmdUpdate = controlParameters["updateCmdStr"];/*add in objects template*/
+		this.cmdUpdate = controlParameters["updateCmdStr"];
 		this.cmdUpdateArgs = controlParameters["updateArgsStr"];
+		this.usrCommandHandler = usrCommandHandler
 	}
 	
 	constructUiApperance(usrCommandHandler)
@@ -200,7 +204,7 @@ class ctrlDigitalOutput
 		var tmpCheckBox = document.createElement('input');
 		tmpCheckBox.setAttribute('type','checkbox');
 		
-		tmpCheckBox.onclick = this.userClick(usrCommandHandler);
+		tmpCheckBox.onclick = this.userClick.bind(this);/*check why this is needed*/
 		
 		tmpCheckBox.setAttribute('deviceId',this.idDevice);
 		var tmpSpan = document.createElement('span');
@@ -216,25 +220,26 @@ class ctrlDigitalOutput
 		return ControlElementContainer;
 	}
 	
-	userClick(commandHandler)
+	userClick()
 	{
+		console.log("clickk");
 		if(this.uiRefControl.checked)
-			commandHandler(this.idDevice,this.cmdOn, "");/*ToDo: create cmd object*/
+			this.usrCommandHandler(this.idDevice,this.cmdOn, "");/*ToDo: create cmd object*/
 		else
-			commandHandler(this.idDevice,this.cmdOff, "");/*ToDo: create cmd object*/
+			this.usrCommandHandler(this.idDevice,this.cmdOff, "");/*ToDo: create cmd object*/
 	}
 	
 	update(response)
 	{
-		checkBox = this.control.querySelectorAll('checkbox[deviceId]='+this.idDevice); //selects the checkbox
+		//checkBox = this.control.querySelectorAll('checkbox[deviceId]='+this.idDevice); //selects the checkbox
 		let check = false;
-		if(response.result === this.control.controlParameters['onCmdStr'])
+		if(response.result === this.cmdOn)
 		{
 			check = true;
 		}
 		if(response.state === 'SUCCESS')
 		{
-			checkBox.checked = check
+			this.uiRefControl.checked = check
 		}
 	}
 	/*ToDo: review if a best approach is to move this function to a super class*/
@@ -243,7 +248,7 @@ class ctrlDigitalOutput
 		var cmdObj = new Object();
 		cmdObj.idDevice = this.idDevice;
 		cmdObj.command = this.cmdUpdate;
-		cmdObj.args = this.cmdUpdateArgs;
+		cmdObj.args = ""; /*ToDo: check*/
 		return cmdObj;
 	}
 }
@@ -284,7 +289,7 @@ function commandHandler(deviceId, cmd, args)
 	//alert(jsonCmdStr)
 	
 	//loads the collection with a new command
-	userCommands.append(cmdObj);
+	userCommands.push(cmdObj);
 	
 	//ws_send(cmdObj);
 }
@@ -294,9 +299,12 @@ function initCommandsUpdate()
 	cmds = []
 	controls.forEach((controlClass)=>{
 		var cmdObj = controlClass.getUpdateCommand();
-		cmds.append(cmdObj);
+		cmds.push(cmdObj);
 	});
-	controlsCommands = JSON.stringify(cmds);
+	var cmdsObj = new Object();
+	cmdsObj.cmds = cmds;
+	
+	controlsCommands = JSON.stringify(cmdsObj);
 }
 //ToDo: initialize the array of controls
 //		based on controls array init commands array
@@ -308,10 +316,13 @@ function initCommandsUpdate()
 function commandScheduler()
 {
 	//if user data
-	if(len(userCommands))
+	var jsonStr;
+	if(userCommands.length > 0)
 	{
-		jsonStr = JSON.stringify(userCommands);
-		userCommands.empty();
+		var cmdsObj = new Object();
+		cmdsObj.cmds = userCommands;
+		jsonStr = JSON.stringify(cmdsObj);
+		userCommands = [];
 	}
 	else
 	{
@@ -325,14 +336,14 @@ function commandScheduler()
 
 function responseHandler(evt)
 {
-	alert(evt.data);
+	//alert(evt.data);
 	//process the response
 	var responses = JSON.parse(evt.data);
 	
-	responses.foreach((response) => {
+	responses.forEach((response) => {
 		/*get the corresponding class of the response and updates it*/
 		control = controls.filter((control) => control.idDevice == response.idDevice);
-		control.update(response);
+		control[0].update(response);
 	});
 	
 	setTimeout(() => {
@@ -340,7 +351,7 @@ function responseHandler(evt)
 		{
 			commandScheduler();
 		}
-	}, 10);	//define this time elsewhere
+	}, 1000);	//define this time elsewhere
 	flagBussy = false;
 }
 

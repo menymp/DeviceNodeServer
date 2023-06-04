@@ -68,7 +68,7 @@ class serverManager():
 		self.videoHandlerObj = videoHandler(args)
 		self.videoHandlerObj.serverListen()
 		pass
-    
+	
 	def startTelegramServer(self, args):
 		#init video server
 		objInstances = {

@@ -43,7 +43,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             c.write_message(json.dumps(message))
 
     def open(self):
-        self.write_message(json.dumps({'type': 'sys','message': 'Welcome to WebSocket',}))
+        #self.write_message(json.dumps({'type': 'sys','message': 'Welcome to WebSocket',}))
         SocketHandler.clients.add(self)
 
     #def init(self, on_messageS):
