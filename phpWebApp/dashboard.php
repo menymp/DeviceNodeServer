@@ -86,6 +86,8 @@ function BuildControlApperance(data)
 		/*ToDo: better to refine this design before more complex controls arrive*/
 		var controlParameters = JSON.parse(data[i]["parameters"]);
 		var ctrlName = data[i]["name"]
+		/*ToDo: since the device id is used as identifier, a new local id should be generated to handle
+		        the cases where two controls such as switch and plain text share the same idDevice value*/
 		if(data[i]["typename"] === "DIGITALOUTPUT")
 		{
 			var controlClass = new ctrlDigitalOutput(ctrlName, controlParameters, commandHandler);
@@ -146,31 +148,29 @@ function BuildControlApperance(data)
 		}
 		if(data[i]["typename"] === "PLAINTEXT")
 		{
-			var controlParameters = JSON.parse(data[i]["parameters"]);
-			//alert(controlParameters["idDevice"]);
-			//alert("button");
-			//alert(data[i]["parameters"]);
-			var ControlElementContainer = document.createElement('form');
-			var ControlElementContainerText = document.createElement('label');
-			ControlElementContainer.innerHTML = data[i]["name"];
-			var textOut = document.createElement('label');
-				textOut.setAttribute('class','text');
-			var tmpText = document.createElement('label');
-				tmpText.setAttribute('type','textlabel');
-			tmpText.id = controlParameters["idDevice"];
-			textOut.appendChild(tmpText);
-			ControlElementContainer.appendChild(textOut);
+			var controlClass = new ctrlPlainText(ctrlName, controlParameters);
+			var ControlElementContainer = controlClass.constructUiApperance()
 			$("#controlsContainer").append(ControlElementContainer);
-				//toggleSw.id = 
-				//toggleSw.setAttribute('name', 'college[]');
-				//toggleSw.setAttribute('class', 'form-control input-sm');
-				//toggleSw.setAttribute('placeholder','Name of College/University');
-				//toggleSw.setAttribute('required','required');
-			let intervall = controlParameters["intervall"];
-			let iddev = controlParameters["idDevice"];
-			let cmdstr = controlParameters["readCmdStr"];
-			nIntervId = setInterval(commandHandler,intervall ,iddev, cmdstr);
-			intervalsIds.push(nIntervId);
+			controls.push(controlClass);
+			// var controlParameters = JSON.parse(data[i]["parameters"]);
+
+			// var ControlElementContainer = document.createElement('form');
+			// var ControlElementContainerText = document.createElement('label');
+			// ControlElementContainer.innerHTML = data[i]["name"];
+			// var textOut = document.createElement('label');
+				// textOut.setAttribute('class','text');
+			// var tmpText = document.createElement('label');
+				// tmpText.setAttribute('type','textlabel');
+			// tmpText.id = controlParameters["idDevice"];
+			// textOut.appendChild(tmpText);
+			// ControlElementContainer.appendChild(textOut);
+			// $("#controlsContainer").append(ControlElementContainer);
+
+			// let intervall = controlParameters["intervall"];
+			// let iddev = controlParameters["idDevice"];
+			// let cmdstr = controlParameters["readCmdStr"];
+			// nIntervId = setInterval(commandHandler,intervall ,iddev, cmdstr);
+			// intervalsIds.push(nIntervId);
 		}
 		if(data[i]["typename"] === "SENSORREAD")
 		{
@@ -179,11 +179,57 @@ function BuildControlApperance(data)
 		
 	}
 }
+/*single text apperance*/
+class ctrlPlainText
+{
+	constructor(name, controlParameters)
+	{
+		this.name = name;
+		this.idDevice = controlParameters["idDevice"];
+		this.cmdUpdate = controlParameters["updateCmdStr"];
+		this.cmdUpdateArgs = controlParameters["updateArgsStr"];
+	}
+	
+	constructUiApperance()
+	{
+		var ControlElementContainer = document.createElement('form');
+		var ControlElementContainerText = document.createElement('label');
+		ControlElementContainer.innerHTML = this.name;
+		var textOut = document.createElement('label');
+		textOut.setAttribute('class','text');
+		var tmpText = document.createElement('label');
+		tmpText.setAttribute('type','textlabel');
+		tmpText.id = this.idDevice;
+		textOut.appendChild(tmpText);
+		ControlElementContainer.appendChild(textOut);
+		
+		this.uiRefControl = tmpText;
+		
+		return ControlElementContainer;
+	}
+	
+	update(response)
+	{
+		if(response.state === 'SUCCESS')
+		{
+			this.uiRefControl.innerHTML = response.result
+		}
+	}
+	/*ToDo: review if a best approach is to move this function to a super class*/
+	getUpdateCommand()
+	{
+		var cmdObj = new Object();
+		cmdObj.idDevice = this.idDevice;
+		cmdObj.command = this.cmdUpdate;
+		cmdObj.args = ""; /*ToDo: check*/
+		return cmdObj;
+	}
+}
 
-
+/*toggle switch apperance*/
 class ctrlDigitalOutput
 {
-	constructor(name, controlParameters, usrCommandHandler)
+	constructor(name, controlParameters)
 	{
 		this.name = name;
 		this.idDevice = controlParameters["idDevice"];
@@ -194,7 +240,7 @@ class ctrlDigitalOutput
 		this.usrCommandHandler = usrCommandHandler
 	}
 	
-	constructUiApperance(usrCommandHandler)
+	constructUiApperance()
 	{
 		var ControlElementContainer = document.createElement('form');
 		var ControlElementContainerText = document.createElement('label');
