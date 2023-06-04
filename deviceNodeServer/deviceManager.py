@@ -49,6 +49,7 @@ class deviceManager():
 	}
 	'''
     def executeCMDJson(self, jsonArgs):
+        flagUpdate = False
         cmdArrayObj1 = json.loads(jsonArgs)
         cmdArrayObj = json.loads(cmdArrayObj1)#ToDo: fix, for some weird reason, objects are stringified with dual quotes
         results = []
@@ -56,10 +57,13 @@ class deviceManager():
         for cmd in cmdArrayObj["cmds"]:
             state = "SUCCESS"
             try:
-                result = self.executeCMD(cmd['idDevice'], cmd['command'], cmd['args'])
+                result, flagUpdate = self.executeCMDraw(cmd['idDevice'], cmd['command'], cmd['args'])
             except:
                 state = "ERROR"
             
+            if flagUpdate:
+                state = "UPDATING" #If a write operation is performed this notify the front end
+
             cmdResult = {
                 "idDevice":cmd['idDevice'],
                 "command":cmd['command'],
@@ -70,14 +74,19 @@ class deviceManager():
         return json.dumps(results)
 
     def executeCMD(self, idDevice, command, args):
+        rawResult, flagUpdate = self.executeCMDraw(idDevice, command, args)
+        dictionary = {'result':rawResult}
+        jsonString = json.dumps(dictionary, indent=4)
+        return jsonString, flagUpdate 
+    
+    def executeCMDraw(self, idDevice, command, args):
         result = ""
+        flagUpdate = False
         for device in self.Devices:
             if device.id == idDevice:
-                result = device.executeCMD(command,args)
+                result, flagUpdate = device.executeCMD(command,args)
                 break
-        dictionary = {'result':result}
-        jsonString = json.dumps(dictionary, indent=4)
-        return jsonString 
+        return result, flagUpdate
     
     #toDo: still in proof of concept expect for a better approach
     def execCommand(self, inputArgs):
@@ -92,7 +101,7 @@ class deviceManager():
                 ids.append((deviceObj.name,deviceObj.id,deviceObj.type))
             return str(ids)
         elif inTks[0] == "run":
-            result = self.executeCMD(inTks[1],inTks[2],inTks[3])
+            result,flagUpdate = self.executeCMD(inTks[1],inTks[2],inTks[3])
             return result
         else:
             return "unknown command"
@@ -139,6 +148,7 @@ class device():
 
     def executeCMD(self, cmd, args):
         result = ""
+        updatingLock = False
         '''
         ToDo:	now that i saw again this implementation, this is not a suitable approach
         		current protocol works like:
@@ -152,6 +162,7 @@ class device():
 				a better architecture should move the behavior of the command to the current device and create a dual
 				channel to perform a response for each existing device
         '''
+        
         if cmd == 'getValue' or self.mode == 'PUBLISHER':
             result = self.Driver.getValue()
             self.value = result
@@ -159,7 +170,8 @@ class device():
             #currently the only thing that accepts commands are SUBSCRIBER nodes
             self.Driver.sendCommand(cmd, self.channelPath)
             result = "OK"
-        return result
+        updatingLock = self.Driver.getLockFlag()
+        return result, updatingLock
 
 class mqttDriver():
     def init(self, args, path = ""):
@@ -167,8 +179,15 @@ class mqttDriver():
         self.connArgs = json.loads(args)
         self.initDriver()
         self.value = ""
+        self.lastSentCmd = ""
+        self.lockUpdateFlag = False
         #self.initDriver()
         pass
+    #locks the result until a new response is sent
+    #since the backend is designed in this way this should
+    #mitigate the effect of the delayed update
+    def getLockFlag(self):
+        return self.lockUpdateFlag
 
     def initDriver(self):
         self.client = mqtt.Client()
@@ -185,6 +204,8 @@ class mqttDriver():
         pass
 
     def sendCommand(self,command, args):
+        self.lockUpdateFlag  = True
+        self.lastSentCmd = command
         publish.single(topic = args, payload = command, hostname = self.connArgs["broker"])
         pass
 
@@ -201,4 +222,6 @@ class mqttDriver():
         m_decode=str(msg.payload.decode("utf-8","ignore"))
         data = json.loads(m_decode)
         self.value = data["Value"]
+        if self.lockUpdateFlag and self.lastSentCmd == self.value: #ToDo: a race condition may happens if no update received
+            self.lockUpdateFlag = False
         pass

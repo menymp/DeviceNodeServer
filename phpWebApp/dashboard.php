@@ -222,11 +222,11 @@ class ctrlDigitalOutput
 	
 	userClick()
 	{
-		console.log("clickk");
+		//console.log("clickk");
 		if(this.uiRefControl.checked)
-			this.usrCommandHandler(this.idDevice,this.cmdOn, "");/*ToDo: create cmd object*/
+			this.usrCommandHandler(this.idDevice,this.cmdOn, "");
 		else
-			this.usrCommandHandler(this.idDevice,this.cmdOff, "");/*ToDo: create cmd object*/
+			this.usrCommandHandler(this.idDevice,this.cmdOff, "");
 	}
 	
 	update(response)
