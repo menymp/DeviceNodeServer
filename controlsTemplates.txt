@@ -1,0 +1,6 @@
+examples of current templates on the system
+
+DIGITALOUTPUT {"idDevice": "REFERENCE", "onCmdStr": "FIELD", "apperance": ["TOGGLESWITCH", "BUTTON"], "offCmdStr": "FIELD", "updateCmdStr": "FIELD"}
+SENSORREAD    {"idDevice": "REFERENCE", "lowLimit": "NUMBER", "apperance": ["TEXTVAL", "HBAR", "YBAR", "GAUGE"], "highLimit": "NUMBER", "updateCmdStr": "FIELD"}
+PLAINTEXT     {"idDevice": "REFERENCE", "apperance": ["INPUTTEXT", "CONSOLE"], "updateCmdStr": "FIELD"}
+DIGITALINPUT  {"idDevice": "REFERENCE", "updateCmdStr": "FIELD", "apperance": ["LED"]}
