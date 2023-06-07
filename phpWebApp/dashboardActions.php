@@ -59,7 +59,8 @@
 					dashboardcontrolt.idControl, 
 					dashboardcontrolt.name,  
 					dashboardcontrolt.parameters, 
-					controlstypes.typename
+					controlstypes.typename,
+					controlstypes.controlTemplate
 				FROM dashboardcontrolt 
 					INNER JOIN controlstypes ON dashboardcontrolt.idType = controlsTypes.idControlsTypes
 				WHERE dashboardcontrolt.idUser = ?
@@ -78,6 +79,39 @@
 			echo EncodeJSONClientResponse(['Message' => "0 results","Result" =>"Success"]);
 		}
 		//echo EncodeJSONClientResponse(['Message' => "ERROR: Node not found!","Result" =>"Error"]);
+	}
+	if($operationOption == "fetchControlById")
+	{
+		if(!isset($_POST['idControl']))
+		{
+			exit();
+		}
+		
+		$idControl = $_POST['idControl'];
+
+		$sql = "SELECT 
+					dashboardcontrolt.idControl, 
+					dashboardcontrolt.name,  
+					dashboardcontrolt.parameters, 
+					controlstypes.typename,
+					controlstypes.controlTemplate
+				FROM dashboardcontrolt 
+					INNER JOIN controlstypes ON dashboardcontrolt.idType = controlsTypes.idControlsTypes
+				WHERE dashboardcontrolt.idControl =  ?
+				ORDER BY dashboardcontrolt.name DESC";
+				
+		$result = $dbObj1->dbQuery($sql, "i", [$idControl]);
+
+
+		if ($result->num_rows > 0) 
+		{	
+			$data = $result->fetch_all( MYSQLI_ASSOC );
+			echo EncodeJSONClientResponse($data);
+		}
+		else 
+		{
+			echo EncodeJSONClientResponse(['Message' => "0 results","Result" =>"Success"]);
+		}
 	}
 	
 	$dbObj1->disconect();
