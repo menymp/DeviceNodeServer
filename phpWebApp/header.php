@@ -32,7 +32,7 @@
 				<a href="nodes.php">Nodes</a>
 				<a href="cameras.php">Cameras</a>
 				<a href="camerasDashboard.php">video Dash</a>
-				<a href="signup.php">Signup</a>
+				<a href="userInfo.php">user info</a>
 				
 				<div class="loginforms">
 					<?php
