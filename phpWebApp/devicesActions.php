@@ -219,6 +219,7 @@
 			echo EncodeJSONClientResponse(['Message' => "0 results","Result" =>"Error"]);
 		}
 	}
+	
 	$dbObj1->disconect();
 	
 ?>

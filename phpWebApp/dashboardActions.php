@@ -113,7 +113,44 @@
 			echo EncodeJSONClientResponse(['Message' => "0 results","Result" =>"Success"]);
 		}
 	}
-	
+	if($operationOption == "fetchControlsTypes")
+	{
+		$sql = "SELECT * FROM controlstypes;";
+		
+		$result = $dbObj1->dbQuery($sql, "i", []);
+
+		if ($result->num_rows > 0) 
+		{	
+			$data = $result->fetch_all( MYSQLI_ASSOC );
+			echo EncodeJSONClientResponse($data);
+		}
+		else 
+		{
+			echo EncodeJSONClientResponse(['Message' => "0 results","Result" =>"Success"]);
+		}
+	}	
+	if($operationOption == "getControlTypeTemplate")
+	{
+		$sql = "SELECT controlTemplate FROM controlstypes WHERE idControlsTypes = ?;";
+		
+		if(!isset($_POST['idControlType']))
+		{
+			exit();
+		}
+		$idControlType = $_POST['idControlType'];
+		
+		$result = $dbObj1->dbQuery($sql, "i", [$idControlType]);
+
+		if ($result->num_rows > 0) 
+		{	
+			$data = $result->fetch_all( MYSQLI_ASSOC );
+			echo EncodeJSONClientResponse($data);
+		}
+		else 
+		{
+			echo EncodeJSONClientResponse(['Message' => "0 results","Result" =>"Success"]);
+		}
+	}	
 	$dbObj1->disconect();
 	
 ?>

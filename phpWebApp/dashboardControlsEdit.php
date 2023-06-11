@@ -42,6 +42,11 @@ let showSize = 3;
 let currentCount = 0;
 let InputFieldsState = 0;
 
+let flagCreateNewDevice = 0; /*this flag sets the UI for creating a new control*/
+let idSelectedDevice = -1; /*this flag holds the selected device id, -1 if no device is selected*/
+let idSelectedControl = -1; /*this flag holds the selected control, -1 if no control is selected*/
+
+/*this logic handles the dashboard controls*/
 $("#next").click(function(){
 	currentCount = currentCount + 1;
 	fetchDashboardControls();
@@ -53,17 +58,286 @@ $("#previous").click(function(){
 	fetchDashboardControls();
 });
 
+//////////////////////////////////////////////////////////////////////////
+/*this section handles device lists*/
+/*most of this should be modular in the future since its the same logic*/
+let currentDeviceCount = 0;
+
+async function newControlUI()
+{
+	$("#fieldsForm").empty(); /*empty the contents of the form*/
+	currentDeviceCount = 0;
+	InputFieldsState = 1;    /*sets the flag that the ui mode is loaded*/
+	idSelectedDevice = -1;
+	idSelectedControl = -1;
+	
+	/**/
+	fetchDevicesResponse();/*fetch available devices to select*/
+	
+	let dataControlsTypes = parseJsonInputData(await fetchControlsType());
+	createUIselectControlType(dataControlsTypes, true);
+}
+
+async function existingControlUI(idControl)
+{
+	$("#fieldsForm").empty(); /*empty the contents of the form*/
+	currentDeviceCount = 0;
+	InputFieldsState = 1;    /*sets the flag that the ui mode is loaded*/
+	
+	let dataControlsTypes = parseJsonInputData(await fetchControlsType());
+	createUIselectControlType(dataControlsTypes, false, idControl);
+	
+	await setControlUITemplate(idControlType, idControl);///////
+	await selectControlTypeSelected(); /*fire manualy the UI build as if the user have already selected*/
+}
+
+$("#nextDevice").click(function(){
+	currentDeviceCount = currentDeviceCount + 1;
+	fetchDevicesResponse();
+});
+
+$("#previousDevice").click(function(){
+	currentDeviceCount = currentDeviceCount - 1;
+	if(currentDeviceCount < 0) currentDeviceCount = 0;
+	fetchDevicesResponse();
+});
+
+async function fetchDevicesResponse()
+{
+	const data = await $.ajax({
+		url: "devicesActions.php",
+		type: "POST",
+		data:({actionOption:"fetchDevices",pageCount:String(currentDeviceCount*showSize),pageSize:String(showSize)})
+	});
+	return data;
+}
+
+function displayDevicesTable(data)
+{
+	headList = ['Device name','Mode','Type','Path','Node name'];
+	selectList = ['name','mode','type','channelPath','nodeName','btnSelect'];
+	var tableWithButtons = AddDeviceFunctionBtns(JSON.parse(data));
+	displayTable('#tableDevices',headList,selectList,tableWithButtons);
+}
+
+function AddDeviceFunctionBtns(deviceFetchTable)//specific
+{
+	for(var i = 0, len = deviceFetchTable.length; i < len; i++)
+	{
+		deviceFetchTable[i]['btnSelect'] = '<button class="deviceSelectBtn" onclick="deviceSelectBtnClick()" idDevices="'+deviceFetchTable[i]['idDevices']+'">Select</button>';
+	}
+	return deviceFetchTable;
+}
+
+function deviceSelectBtnClick()
+{
+	let idControl = event.target.getAttribute('idDevices');
+	$("#idDevice").value(idControl);/*sets the idDevice input to the selected device*/
+	
+/*ToDo: i ve made a mistake, confused by the devices and controls, correct this by adding the expected*/
+}
+
+///////////////////////////////////////////////////////////////////////////////////
+
+
+/*this functions fetch the controls types*/
+function fetchControlsType()
+{
+	const result =  await $.ajax({
+		url: "dashboardActions.php",
+		type: "POST",
+		data:({actionOption:"fetchControlsTypes"}),
+		cache: false
+	});
+	return result;
+	// $.ajax({
+		// url: "dashboardActions.php",
+		// type: "POST",
+		// data:({actionOption:"fetchControlsTypes"}),
+		// cache: false,
+		// success: function(data)
+		// {
+			// var decodedData = JSON.parse(data);
+			// if("Message" in decodedData)
+			// {
+				// //alert(decodedData['Message']);
+				// $('#outputMessage').text(decodedData['Message']);
+			// }
+			// /*create a select list and adds the type to the list*/
+			// //createUIselectControlType(data, true);
+		// }
+	// });
+}
+
+/*creates the selector ui with the data */
+function createUIselectControlType(data, enabled, idControlType = null)
+{
+	var sel = document.createElement('select');
+	sel.name = 'controlTypeSelector';
+	sel.id = '#controlSelector';
+	sel.disabled = enabled
+	var options_str = "";
+	/*control[0] is the id of the type of control, while control[1] contains the name*/
+	data.forEach( function(control) {
+		options_str += '<option value="' + control[0] + '">' + control[1] + '</option>';
+	});
+	sel.innerHTML = options_str;
+	/*if we already got an id dont create a method to render onselect event*/
+	if(idControlType !== null)
+	{
+		sel.value = idControlType
+	}
+	else
+	{
+		sel.onselect = selectControlTypeSelected;
+	}
+	$("#fieldsForm").appendChild(sel);
+}
+
+await function selectControlTypeSelected()
+{
+	/*this function sets the UI if there is a selected type of item*/
+	var e = document.getElementById("#controlSelector");
+	var idControlType = e.value;
+	await setControlUITemplate(idControlType);
+}
+
+async function setControlUITemplate(idControlType, idControl)
+{
+	/*get first the template for the type*/
+	
+	const templateArr =  await $.ajax({
+		url: "dashboardActions.php",
+		type: "POST",
+		data:({actionOption:"getControlTypeTemplate", idControlType:idControlType}),
+		cache: false
+	});
+	
+	/*now, if we have an id lets populate the data available in the device*/
+	let currentValues = null;
+	
+	if(idDevice !== -1)
+	{
+		const currentValues =  await $.ajax({
+			url: "dashboardActions.php",
+			type: "POST",
+			data:({actionOption:"fetchControlById", idControl:idControl}),
+			cache: false
+		});
+	}
+	else
+	{
+		/*ToDo: a filter for compatible type devices should be used in this step*/
+		const devicesResponseData = await fetchDevicesResponse();
+		displayDevicesTable(parseJsonInputData(devicesResponseData));/*fetch and creates the ui for the device*/
+		/*ToDo: set the field input REFERENCE to the id value when click on devices select table*/
+	}
+	buildUITemplate(templateObject, currentValues);
+}
+
+function parseJsonInputData(data)
+{
+	var decodedData = JSON.parse(data);
+	if("Message" in decodedData)
+	{
+		//alert(decodedData['Message']);
+		$('#outputMessage').text(decodedData['Message']);
+	}
+	return decodedData;
+}
+
+function buildUITemplate(templateObject, currentValues)
+{
+	/*builds the current device template*/
+	let parsedObject = parseJsonInputData(templateObject);
+	let templateFields = Object.keys(parsedObject);
+	
+	if(currentValues !== null);
+	{
+		/*ToDo: initialize the field in the current element*/
+		let parsedObjectValues = parseJsonInputData(currentValues);
+	}
+	
+	templateFields.forEach((field) => {
+		let fieldType = parsedObject[field];
+		let fieldBaseType = typeof(fieldType);
+		
+		var sel = document.createElement('select');
+		
+		switch(fieldType){
+			case 'REFERENCE':
+				var input = document.createElement('input');
+				input.name = field;
+				input.id = '#' + field;
+				input.disabled = true;
+				
+				if(currentValues !== null && (typeof parsedObjectValues[field] != "undefined"))/*init with data if exists*/
+				{
+					input.value = parsedObjectValues[field];
+				}
+				
+				$("#fieldsForm").appendChild(input);
+			break;
+			case 'FIELD':
+				var input = document.createElement('input');
+				input.name = field;
+				input.id = '#' + field;
+				input.disabled = false;
+				
+				if(currentValues !== null && (typeof parsedObjectValues[field] != "undefined"))/*init with data if exists*/
+				{
+					input.value = parsedObjectValues[field];
+				}
+				
+				$("#fieldsForm").appendChild(input);
+			break;
+			case 'NUMBER':
+				var input = document.createElement('input');
+				input.name = field;
+				input.id = '#' + field;
+				input.disabled = true;/*a check should be performed for numeric valid values*/
+				
+				if(currentValues !== null && (typeof parsedObjectValues[field] != "undefined"))/*init with data if exists*/
+				{
+					input.value = parsedObjectValues[field];
+				}
+				$("#fieldsForm").appendChild(input);
+			break;
+			default:
+			/*check if array case*/
+			if(fieldBaseType == "object"){
+				var sel = document.createElement('select');
+				sel.name = field;
+				sel.id = '#' + field;
+				sel.disabled = false;
+				var options_str = "";
+				fieldType.forEach( function(value) {
+					options_str += '<option value="' + value + '">' + value + '</option>';
+				});
+				sel.innerHTML = options_str;
+				
+				if(currentValues !== null && (typeof parsedObjectValues[field] != "undefined"))/*init with data if exists*/
+				{
+					sel.value = parsedObjectValues[field];
+				}
+				$("#fieldsForm").appendChild(sel);
+			}
+			break;
+		}
+	});
+}
+
 $("#openDashboard").click(function(){
-	//ToDo: go to dashboard
+	window.location.href = "dashboard.php";
 });
 
 
 //ToDo: important, a device id is to be provided as part of a selector for the field
 $("#createControlBtn").click(function(){
-	//ToDo: create selector and load types
-	//      if selected item in selector create the fields
+	newControlUI();
 });
 
+//*ToDo: those fields are expected to be part of the form functionalities OR NOT??? check, i think that are at upper html ctrl*///
 $("#deleteControlBtn").click(function(){
 	//ToDo: if a control is currently on display, delete it
 	//      then clean the fields and delete id
@@ -73,7 +347,7 @@ $("#saveControlBtn").click(function(){
 	//ToDo: if the dashboard is open and a device is selected, save data to database
 	//		then clean the fields
 });
-
+////////////////////////////////////////////////
 
 
 $(document).ready(function () {
@@ -93,6 +367,7 @@ $(document).ready(function () {
 		// //keypress does not fire with backspace
         // setTimeout(TextNameChanged(), 1);
     // });
+	fetchDashboardControls();
 });
 
 /*ToDo: this repeats at least 4 times, make a common function*/
@@ -121,17 +396,24 @@ function displayControlsTable(data)
 {
 	headList = ['id','Name','Type','Owner',''];
 	selectList = ['idControl','Name','TypeName','username','btnDetail'];
-	var tableWithButtons = addFunctionBtns(JSON.parse(data));
+	var tableWithButtons = addControlFunctionBtns(JSON.parse(data));
 	displayTable('#tableControls',headList,selectList,tableWithButtons);
 }
 
-function addFunctionBtns(nodeFetchTable)//specific
+function addControlFunctionBtns(controlFetchTable)//specific
 {
-	for(var i = 0, len = nodeFetchTable.length; i < len; i++)
+	for(var i = 0, len = controlFetchTable.length; i < len; i++)
 	{
-		nodeFetchTable[i]['btnDetail'] = '<button class="nodeDetailsBtn" onclick="nodeDetailsClick()" idControl"'+nodeFetchTable[i]['idControl']+'">Details</button>';
+		controlFetchTable[i]['btnDetail'] = '<button class="controlDetailsBtn" onclick="controlDetailsClick()" idControl="'+controlFetchTable[i]['idControl']+'">Details</button>';
 	}
-	return nodeFetchTable;
+	return controlFetchTable;
+}
+
+function controlDetailsClick()
+{
+	/*fired when a control details btn is click*/
+	let idControl = event.target.getAttribute('idControl');
+	existingControlUI(idControl);
 }
 
 function displayTable(selector,TableHeadList,DisplayList,data)
@@ -166,38 +448,6 @@ function constructTable(selector,data,DisplayList)
 		// Adding each row to the table
 		$(selector).append(row);
 	}
-}
-
-function nodeDetailsClick() 
-{
-	let idControl = event.target.getAttribute('name');
-	
-	$.ajax({
-		url: "dashboardActions.php",
-		type: "POST",
-		data:({actionOption:"fetchControlById",controlId:idControl}),
-		cache: false,
-		success: function(data)
-		{
-			//alert(data);
-			var decodedData = JSON.parse(data);
-			if("Message" in decodedData)
-			{
-				//alert(decodedData['Message']);
-				$('#outputMessage').text(decodedData['Message']);
-			}
-			loadControlUi(decodedData);
-		}
-	});
-}
-
-function loadControlUi(controlData)
-{
-	//ToDo:
-	//loads the control data and display the expected fields based on the type and the content.
-	//get the device id asociated with the control
-	//fetch the device by id
-	//get the control fields from controlstype, load current values if they exists in the device argument json object
 }
 
 </script>
