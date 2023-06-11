@@ -150,7 +150,78 @@
 		{
 			echo EncodeJSONClientResponse(['Message' => "0 results","Result" =>"Success"]);
 		}
+	}
+	if($operationOption == "deleteControlById")
+	{
+		$sql = "DELETE FROM dashboardcontrolt WHERE idControl = ?;";
+		
+		if(!isset($_POST['idControl']))
+		{
+			exit();
+		}
+		$idControl = $_POST['idControl'];
+		
+		$result = $dbObj1->dbQuery($sql, "i", [$idControl]);
+
+		if ($result->num_rows > 0) 
+		{	
+			$data = $result->fetch_all( MYSQLI_ASSOC );
+			echo EncodeJSONClientResponse($data);
+		}
+		else 
+		{
+			echo EncodeJSONClientResponse(['Message' => "0 results","Result" =>"Success"]);
+		}
 	}	
+	if($operationOption == "saveControl")
+	{
+		$sqlSaveCtl = "UPDATE dashboardcontrolt SET Name = ?, idType = ? parameters = ? WHERE idControl = ?;";
+		$sqlNewCtl = "INSERT INTO dashboardcontrolt (Name, idType, idUser, parameters) VALUES (?,?,?,?); ";
+		
+		if(!isset($_POST['parameters']))
+		{
+			exit();
+		}
+		if(!isset($_POST['idType']))
+		{
+			exit();
+		}
+		if(!isset($_POST['Name']))
+		{
+			exit();
+		}
+		if(!isset($_POST['idControl']))
+		{
+			exit();
+		}
+		$parameters = $_POST['parameters'];
+		$idType = $_POST['idType'];
+		$Name = $_POST['Name'];
+		$idControl = $_POST['idControl'];
+		
+		if($idControl != -1)
+		{
+			/*existing id, just update*/
+			
+			$result = $dbObj1->dbQuery($sqlSaveCtl, "i", [$Name,$idType,$parameters,$idControl]);
+		}
+		else
+		{
+			/*new control creation*/
+			$result = $dbObj1->dbQuery($sqlNewCtl, "i", [$Name,$idType,$userId,$parameters]);
+		}
+
+
+		if ($result->num_rows > 0) 
+		{	
+			$data = $result->fetch_all( MYSQLI_ASSOC );
+			echo EncodeJSONClientResponse($data);
+		}
+		else 
+		{
+			echo EncodeJSONClientResponse(['Message' => "0 results","Result" =>"Success"]);
+		}
+	}		
 	$dbObj1->disconect();
 	
 ?>

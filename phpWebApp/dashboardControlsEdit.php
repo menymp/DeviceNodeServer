@@ -63,13 +63,19 @@ $("#previous").click(function(){
 /*most of this should be modular in the future since its the same logic*/
 let currentDeviceCount = 0;
 
-async function newControlUI()
+function uiDetailsCleanup()
 {
+	/*cleans the ui forms*/
 	$("#fieldsForm").empty(); /*empty the contents of the form*/
 	currentDeviceCount = 0;
 	InputFieldsState = 1;    /*sets the flag that the ui mode is loaded*/
 	idSelectedDevice = -1;
 	idSelectedControl = -1;
+}
+
+async function newControlUI()
+{
+	uiDetailsCleanup();
 	
 	/**/
 	fetchDevicesResponse();/*fetch available devices to select*/
@@ -117,6 +123,24 @@ function displayDevicesTable(data)
 	headList = ['Device name','Mode','Type','Path','Node name'];
 	selectList = ['name','mode','type','channelPath','nodeName','btnSelect'];
 	var tableWithButtons = AddDeviceFunctionBtns(JSON.parse(data));
+	
+	/*create html base table and controls*/
+	let btnPrev = document.createElement("button");
+	btnPrev.innerHTML = "previous";
+	btnPrev.id = "previousDevice";
+	$("#fieldsForm").appendChild(btnPrev);
+	let btnNext = document.createElement("button");
+	btnNext.innerHTML = "next";
+	btnNext.id = "nextDevice";
+	$("#fieldsForm").appendChild(btnNext);
+	
+	const devicesTable = document.createElement('table');
+	devicesTable.id = "tableDevices";
+	devicesTable.class="table table-bordered table-sm";
+	let devicestbody = document.createElement('tbody');
+	devicesTable.appendChild(devicestbody);
+	$("#fieldsForm").appendChild(devicesTable);
+	
 	displayTable('#tableDevices',headList,selectList,tableWithButtons);
 }
 
@@ -341,11 +365,59 @@ $("#createControlBtn").click(function(){
 $("#deleteControlBtn").click(function(){
 	//ToDo: if a control is currently on display, delete it
 	//      then clean the fields and delete id
+	//idSelectedControl should have the id
+	if(idSelectedControl === -1)
+	{
+		return;
+	}
+	if(!confirm("Are you sure you want to delete this Control?"))
+	{
+		return;
+	}
+	$.ajax({
+		url: "dashboardActions.php",
+		type: "POST",
+		data:({actionOption:"deleteControlById",idControl:idSelectedControl}),
+		cache: false,
+		success: function(data)
+		{
+			
+			uiDetailsCleanup();
+			var decodedData = JSON.parse(data);
+			if("Message" in decodedData)
+			{
+				$('#outputMessage').text(decodedData['Message']);
+			}
+		}
+	});
 });
 
 $("#saveControlBtn").click(function(){
 	//ToDo: if the dashboard is open and a device is selected, save data to database
 	//		then clean the fields
+	if(idSelectedControl === -1)
+	{
+		return;
+	}
+	
+	/*ToDo: build the parameter object for saving*/
+	
+	$.ajax({
+		url: "dashboardActions.php",
+		type: "POST",
+		data:({actionOption:"saveControl",idControl:idSelectedControl, }),
+		cache: false,
+		success: function(data)
+		{
+			
+			uiDetailsCleanup();
+			var decodedData = JSON.parse(data);
+			if("Message" in decodedData)
+			{
+				$('#outputMessage').text(decodedData['Message']);
+			}
+		}
+	});
 });
 ////////////////////////////////////////////////
 
@@ -414,6 +486,7 @@ function controlDetailsClick()
 	/*fired when a control details btn is click*/
 	let idControl = event.target.getAttribute('idControl');
 	existingControlUI(idControl);
+	idSelectedControl = idControl;
 }
 
 function displayTable(selector,TableHeadList,DisplayList,data)
