@@ -10,10 +10,10 @@
 echo '<div class="container">
   <div id="outputMessage"></div>		
 	<h2>User info</h2>
-	<input id="usernameField" placeholder="Node name...">
-	<input id="emailField" placeholder="Node name...">
-	<input id="registerdateField" placeholder="Node name...">
-	<input id="telegrambotTokenField" placeholder="Node name...">
+	<input id="usernameField" placeholder="user name...">
+	<input id="emailField" placeholder="email...">
+	<input id="registerdateField" placeholder="register date...">
+	<input id="telegrambotTokenField" placeholder="telegram bot token...">
 	<button id="saveConfigs">Save configs</button>
 	</div>';
 	}
@@ -24,9 +24,9 @@ $("#saveConfigs").click(function(){
 	$.ajax({
 		url: "userInfoActions.php",
 		type: "POST",
-		data:({actionOption:"setUserInfo", username:$('#usernameField').value,
-		email:$('#emailField').value,registerdate:$('#registerdateField').value
-		,telegrambotToken:$('#telegrambotTokenField').value}),
+		data:({actionOption:"setUserInfo", username:$('#usernameField').val(),
+		email:$('#emailField').val(),registerdate:$('#registerdateField').val()
+		,telegrambotToken:$('#telegrambotTokenField').val()}),
 		cache: false,
 		success: function(data)
 		{
@@ -61,7 +61,7 @@ function fetchUserInfo()
 				//alert(decodedData['Message']);
 				$('#outputMessage').text(decodedData['Message']);
 			}
-			loadUserInfo(data);
+			loadUserInfo(decodedData);
 		}
 	});
 }
@@ -70,19 +70,19 @@ function loadUserInfo(usrData)
 {
 	if(usrData[0]["username"] !== null && usrData[0]["username"] != "undefined")
 	{
-		$('#usernameField').value = usrData[0]["username"];
+		$('#usernameField').val(usrData[0]["username"]);
 	}
 	if(usrData[0]["email"] !== null && usrData[0]["email"] != "undefined")
 	{
-		$('#emailField').value = usrData[0]["email"];
+		$('#emailField').val(usrData[0]["email"]);
 	}
 	if(usrData[0]["registerdate"] !== null && usrData[0]["registerdate"] != "undefined")
 	{
-		$('#registerdateField').value = usrData[0]["registerdate"];
+		$('#registerdateField').val(usrData[0]["registerdate"]);
 	}
 	if(usrData[0]["telegrambotToken"] !== null && usrData[0]["telegrambotToken"] != "undefined")
 	{
-		$('#telegrambotTokenField').value = usrData[0]["telegrambotToken"];
+		$('#telegrambotTokenField').val(usrData[0]["telegrambotToken"]);
 	}
 }
 

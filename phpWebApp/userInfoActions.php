@@ -43,12 +43,6 @@
 	
 	if($operationOption == "fetchUserInfo")
 	{
-		if(!isset($_POST['deviceId']))
-		{
-			exit();
-		}
-		
-		$deviceId = $_POST['deviceId'];
 		
 		$sql = "SELECT username,email,registerdate,telegrambotToken FROM users WHERE idUser=?;";
 				
@@ -71,28 +65,28 @@
 		$registerdate = $_POST['registerdate'];
 		$telegrambotToken = $_POST['telegrambotToken'];
 		
-		if($username == "")
+		if($username != "")
 		{
 			$sql = "UPDATE users SET username = ? WHERE idUser = ?;";
 			$result = $dbObj1->dbQuery($sql, "i", [$username,$userId]);
 		}
-		if($email == "")
+		if($email != "")
 		{
 			$sql = "UPDATE users SET email = ? WHERE idUser = ?;";
 			$result = $dbObj1->dbQuery($sql, "i", [$email,$userId]);
 		}
-		if($registerdate == "")
+		if($registerdate != "")
 		{
 			$sql = "UPDATE users SET registerdate = ? WHERE idUser = ?;";
 			$result = $dbObj1->dbQuery($sql, "i", [$registerdate,$userId]);
 		}
-		if($telegrambotToken == "")
+		if($telegrambotToken != "")
 		{
 			$sql = "UPDATE users SET telegrambotToken = ? WHERE idUser = ?;";
 			$result = $dbObj1->dbQuery($sql, "i", [$telegrambotToken,$userId]);
 		}
 		
-		echo EncodeJSONClientResponse(['Message' => "RESULT: Node '".$nodeName."' deleted!","Result" =>"Success"]);
+		echo EncodeJSONClientResponse(['Message' => "RESULT: data updated!","Result" =>"Success"]);
 	}
 	/*add options to change pwd*/
 	$dbObj1->disconect();
