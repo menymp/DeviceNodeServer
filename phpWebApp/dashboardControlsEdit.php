@@ -155,10 +155,8 @@ function AddDeviceFunctionBtns(deviceFetchTable)//specific
 
 function deviceSelectBtnClick()
 {
-	let idControl = event.target.getAttribute('idDevices');
-	$("#idDevice").val(idControl);/*sets the idDevice input to the selected device*/
-	
-/*ToDo: i ve made a mistake, confused by the devices and controls, correct this by adding the expected*/
+	idSelectedDevice = event.target.getAttribute('idDevices');
+	$("#idDevice").val(idSelectedDevice);/*sets the idDevice input to the selected device*/
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -305,6 +303,7 @@ function buildUITemplate(templateObject, currentValues)
 				input.id = '#' + field;
 				input.disabled = true;
 				input.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
+				input.setAttribute("parameterType", fieldType);//tags the element as part of the parameter object
 				if(currentValues !== null && (typeof parsedObjectValues["parameters"][field] != "undefined"))/*init with data if exists*/
 				{
 					input.val(parsedObjectValues["parameters"][field]);
@@ -318,6 +317,7 @@ function buildUITemplate(templateObject, currentValues)
 				input.id = '#' + field;
 				input.disabled = false;
 				input.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
+				input.setAttribute("parameterType", fieldType);//sets the type of field expected
 				if(currentValues !== null && (typeof parsedObjectValues["parameters"][field] != "undefined"))/*init with data if exists*/
 				{
 					input.val(parsedObjectValues["parameters"][field]);
@@ -331,6 +331,7 @@ function buildUITemplate(templateObject, currentValues)
 				input.id = '#' + field;
 				input.disabled = true;/*a check should be performed for numeric valid values*/
 				input.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
+				input.setAttribute("parameterType", fieldType);//sets the type of field expected
 				if(currentValues !== null && (typeof parsedObjectValues["parameters"][field] != "undefined"))/*init with data if exists*/
 				{
 					input.val(parsedObjectValues["parameters"][field]);
@@ -345,6 +346,7 @@ function buildUITemplate(templateObject, currentValues)
 				sel.id = '#' + field;
 				sel.disabled = false;
 				sel.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
+				input.setAttribute("parameterType", fieldType);//sets the type of field expected
 				var options_str = "";
 				fieldType.forEach( function(value) {
 					options_str += '<option value="' + value + '">' + value + '</option>';
@@ -413,7 +415,6 @@ $("#saveControlBtn").click(function(){
 		return;
 	}*/
 	
-	/*ToDo: build the parameter object for saving*/
 	if(inputName.val() == "")
 	{
 		alert("a valid name must be provided!");
@@ -429,18 +430,25 @@ $("#saveControlBtn").click(function(){
 	let newName = inputName.val();
 	let controlType = $("#controlSelector").value();
 	
+	var cmdObj = new Object();
+	
 	/*get every single field tagged for update*/
 	$("#fieldsForm").find('[parameterMember]').forEach((uiElement)=>{
 		/*add each element to the list*/
-		switch()
-		{/*ToDo: add this, also add in the mapping part at 301 line, the type of element*/
+		let parameterType = uiElement.getAttribute("parameterType");
+		switch(parameterType)
+		{
 			case 'REFERENCE':
+			cmdObj[input.id] = parseInt(uiElement.val());
 			break;
 			case 'FIELD':
+			cmdObj[input.id] = uiElement.val();
 			break;
 			case 'NUMBER':
+			cmdObj[input.id] = parseInt(uiElement.val());
 			break;
 			case 'object':
+			cmdObj[input.id] = uiElement.value();
 			break;
 		}
 	});
