@@ -60,9 +60,12 @@
 					dashboardcontrolt.name,  
 					dashboardcontrolt.parameters, 
 					controlstypes.typename,
+					dashboardcontrolt.idType,
+					users.username,
 					controlstypes.controlTemplate
 				FROM dashboardcontrolt 
 					INNER JOIN controlstypes ON dashboardcontrolt.idType = controlsTypes.idControlsTypes
+					INNER JOIN users ON dashboardcontrolt.idUser = users.idUser
 				WHERE dashboardcontrolt.idUser = ?
 				ORDER BY dashboardcontrolt.name DESC LIMIT ? OFFSET ?";
 				

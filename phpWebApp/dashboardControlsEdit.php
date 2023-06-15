@@ -84,7 +84,7 @@ async function newControlUI()
 	createUIselectControlType(dataControlsTypes, true);
 }
 
-async function existingControlUI(idControl)
+async function existingControlUI(idControl, idControlType)
 {
 	$("#fieldsForm").empty(); /*empty the contents of the form*/
 	currentDeviceCount = 0;
@@ -128,18 +128,18 @@ function displayDevicesTable(data)
 	let btnPrev = document.createElement("button");
 	btnPrev.innerHTML = "previous";
 	btnPrev.id = "previousDevice";
-	$("#fieldsForm").appendChild(btnPrev);
+	$("#fieldsForm").append(btnPrev);
 	let btnNext = document.createElement("button");
 	btnNext.innerHTML = "next";
 	btnNext.id = "nextDevice";
-	$("#fieldsForm").appendChild(btnNext);
+	$("#fieldsForm").append(btnNext);
 	
 	const devicesTable = document.createElement('table');
 	devicesTable.id = "tableDevices";
 	devicesTable.class="table table-bordered table-sm";
 	let devicestbody = document.createElement('tbody');
 	devicesTable.appendChild(devicestbody);
-	$("#fieldsForm").appendChild(devicesTable);
+	$("#fieldsForm").append(devicesTable);
 	
 	displayTable('#tableDevices',headList,selectList,tableWithButtons);
 }
@@ -163,7 +163,7 @@ function deviceSelectBtnClick()
 
 
 /*this functions fetch the controls types*/
-function fetchControlsType()
+async function fetchControlsType()
 {
 	const result =  await $.ajax({
 		url: "dashboardActions.php",
@@ -207,16 +207,16 @@ function createUIselectControlType(data, enabled, idControlType = null)
 	/*if we already got an id dont create a method to render onselect event*/
 	if(idControlType !== null)
 	{
-		sel.val(idControlType);
+		sel.value = idControlType;
 	}
 	else
 	{
 		sel.onselect = selectControlTypeSelected;
 	}
-	$("#fieldsForm").appendChild(sel);
+	$("#fieldsForm").append(sel);
 }
 
-await function selectControlTypeSelected()
+async function selectControlTypeSelected()
 {
 	/*this function sets the UI if there is a selected type of item*/
 	var e = document.getElementById("#controlSelector");
@@ -288,7 +288,7 @@ function buildUITemplate(templateObject, currentValues)
 	{
 		inputName.val(parsedObjectValues["name"]);
 	}
-	$("#fieldsForm").appendChild(inputName);
+	$("#fieldsForm").append(inputName);
 	
 	templateFields.forEach((field) => {
 		let fieldType = parsedObject[field];
@@ -309,7 +309,7 @@ function buildUITemplate(templateObject, currentValues)
 					input.val(parsedObjectValues["parameters"][field]);
 				}
 				
-				$("#fieldsForm").appendChild(input);
+				$("#fieldsForm").append(input);
 			break;
 			case 'FIELD':
 				var input = document.createElement('input');
@@ -323,7 +323,7 @@ function buildUITemplate(templateObject, currentValues)
 					input.val(parsedObjectValues["parameters"][field]);
 				}
 				
-				$("#fieldsForm").appendChild(input);
+				$("#fieldsForm").append(input);
 			break;
 			case 'NUMBER':
 				var input = document.createElement('input');
@@ -336,7 +336,7 @@ function buildUITemplate(templateObject, currentValues)
 				{
 					input.val(parsedObjectValues["parameters"][field]);
 				}
-				$("#fieldsForm").appendChild(input);
+				$("#fieldsForm").append(input);
 			break;
 			default:
 			/*check if array case*/
@@ -355,9 +355,9 @@ function buildUITemplate(templateObject, currentValues)
 				
 				if(currentValues !== null && (typeof parsedObjectValues["parameters"][field] != "undefined"))/*init with data if exists*/
 				{
-					sel.val(parsedObjectValues["parameters"][field]);
+					sel.value = parsedObjectValues["parameters"][field];
 				}
-				$("#fieldsForm").appendChild(sel);
+				$("#fieldsForm").append(sel);
 			}
 			break;
 		}
@@ -428,7 +428,7 @@ $("#saveControlBtn").click(function(){
 	}
 	
 	let newName = inputName.val();
-	let controlType = $("#controlSelector").value();
+	let controlType = parseInt($("#controlSelector").value());
 	
 	var cmdObj = new Object();
 	
@@ -456,7 +456,7 @@ $("#saveControlBtn").click(function(){
 	$.ajax({
 		url: "dashboardActions.php",
 		type: "POST",
-		data:({actionOption:"saveControl",idControl:idSelectedControl, parameters: , idType: , Name: newName}),
+		data:({actionOption:"saveControl",idControl:idSelectedControl, parameters: cmdObj, idType: controlType, Name: newName}),
 		cache: false,
 		success: function(data)
 		{
@@ -517,9 +517,9 @@ function fetchDashboardControls()
 
 function displayControlsTable(data)
 {
-	headList = ['id','Name','Type','Owner',''];
-	selectList = ['idControl','Name','TypeName','username','btnDetail'];
-	var tableWithButtons = addControlFunctionBtns(JSON.parse(data));
+	let headList = ['id','Name','Type','Owner',''];
+	let selectList = ['idControl','name','typename','username','btnDetail'];
+	var tableWithButtons = addControlFunctionBtns(data);//json
 	displayTable('#tableControls',headList,selectList,tableWithButtons);
 }
 
@@ -527,7 +527,7 @@ function addControlFunctionBtns(controlFetchTable)//specific
 {
 	for(var i = 0, len = controlFetchTable.length; i < len; i++)
 	{
-		controlFetchTable[i]['btnDetail'] = '<button class="controlDetailsBtn" onclick="controlDetailsClick()" idControl="'+controlFetchTable[i]['idControl']+'">Details</button>';
+		controlFetchTable[i]['btnDetail'] = '<button class="controlDetailsBtn" onclick="controlDetailsClick()" idControlType="'+controlFetchTable[i]['idType']+'" idControl="'+controlFetchTable[i]['idControl']+'">Details</button>';
 	}
 	return controlFetchTable;
 }
@@ -536,7 +536,8 @@ function controlDetailsClick()
 {
 	/*fired when a control details btn is click*/
 	let idControl = event.target.getAttribute('idControl');
-	existingControlUI(idControl);
+	let idControlType = event.target.getAttribute('idControlType');
+	existingControlUI(idControl, idControlType);
 	idSelectedControl = idControl;
 }
 

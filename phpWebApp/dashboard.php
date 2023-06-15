@@ -8,7 +8,7 @@
 	if(isset($_SESSION['userId']))
 	{
 echo '<div class="container">
-
+	<button id="openEditor">Editor</button>
 	<button id="previous">Previous Page</button>
 	<button id="next">Next Page</button>
 	<div id="outputMessage"></div>	
@@ -29,6 +29,10 @@ let flagStop = 1; //ToDo: use this when the update process should not continue
 let controls = [];
 let controlsCommands = null;//holds the current visible controls
 let userCommands = []; //inmediate user command
+
+$("#openEditor").click(function(){
+	window.location.href = "dashboardControlsEdit.php";
+});
 
 $("#next").click(function(){
 	currentCount = currentCount + 1;
