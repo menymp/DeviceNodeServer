@@ -231,19 +231,19 @@ async function setControlUITemplate(idControlType, idControl)
 	const templateArr =  await $.ajax({
 		url: "dashboardActions.php",
 		type: "POST",
-		data:({actionOption:"getControlTypeTemplate", idControlType:idControlType}),
+		data:({actionOption:"getControlTypeTemplate", idControlType:parseInt(idControlType)}),
 		cache: false
 	});
 	
 	/*now, if we have an id lets populate the data available in the device*/
 	let currentValues = null;
 	
-	if(idDevice !== -1)
+	if(idControl !== -1)
 	{
 		const currentValues =  await $.ajax({
 			url: "dashboardActions.php",
 			type: "POST",
-			data:({actionOption:"fetchControlById", idControl:idControl}),
+			data:({actionOption:"fetchControlById", idControl:parseInt(idControl)}),
 			cache: false
 		});
 	}

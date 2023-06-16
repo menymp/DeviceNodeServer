@@ -85,6 +85,7 @@
 	}
 	if($operationOption == "fetchControlById")
 	{
+		
 		if(!isset($_POST['idControl']))
 		{
 			exit();
@@ -92,19 +93,21 @@
 		
 		$idControl = $_POST['idControl'];
 
-		$sql = "SELECT 
-					dashboardcontrolt.idControl, 
-					dashboardcontrolt.name,  
-					dashboardcontrolt.parameters, 
-					controlstypes.typename,
-					controlstypes.controlTemplate
-				FROM dashboardcontrolt 
-					INNER JOIN controlstypes ON dashboardcontrolt.idType = controlsTypes.idControlsTypes
-				WHERE dashboardcontrolt.idControl =  ?
-				ORDER BY dashboardcontrolt.name DESC";
+		// $sql = "SELECT 
+					// dashboardcontrolt.idControl, 
+					// dashboardcontrolt.name,  
+					// dashboardcontrolt.parameters, 
+					// controlstypes.typename,
+					// controlstypes.controlTemplate
+				// FROM dashboardcontrolt 
+					// INNER JOIN controlstypes ON dashboardcontrolt.idType = controlstypes.idControlstypes
+				// WHERE dashboardcontrolt.idControl =  ?
+				// ORDER BY dashboardcontrolt.name DESC";
 				
+		$sql = "SELECT * FROM dashboardcontrolt";
+		
 		$result = $dbObj1->dbQuery($sql, "i", [$idControl]);
-
+		
 
 		if ($result->num_rows > 0) 
 		{	
