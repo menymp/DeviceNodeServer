@@ -40,7 +40,7 @@ each control will display apperance properties based on the templates available 
 
 let showSize = 3;
 let currentCount = 0;
-let InputFieldsState = 0;
+let InputFieldsState = 1;
 
 let flagCreateNewDevice = 0; /*this flag sets the UI for creating a new control*/
 let idSelectedDevice = -1; /*this flag holds the selected device id, -1 if no device is selected*/
@@ -71,42 +71,34 @@ function uiDetailsCleanup()
 	InputFieldsState = 1;    /*sets the flag that the ui mode is loaded*/
 	idSelectedDevice = -1;
 	idSelectedControl = -1;
+	
 }
 
 async function newControlUI()
 {
 	uiDetailsCleanup();
-	
+	InputFieldsState = 2
 	/**/
-	fetchDevicesResponse();/*fetch available devices to select*/
+	displayDevicesTable(await fetchDevicesResponse());/*fetch available devices to select*/
 	
 	let dataControlsTypes = parseJsonInputData(await fetchControlsType());
-	createUIselectControlType(dataControlsTypes, true);
+	createUIselectControlType(dataControlsTypes, false);
 }
 
 async function existingControlUI(idControl, idControlType)
 {
-	$("#fieldsForm").empty(); /*empty the contents of the form*/
+	uiDetailsCleanup(); /*empty the contents of the form*/
 	currentDeviceCount = 0;
-	InputFieldsState = 1;    /*sets the flag that the ui mode is loaded*/
+	InputFieldsState = 2;    /*sets the flag that the ui mode is loaded*/
 	
 	let dataControlsTypes = parseJsonInputData(await fetchControlsType());
-	createUIselectControlType(dataControlsTypes, false, idControl);
-	
+	//createUIselectControlType(dataControlsTypes, true, idControlType);
+	await createDevicesTableUI();
+	createSelectorUI(dataControlsTypes,true);
 	await setControlUITemplate(idControlType, idControl);///////
-	await selectControlTypeSelected(); /*fire manualy the UI build as if the user have already selected*/
+	$("#controlSelector").val(idControlType);
+	//await selectControlTypeSelected(idControlType); /*fire manualy the UI build as if the user have already selected*/
 }
-
-$("#nextDevice").click(function(){
-	currentDeviceCount = currentDeviceCount + 1;
-	fetchDevicesResponse();
-});
-
-$("#previousDevice").click(function(){
-	currentDeviceCount = currentDeviceCount - 1;
-	if(currentDeviceCount < 0) currentDeviceCount = 0;
-	fetchDevicesResponse();
-});
 
 async function fetchDevicesResponse()
 {
@@ -125,15 +117,7 @@ function displayDevicesTable(data)
 	var tableWithButtons = AddDeviceFunctionBtns(JSON.parse(data));
 	
 	/*create html base table and controls*/
-	let btnPrev = document.createElement("button");
-	btnPrev.innerHTML = "previous";
-	btnPrev.id = "previousDevice";
-	$("#fieldsForm").append(btnPrev);
-	let btnNext = document.createElement("button");
-	btnNext.innerHTML = "next";
-	btnNext.id = "nextDevice";
-	$("#fieldsForm").append(btnNext);
-	
+
 	const devicesTable = document.createElement('table');
 	devicesTable.id = "tableDevices";
 	devicesTable.class="table table-bordered table-sm";
@@ -159,6 +143,10 @@ function deviceSelectBtnClick()
 	$("#idDevice").val(idSelectedDevice);/*sets the idDevice input to the selected device*/
 }
 
+$("#fieldsForm").submit(function(e) {
+	/*prevents page reload each time a button is press*/
+    e.preventDefault();
+});
 ///////////////////////////////////////////////////////////////////////////////////
 
 
@@ -191,17 +179,46 @@ async function fetchControlsType()
 	// });
 }
 
-/*creates the selector ui with the data */
-function createUIselectControlType(data, enabled, idControlType = null)
+async function createDevicesTableUI()
 {
+	let btnPrev = document.createElement("button");
+	btnPrev.innerHTML = "previous";
+	btnPrev.id = "previousDevice";
+	$("#fieldsForm").append(btnPrev);
+	let btnNext = document.createElement("button");
+	btnNext.innerHTML = "next";
+	btnNext.id = "nextDevice";
+	$("#fieldsForm").append(btnNext);
+	var br = document.createElement("br");
+	$("#fieldsForm").append(br);
+	
+	$("#nextDevice").click(async function(){
+		currentDeviceCount = currentDeviceCount + 1;
+		displayDevicesTable(await fetchDevicesResponse());
+	});
+
+	$("#previousDevice").click(async function(){
+		currentDeviceCount = currentDeviceCount - 1;
+		if(currentDeviceCount < 0) currentDeviceCount = 0;
+		displayDevicesTable(await fetchDevicesResponse());
+	});
+	displayDevicesTable(await fetchDevicesResponse());
+}
+
+function createSelectorUI(data, enabled, idControlType)
+{
+	var b = document.createElement("b");
+	//b.setAttribute("parameterText","true");
+	b.innerHTML = "control Type: "
+	$("#fieldsForm").append(b);
 	var sel = document.createElement('select');
 	sel.name = 'controlTypeSelector';
-	sel.id = '#controlSelector';
+	sel.id = 'controlSelector';
 	sel.disabled = enabled
 	var options_str = "";
 	/*control[0] is the id of the type of control, while control[1] contains the name*/
 	data.forEach( function(control) {
-		options_str += '<option value="' + control[0] + '">' + control[1] + '</option>';
+		options_str += '<option value="' + control["idControlsTypes"] + '">' + control["TypeName"] + '</option>';
 	});
 	sel.innerHTML = options_str;
 	/*if we already got an id dont create a method to render onselect event*/
@@ -211,17 +228,29 @@ function createUIselectControlType(data, enabled, idControlType = null)
 	}
 	else
 	{
-		sel.onselect = selectControlTypeSelected;
+		sel.onchange = selectControlTypeSelected;/*in the future, enable this to allow the control to be changed on the fly*/
 	}
 	$("#fieldsForm").append(sel);
+	var br = document.createElement("br");
+	$("#fieldsForm").append(br);
+}
+
+/*creates the selector ui with the data */
+async function createUIselectControlType(data, enabled, idControlType = null)
+{
+	await createDevicesTableUI();
+	createSelectorUI(data, enabled, idControlType);
+
+	selectControlTypeSelected();/*loads the first element*/
 }
 
 async function selectControlTypeSelected()
 {
 	/*this function sets the UI if there is a selected type of item*/
-	var e = document.getElementById("#controlSelector");
-	var idControlType = e.value();
-	await setControlUITemplate(idControlType);
+	/*ToDo : for some reason is not fired when reselect the same item twice, fix it*/
+	var e = document.getElementById("controlSelector");
+	let idControlTypeR = parseInt(e.value); //this selector value contains the id of the type of control
+	await setControlUITemplate(idControlTypeR, -1);//we dont have the id of the controll yet
 }
 
 async function setControlUITemplate(idControlType, idControl)
@@ -240,7 +269,7 @@ async function setControlUITemplate(idControlType, idControl)
 	
 	if(idControl !== -1)
 	{
-		const currentValues =  await $.ajax({
+		currentValues =  await $.ajax({
 			url: "dashboardActions.php",
 			type: "POST",
 			data:({actionOption:"fetchControlById", idControl:parseInt(idControl)}),
@@ -251,7 +280,7 @@ async function setControlUITemplate(idControlType, idControl)
 	{
 		/*ToDo: a filter for compatible type devices should be used in this step*/
 		const devicesResponseData = await fetchDevicesResponse();
-		displayDevicesTable(parseJsonInputData(devicesResponseData));/*fetch and creates the ui for the device*/
+		displayDevicesTable(devicesResponseData);/*fetch and creates the ui for the device*/
 		/*ToDo: set the field input REFERENCE to the id value when click on devices select table*/
 	}
 	buildUITemplate(templateArr, currentValues);
@@ -271,93 +300,132 @@ function parseJsonInputData(data)
 function buildUITemplate(templateObject, currentValues)
 {
 	/*builds the current device template*/
-	let parsedObject = parseJsonInputData(templateObject);
+	let parsedObject = parseJsonInputData(parseJsonInputData(templateObject)[0]["controlTemplate"]);
 	let templateFields = Object.keys(parsedObject);
+	var parsedObjectValues = null;
 	
-	if(currentValues !== null);
+	if(currentValues !== null)
 	{
 		/*ToDo: initialize the field in the current element*/
-		let parsedObjectValues = parseJsonInputData(currentValues);/*every information in the object*/
+		var parsedObjectValues = parseJsonInputData(currentValues)[0];/*every information in the object*/
 	}
+	
 	//name field is generic for every control
 	var inputName = document.createElement('input');
 	inputName.name = "nameField";
-	inputName.id = '#' + "nameField";
+	inputName.id = "nameField";
+	inputName.setAttribute("controlMember","true");
 	inputName.disabled = false;
-	if(currentValues !== null && (typeof parsedObjectValues["name"] != "undefined"))/*init with data if exists*/
+	if(currentValues != null && (typeof parsedObjectValues["name"] != "undefined"))/*init with data if exists*/
 	{
-		inputName.val(parsedObjectValues["name"]);
+		inputName.value = parsedObjectValues["name"];
 	}
+	var b = document.createElement("b");
+	b.setAttribute("parameterText","true");
+	b.innerHTML = "Name: "
+	$("#fieldsForm").append(b);
 	$("#fieldsForm").append(inputName);
+	var br = document.createElement("br");
+	br.setAttribute("parameterText","true");
+	$("#fieldsForm").append(br);
+	
 	
 	templateFields.forEach((field) => {
 		let fieldType = parsedObject[field];
 		let fieldBaseType = typeof(fieldType);
 		
-		var sel = document.createElement('select');
+		
 		
 		switch(fieldType){
 			case 'REFERENCE':
 				var input = document.createElement('input');
 				input.name = field;
-				input.id = '#' + field;
+				input.id = field;
 				input.disabled = true;
 				input.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
 				input.setAttribute("parameterType", fieldType);//tags the element as part of the parameter object
-				if(currentValues !== null && (typeof parsedObjectValues["parameters"][field] != "undefined"))/*init with data if exists*/
+				if(currentValues !== null && (typeof parseJsonInputData(parsedObjectValues["parameters"])[field] != "undefined"))/*init with data if exists*/
 				{
-					input.val(parsedObjectValues["parameters"][field]);
+					input.value = parseJsonInputData(parsedObjectValues["parameters"])[field];
 				}
-				
+				var b = document.createElement("b");
+				b.setAttribute("parameterText","true");
+				b.innerHTML = field + ": "
+				$("#fieldsForm").append(b);
 				$("#fieldsForm").append(input);
+				var br = document.createElement("br");
+				br.setAttribute("parameterText","true");
+				$("#fieldsForm").append(br);
 			break;
 			case 'FIELD':
 				var input = document.createElement('input');
 				input.name = field;
-				input.id = '#' + field;
+				input.id =  field;
 				input.disabled = false;
+
 				input.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
 				input.setAttribute("parameterType", fieldType);//sets the type of field expected
-				if(currentValues !== null && (typeof parsedObjectValues["parameters"][field] != "undefined"))/*init with data if exists*/
+				if(currentValues !== null && (typeof parseJsonInputData(parsedObjectValues["parameters"])[field] != "undefined"))/*init with data if exists*/
 				{
-					input.val(parsedObjectValues["parameters"][field]);
+					input.value = parseJsonInputData(parsedObjectValues["parameters"])[field];
 				}
-				
+				var b = document.createElement("b");
+				b.setAttribute("parameterText","true");
+				b.innerHTML = field + ": "
+				$("#fieldsForm").append(b);				
 				$("#fieldsForm").append(input);
+				var br = document.createElement("br");
+				br.setAttribute("parameterText","true");
+				$("#fieldsForm").append(br);
 			break;
 			case 'NUMBER':
 				var input = document.createElement('input');
 				input.name = field;
-				input.id = '#' + field;
+				input.id = field;
 				input.disabled = true;/*a check should be performed for numeric valid values*/
 				input.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
-				input.setAttribute("parameterType", fieldType);//sets the type of field expected
-				if(currentValues !== null && (typeof parsedObjectValues["parameters"][field] != "undefined"))/*init with data if exists*/
+				input.setAttribute("parameterType", "SELECTOR");//sets the type of field expected
+				if(currentValues !== null && (typeof parseJsonInputData(parsedObjectValues["parameters"])[field] != "undefined"))/*init with data if exists*/
 				{
-					input.val(parsedObjectValues["parameters"][field]);
+					input.value = parseJsonInputData(parsedObjectValues["parameters"])[field];
 				}
+				var b = document.createElement("b");
+				b.setAttribute("parameterText","true");
+				b.innerHTML = field + ": "
+				$("#fieldsForm").append(b);
 				$("#fieldsForm").append(input);
+				var br = document.createElement("br");
+				br.setAttribute("parameterText","true");
+				$("#fieldsForm").append(br);
 			break;
 			default:
 			/*check if array case*/
 			if(fieldBaseType == "object"){
 				var sel = document.createElement('select');
 				sel.name = field;
-				sel.id = '#' + field;
+				sel.id = field;
 				sel.disabled = false;
 				sel.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
-				input.setAttribute("parameterType", fieldType);//sets the type of field expected
+				sel.setAttribute("parameterType", "SELECTOR");//sets the type of field expected
 				var options_str = "";
 				fieldType.forEach( function(value) {
 					options_str += '<option value="' + value + '">' + value + '</option>';
 				});
 				sel.innerHTML = options_str;
 				
-				if(currentValues !== null && (typeof parsedObjectValues["parameters"][field] != "undefined"))/*init with data if exists*/
+				if(currentValues !== null && (typeof parseJsonInputData(parsedObjectValues["parameters"])[field] != "undefined"))/*init with data if exists*/
 				{
-					sel.value = parsedObjectValues["parameters"][field];
+					sel.value = parseJsonInputData(parsedObjectValues["parameters"])[field];
 				}
+				var b = document.createElement("b");
+				b.setAttribute("parameterText","true");
+				b.innerHTML = field + ": "
+				$("#fieldsForm").append(b);
 				$("#fieldsForm").append(sel);
+				var br = document.createElement("br");
+				br.setAttribute("parameterText","true");
+				br.setAttribute("parameterText","true");
+				$("#fieldsForm").append(br);
 			}
 			break;
 		}
@@ -390,7 +458,7 @@ $("#deleteControlBtn").click(function(){
 	$.ajax({
 		url: "dashboardActions.php",
 		type: "POST",
-		data:({actionOption:"deleteControlById",idControl:idSelectedControl}),
+		data:({actionOption:"deleteControlById",idControl:parseInt(idSelectedControl)}),
 		cache: false,
 		success: function(data)
 		{
@@ -410,45 +478,45 @@ $("#saveControlBtn").click(function(){
 	//		then clean the fields
 	
 	/*ToDo: i ve added this validation, idk if needed since the same enpoint will be used if the control exists or not*/
-	/*if(idSelectedControl === -1)
+	if(InputFieldsState !== 2)
 	{
 		return;
-	}*/
-	
-	if(inputName.val() == "")
+	}
+	if($("#nameField").val() === "")
 	{
 		alert("a valid name must be provided!");
 		return;
 	}
 	
-	if($("#controlSelector").value() == "")/*ToDo: check what is the return if no value selected*/
+	if($("#controlSelector").val() == "")/*ToDo: check what is the return if no value selected*/
 	{
 		alert("select a valid type of control!");
 		return;
 	}
 	
-	let newName = inputName.val();
-	let controlType = parseInt($("#controlSelector").value());
+	let newName = $("#nameField").val();
+	let controlType = parseInt($("#controlSelector").val());
 	
 	var cmdObj = new Object();
 	
 	/*get every single field tagged for update*/
-	$("#fieldsForm").find('[parameterMember]').forEach((uiElement)=>{
+	var parameterElements = $('#fieldsForm > [parameterMember|="true"]');
+	parameterElements.each((index, obj)=>{
 		/*add each element to the list*/
-		let parameterType = uiElement.getAttribute("parameterType");
+		let parameterType = $(obj).attr("parameterType");
 		switch(parameterType)
 		{
 			case 'REFERENCE':
-			cmdObj[input.id] = parseInt(uiElement.val());
+			cmdObj[obj.id] = parseInt($(obj).val());
 			break;
 			case 'FIELD':
-			cmdObj[input.id] = uiElement.val();
+			cmdObj[obj.id] = $(obj).val();
 			break;
 			case 'NUMBER':
-			cmdObj[input.id] = parseInt(uiElement.val());
+			cmdObj[obj.id] = parseInt($(obj).val());
 			break;
-			case 'object':
-			cmdObj[input.id] = uiElement.value();
+			case 'SELECTOR':
+			cmdObj[obj.id] = $(obj).val();
 			break;
 		}
 	});
@@ -456,12 +524,13 @@ $("#saveControlBtn").click(function(){
 	$.ajax({
 		url: "dashboardActions.php",
 		type: "POST",
-		data:({actionOption:"saveControl",idControl:idSelectedControl, parameters: cmdObj, idType: controlType, Name: newName}),
+		data:({actionOption:"saveControl",idControl:parseInt(idSelectedControl), parameters: cmdObj, idType: parseInt(controlType), Name: newName}),
 		cache: false,
 		success: function(data)
 		{
 			
 			uiDetailsCleanup();
+			fetchDashboardControls();
 			var decodedData = JSON.parse(data);
 			if("Message" in decodedData)
 			{
@@ -535,6 +604,7 @@ function addControlFunctionBtns(controlFetchTable)//specific
 function controlDetailsClick()
 {
 	/*fired when a control details btn is click*/
+	uiDetailsCleanup();
 	let idControl = event.target.getAttribute('idControl');
 	let idControlType = event.target.getAttribute('idControlType');
 	existingControlUI(idControl, idControlType);

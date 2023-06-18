@@ -57,16 +57,18 @@
 		if(isset($_POST['deviceName']) && $_POST['deviceName'] != "")
 		{
 			$flagNameDeviceField = 1;
+			$deviceName = $_POST['deviceName'];
 		}
 		if(isset($_POST['nodeName']) && $_POST['nodeName'] != "")
 		{
 			$flagNameNodeField = 1;
+			$nodeName = $_POST['nodeName'];
 		}
 		
 		$pageCount = $_POST['pageCount'];
 		$pageSize = $_POST['pageSize'];
-		$deviceName = $_POST['deviceName'];
-		$nodeName = $_POST['nodeName'];
+		
+		
 		//WHERE devices.name LIKE '%Dummy%'
 		//$sql = "SELECT * FROM Devices ORDER BY name DESC LIMIT ? OFFSET ? INNER JOINT";
 	    //$result = $dbObj1->dbQuery($sql, "i", [$pageSize,$pageCount]);

@@ -86,6 +86,7 @@
 	if($operationOption == "fetchControlById")
 	{
 		
+		
 		if(!isset($_POST['idControl']))
 		{
 			exit();
@@ -93,18 +94,18 @@
 		
 		$idControl = $_POST['idControl'];
 
-		// $sql = "SELECT 
-					// dashboardcontrolt.idControl, 
-					// dashboardcontrolt.name,  
-					// dashboardcontrolt.parameters, 
-					// controlstypes.typename,
-					// controlstypes.controlTemplate
-				// FROM dashboardcontrolt 
-					// INNER JOIN controlstypes ON dashboardcontrolt.idType = controlstypes.idControlstypes
-				// WHERE dashboardcontrolt.idControl =  ?
-				// ORDER BY dashboardcontrolt.name DESC";
+		$sql = "SELECT 
+					dashboardcontrolt.idControl, 
+					dashboardcontrolt.name,  
+					dashboardcontrolt.parameters, 
+					controlstypes.typename,
+					controlstypes.controlTemplate
+				FROM dashboardcontrolt 
+					INNER JOIN controlstypes ON dashboardcontrolt.idType = controlstypes.idControlstypes
+				WHERE dashboardcontrolt.idControl =  ?
+				ORDER BY dashboardcontrolt.name DESC";
 				
-		$sql = "SELECT * FROM dashboardcontrolt";
+		//$sql = "SELECT * FROM dashboardcontrolt";
 		
 		$result = $dbObj1->dbQuery($sql, "i", [$idControl]);
 		
@@ -169,7 +170,7 @@
 		
 		$result = $dbObj1->dbQuery($sql, "i", [$idControl]);
 
-		if ($result->num_rows > 0) 
+		if ($result !== false && $result->num_rows > 0) 
 		{	
 			$data = $result->fetch_all( MYSQLI_ASSOC );
 			echo EncodeJSONClientResponse($data);
@@ -181,7 +182,7 @@
 	}	
 	if($operationOption == "saveControl")
 	{
-		$sqlSaveCtl = "UPDATE dashboardcontrolt SET Name = ?, idType = ? parameters = ? WHERE idControl = ?;";
+		$sqlSaveCtl = "UPDATE dashboardcontrolt SET Name = ?, idType = ?, parameters = ? WHERE idControl = ?;";
 		$sqlNewCtl = "INSERT INTO dashboardcontrolt (Name, idType, idUser, parameters) VALUES (?,?,?,?); ";
 		
 		if(!isset($_POST['parameters']))
@@ -200,7 +201,10 @@
 		{
 			exit();
 		}
-		$parameters = $_POST['parameters'];
+		
+		$parameters = json_encode($_POST['parameters']);
+		//echo json_encode($parameters);
+		//exit();
 		$idType = $_POST['idType'];
 		$Name = $_POST['Name'];
 		$idControl = $_POST['idControl'];
@@ -218,7 +222,7 @@
 		}
 
 
-		if ($result->num_rows > 0) 
+		if ($result !== false && $result > 0) 
 		{	
 			$data = $result->fetch_all( MYSQLI_ASSOC );
 			echo EncodeJSONClientResponse($data);
