@@ -248,8 +248,13 @@ async function selectControlTypeSelected()
 {
 	/*this function sets the UI if there is a selected type of item*/
 	/*ToDo : for some reason is not fired when reselect the same item twice, fix it*/
+	//uiDetailsCleanup();
 	var e = document.getElementById("controlSelector");
 	let idControlTypeR = parseInt(e.value); //this selector value contains the id of the type of control
+	
+	$('#fieldsForm > [parameterMember|="true"]').remove();
+	$('#fieldsForm > [parameterText|="true"]').remove();
+	$('#fieldsForm > [controlMember|="true"]').remove();
 	await setControlUITemplate(idControlTypeR, -1);//we dont have the id of the controll yet
 }
 
@@ -604,9 +609,12 @@ function addControlFunctionBtns(controlFetchTable)//specific
 function controlDetailsClick()
 {
 	/*fired when a control details btn is click*/
-	uiDetailsCleanup();
+	
 	let idControl = event.target.getAttribute('idControl');
 	let idControlType = event.target.getAttribute('idControlType');
+	
+	
+	
 	existingControlUI(idControl, idControlType);
 	idSelectedControl = idControl;
 }

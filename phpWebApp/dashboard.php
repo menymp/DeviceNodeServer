@@ -216,14 +216,14 @@ class ctrlPlainText
 	{
 		if(response.state === 'SUCCESS')
 		{
-			this.uiRefControl.innerHTML = response.result
+			this.uiRefControl.innerHTML = ": '"+response.result+"'"
 		}
 	}
 	/*ToDo: review if a best approach is to move this function to a super class*/
 	getUpdateCommand()
 	{
 		var cmdObj = new Object();
-		cmdObj.idDevice = this.idDevice;
+		cmdObj.idDevice = parseInt(this.idDevice);
 		cmdObj.command = this.cmdUpdate;
 		cmdObj.args = ""; /*ToDo: check*/
 		return cmdObj;
@@ -233,7 +233,7 @@ class ctrlPlainText
 /*toggle switch apperance*/
 class ctrlDigitalOutput
 {
-	constructor(name, controlParameters)
+	constructor(name, controlParameters, usrCommandHandler)
 	{
 		this.name = name;
 		this.idDevice = controlParameters["idDevice"];
@@ -274,9 +274,9 @@ class ctrlDigitalOutput
 	{
 		//console.log("clickk");
 		if(this.uiRefControl.checked)
-			this.usrCommandHandler(this.idDevice,this.cmdOn, "");
+			this.usrCommandHandler(parseInt(this.idDevice),this.cmdOn, "");
 		else
-			this.usrCommandHandler(this.idDevice,this.cmdOff, "");
+			this.usrCommandHandler(parseInt(this.idDevice),this.cmdOff, "");
 	}
 	
 	update(response)
@@ -296,7 +296,7 @@ class ctrlDigitalOutput
 	getUpdateCommand()
 	{
 		var cmdObj = new Object();
-		cmdObj.idDevice = this.idDevice;
+		cmdObj.idDevice = parseInt(this.idDevice);
 		cmdObj.command = this.cmdUpdate;
 		cmdObj.args = ""; /*ToDo: check*/
 		return cmdObj;
