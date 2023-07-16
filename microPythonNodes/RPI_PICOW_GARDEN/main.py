@@ -6,6 +6,7 @@ simple garden control
 IO requeriments
 OK    i2c bmp 180 sensor
 OK    i2c lcd display
+    i2c ds3231 RTC 
 OK    2x analog chanels
 OK        - moisture ground sensor
 OK        - photoresistor
@@ -13,7 +14,7 @@ OK    2x GPIO pins
 OK        - water low level
 OK        - pump relay control
 OK    ds18x20 water resistant temperature sensor
-
+    
     mqtt communication
     config.json file capability
 
@@ -39,6 +40,7 @@ from machine import I2C, Pin, ADC
 import time
 from bmp180 import BMP180
 from ssd1306 import SSD1306_I2C
+from ds3231 import DS3231
 import onewire
 import ds18x20
 
@@ -58,6 +60,27 @@ BMP_180_I2C_BAUD = 100000
 DS18X20_SENSOR_PIN = 28
 PHOTORESISTOR_PIN = 29
 MOISTURE_SENSOR_PIN = 30
+
+def initDS3231():
+    i2c = I2C(sda=Pin(4), scl=Pin(5))
+    dsclk = DS3231(i2c)
+    return dsclk
+'''
+year = 2020 # Can be yyyy or yy format
+month = 10
+mday = 3
+hour = 13 # 24 hour format only
+minute = 55
+second = 30 # Optional
+weekday = 6 # Optional
+
+datetime = (year, month, mday, hour, minute, second, weekday)
+ds.datetime(datetime)
+
+Call ds.datetime() to get the current date and time. This will print a warning on the REPL when the Oscillator Stop Flag (OSF) is set. When not using the REPL the OSF
+
+ToDo: check alarms for the ON and OFF for the pump
+'''
 
 def initOLED(sda, scl, id):
     i2c = I2C(sda=Pin(23), scl=Pin(22))
@@ -173,6 +196,7 @@ def subscribe(client, topic):
 
 def baseMQTTCallback(topic, msg):
     #this callback is to be called when message arrived to subscribed topics
+    pass
 
 
 #    my_jsonfile = jsonfile("./test.json", default_data = {"a": "porty", "b": "portx"})
@@ -182,6 +206,9 @@ def baseMQTTCallback(topic, msg):
 #    print(my_jsonfile.get_data())
 #    my_jsonfile.store_data()
 
+def publishData():
+    pass
+
 if __name__ == "__main__":
     bmpSensorObj = initBmp(BMP_180_I2C_ID, BMP_180_I2C_BAUD)
     gpiosObj = initGPIOS()
@@ -190,8 +217,23 @@ if __name__ == "__main__":
 
     wlanConnect(ssid, password)
     client = connectMQTT(client_id, broker_server, baseMQTTCallback)
-    client.check_msg()
+    
+    #ToDo: add this as part of the reconfiguration ini file
+    #      add main logic
+    manifest = {
+        "Name":"MenyGarden2",
+        "RootName":"/MenyGarden2/",
+        "Devices":["waterLowLevel","waterPump","photoResistor","moistureSensor","temperature","altitude","altitude","timeRange"]
+    }
+    exampleSensor =  {
+        "Name":"water low level",
+        "Mode":"PUBLISHER",
+        "Type":"STRING",
+        "Channel":"/MenyGarden2/waterLowLevel",
+        "Value":"OFF"
+    }
 
     while True:
-        time.sleep(1)
+
+        client.check_msg()
     pass

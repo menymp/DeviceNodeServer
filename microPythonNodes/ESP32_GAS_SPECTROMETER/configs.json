@@ -1,0 +1,5 @@
+{
+    "Name":"MenyGarden2",
+    "RootName":"/MenyGarden2/",
+    "Devices":["waterLowLevel","waterPump","photoResistor","moistureSensor","temperature","altitude","altitude","timeRange"]
+}
