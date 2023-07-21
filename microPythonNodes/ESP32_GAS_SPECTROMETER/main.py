@@ -1,8 +1,21 @@
 from machine import Pin, ADC 
-import time
+import utime
 
 from simple import MQTTClient
 import network
+
+MQ3_PIN = 5
+MQ4_PIN = 6
+MQ6_PIN = 2
+MQ7_PIN = 4
+MQ8_PIN = 1
+MQ135_PIN = 3
+
+ssid = "ssid"
+password = "password"
+max_wait = 10
+client_id = "ESP32_GAS_SPECTROMETER_MENY"
+broker_server = ""
 
 def wlanConnect(ssid, password):
     wlan = network.WLAN(network.STA_IF)
@@ -50,6 +63,24 @@ def baseMQTTCallback(topic, msg):
     #this callback is to be called when message arrived to subscribed topics
     pass
 
+def initADCs():
+    mq3 = ADC(MQ3_PIN)
+    mq4 = ADC(MQ4_PIN)
+    mq6 = ADC(MQ6_PIN)
+    mq7 = ADC(MQ7_PIN)
+    mq8 = ADC(MQ8_PIN)
+    mq135 = ADC(MQ135_PIN)
+
+    analogSensors = {
+        "mq3":mq3,
+        "mq4":mq4,
+        "mq6":mq6,
+        "mq7":mq7,
+        "mq8":mq8,
+        "mq135":mq135
+    }
+    return analogSensors
+
 if __name__ == "__main__":
     analogSensors = initADCs()
 
@@ -60,16 +91,17 @@ if __name__ == "__main__":
     #      add main logic
     manifest = {
         "Name":"MenyGarden2",
-        "RootName":"/MenyGarden2/",
-        "Devices":["waterLowLevel","waterPump","photoResistor","moistureSensor","temperature","altitude","altitude","timeRange"]
+        "RootName":"/MenyGasNode1/",
+        "Devices":["MQ3","MQ4","MQ6","MQ7","MQ8","MQ135"]
     }
     exampleSensor =  {
-        "Name":"water low level",
+        "Name":"MQ3 Measure",
         "Mode":"PUBLISHER",
         "Type":"STRING",
-        "Channel":"/MenyGarden2/waterLowLevel",
-        "Value":"OFF"
+        "Channel":"/MenyGasNode1/MQ3",
+        "Value":"0"
     }
+    
 
     while True:
 
