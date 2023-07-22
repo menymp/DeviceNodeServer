@@ -46,6 +46,8 @@ import ds18x20
 
 from simple import MQTTClient
 import network
+import json
+from jsonConfigs import jsonfile
 
 ssid = "ssid"
 password = "password"
@@ -60,6 +62,15 @@ BMP_180_I2C_BAUD = 100000
 DS18X20_SENSOR_PIN = 28
 PHOTORESISTOR_PIN = 29
 MOISTURE_SENSOR_PIN = 30
+
+manifest = {
+        "Name":"MenyGarden2",
+        "RootName":"/MenyGarden2/",
+        "Devices":["waterLowLevel","photoResistor","moistureSensor","temperature","presure","altitude","waterTemperature","state","waterPump","timeOn","timeOff"]
+}
+jsonManifest = json.dump(manifest)
+configs = None
+
 
 def initDS3231():
     i2c = I2C(sda=Pin(4), scl=Pin(5))
@@ -194,10 +205,35 @@ def publish(client, topic, value):
 def subscribe(client, topic):
     client.subscribe(topic)
 
+def initSubscribers(client):
+    subscribe(client, "/MenyGarden2/state/value")
+    subscribe(client, "/MenyGarden2/timeOn/value")
+    subscribe(client, "/MenyGarden2/timeOff/value")
+    subscribe(client, "/MenyGarden2/waterPump/value")
+
 def baseMQTTCallback(topic, msg):
     #this callback is to be called when message arrived to subscribed topics
+    #ToDo: a proper data validation should be performed here
+    if topic == "/MenyGarden2/state/value":
+        configObj = configs.get_data()
+        configObj["state"] = msg
+        configs.update_data_dict(configObj)
+        configs.load_file()
+    if topic == "/MenyGarden2/timeOn/value":
+        configObj = configs.get_data()
+        configObj["timeOn"] = msg
+        configs.update_data_dict(configObj)
+        configs.load_file()
+    if topic == "/MenyGarden2/timeOff/value":
+        configObj = configs.get_data()
+        configObj["timeOff"] = msg
+        configs.update_data_dict(configObj)
+        configs.load_file()
+    if topic == "/MenyGarden2/waterPump/value":
+        configObj = configs.get_data()
+        if configObj["state"] == "manual":
+            setPump(int(msg))
     pass
-
 
 #    my_jsonfile = jsonfile("./test.json", default_data = {"a": "porty", "b": "portx"})
 #    print(my_jsonfile.get_data())
@@ -206,10 +242,111 @@ def baseMQTTCallback(topic, msg):
 #    print(my_jsonfile.get_data())
 #    my_jsonfile.store_data()
 
-def publishData():
+def publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, configs):
+    mqx_tmp =  {
+        "Name":"waterLowLevel",
+        "Mode":"PUBLISHER",
+        "Type":"STRING",
+        "Channel":manifest["RootName"] + "waterLowLevel",
+        "Value":str(getLowLevelState(gpiosObj))
+    }
+    jsonMsg = json.dump(mqx_tmp)
+    publish(client, jsonMsg)
+
+    ["waterLowLevel","photoResistor","moistureSensor","temperature","altitude","state","waterPump","timeOn","timeOff"]
+    mqx_tmp =  {
+        "Name":"photoResistor",
+        "Mode":"PUBLISHER",
+        "Type":"STRING",
+        "Channel":manifest["RootName"] + "photoResistor",
+        "Value":str(readPhotoresistor(analogSensors))
+    }
+    jsonMsg = json.dump(mqx_tmp)
+    publish(client, jsonMsg)
+
+    mqx_tmp =  {
+        "Name":"moistureSensor",
+        "Mode":"PUBLISHER",
+        "Type":"STRING",
+        "Channel":manifest["RootName"] + "moistureSensor",
+        "Value":str(readMoisture(analogSensors))
+    }
+    jsonMsg = json.dump(mqx_tmp)
+    publish(client, jsonMsg)
+
+    temp, press, alt = readBmp180(bmpSensorObj)
+    mqx_tmp =  {
+        "Name":"temperature",
+        "Mode":"PUBLISHER",
+        "Type":"STRING",
+        "Channel":manifest["RootName"] + "temperature",
+        "Value":str(temp)
+    }
+    jsonMsg = json.dump(mqx_tmp)
+    publish(client, jsonMsg)
+    mqx_tmp =  {
+        "Name":"pressure",
+        "Mode":"PUBLISHER",
+        "Type":"STRING",
+        "Channel":manifest["RootName"] + "pressure",
+        "Value":str(press)
+    }
+    jsonMsg = json.dump(mqx_tmp)
+    publish(client, jsonMsg)
+    mqx_tmp =  {
+        "Name":"altitude",
+        "Mode":"PUBLISHER",
+        "Type":"STRING",
+        "Channel":manifest["RootName"] + "altitude",
+        "Value":str(alt)
+    }
+    jsonMsg = json.dump(mqx_tmp)
+    publish(client, jsonMsg)
+
+    mqx_tmp =  {
+        "Name":"water temperature",
+        "Mode":"PUBLISHER",
+        "Type":"STRING",
+        "Channel":manifest["RootName"] + "waterTemperature",
+        "Value":str(readDS18X20(dsSensor))
+    }
+    jsonMsg = json.dump(mqx_tmp)
+    publish(client, jsonMsg)
+
+    mqx_tmp =  {
+        "Name":"water temperature",
+        "Mode":"PUBLISHER",
+        "Type":"STRING",
+        "Channel":/MenyGarden2/state/value,
+        "Value":str(readDS18X20(dsSensor))
+    }
+    jsonMsg = json.dump(mqx_tmp)
+    publish(client, jsonMsg)
+    mqx_tmp =  {
+        "Name":"water temperature",
+        "Mode":"PUBLISHER",
+        "Type":"STRING",
+        "Channel":manifest["RootName"] + "waterTemperature",
+        "Value":str(readDS18X20(dsSensor))
+    }
+    jsonMsg = json.dump(mqx_tmp)
+    publish(client, jsonMsg)
+    mqx_tmp =  {
+        "Name":"water temperature",
+        "Mode":"PUBLISHER",
+        "Type":"STRING",
+        "Channel":manifest["RootName"] + "waterTemperature",
+        "Value":str(readDS18X20(dsSensor))
+    }
+    jsonMsg = json.dump(mqx_tmp)
+    publish(client, jsonMsg)    
     pass
 
 if __name__ == "__main__":
+    global configs
+    configs = jsonfile("./configs.json")
+    configs.get_data()
+
     bmpSensorObj = initBmp(BMP_180_I2C_ID, BMP_180_I2C_BAUD)
     gpiosObj = initGPIOS()
     dsSensor = initDS18X20(DS18X20_SENSOR_PIN)
@@ -217,14 +354,10 @@ if __name__ == "__main__":
 
     wlanConnect(ssid, password)
     client = connectMQTT(client_id, broker_server, baseMQTTCallback)
-    
+    initSubscribers(client)
     #ToDo: add this as part of the reconfiguration ini file
     #      add main logic
-    manifest = {
-        "Name":"MenyGarden2",
-        "RootName":"/MenyGarden2/",
-        "Devices":["waterLowLevel","waterPump","photoResistor","moistureSensor","temperature","altitude","altitude","timeRange"]
-    }
+
     exampleSensor =  {
         "Name":"water low level",
         "Mode":"PUBLISHER",
@@ -234,6 +367,11 @@ if __name__ == "__main__":
     }
 
     while True:
-
         client.check_msg()
+        configs.load_file()
+        data = configs.get_data()
+        publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, configs)
+
+        if data["state"] == "auto": #ToDo: check for alarms
+        utime.sleep(2)
     pass

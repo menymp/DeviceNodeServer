@@ -1,5 +1,5 @@
 {
-    "Name":"MenyGarden2",
-    "RootName":"/MenyGarden2/",
-    "Devices":["waterLowLevel","waterPump","photoResistor","moistureSensor","temperature","altitude","altitude","timeRange"]
+    "state":"manual",
+    "timeOn":"8:00",
+    "timeOff":"12:00"
 }
