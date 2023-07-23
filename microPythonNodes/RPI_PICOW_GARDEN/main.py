@@ -49,12 +49,16 @@ import network
 import json
 from jsonConfigs import jsonfile
 
+FW_VERSION = 1.0
+
 ssid = "ssid"
 password = "password"
 max_wait = 10
 client_id = "PIPICO_GARDEN_MENY"
 broker_server = ""
 
+LCD_SDA_PIN = 1
+LCD_SCL_PIN = 2
 WATER_PUMP_PIN = 1
 LOW_WATER_SENSOR = 2
 BMP_180_I2C_ID = 1
@@ -68,7 +72,7 @@ DS_CLOCK_SCL_PIN = 3
 manifest = {
         "Name":"MenyGarden2",
         "RootName":"/MenyGarden2/",
-        "Devices":["waterLowLevel","photoResistor","moistureSensor","temperature","presure","altitude","waterTemperature","state","waterPump","timeOn","timeOff"]
+        "Devices":["waterLowLevel","photoResistor","moistureSensor","temperature","presure","altitude","waterTemperature","state","waterPump","timeOn","timeOff","dateTime"]
 }
 jsonManifest = json.dump(manifest)
 configs = None
@@ -79,6 +83,7 @@ def initDS3231(sdaPin, sclPin):
     i2c = I2C(sda=Pin(sdaPin), scl=Pin(sclPin))
     dsclk = DS3231(i2c)
     return dsclk
+
 '''
 year = 2020 # Can be yyyy or yy format
 month = 10
@@ -88,16 +93,40 @@ minute = 55
 second = 30 # Optional
 weekday = 6 # Optional
 
-datetime = (year, month, mday, hour, minute, second, weekday)
-ds.datetime(datetime)
-
 Call ds.datetime() to get the current date and time. This will print a warning on the REPL when the Oscillator Stop Flag (OSF) is set. When not using the REPL the OSF
-
-ToDo: check alarms for the ON and OFF for the pump
 '''
+#expected str input format: 2023-07-23 16:30:43.320847
+def setDateTime(dateTimeStr):
+    dateTimeList = dateTimeStr.split(' ')
+    dateList = dateTimeList[0].split('-')
+    timeList = dateTimeList[1].split(':')
+    year = int(dateList[0])
+    month = int(dateList[1])
+    mday = int(dateList[2])
+    hour = int(timeList[0])
+    minute = int(timeList[1])
+    second = int(timeList[2])
+    datetime = (year, month, mday, hour, minute, second)
+    dsClock.datetime(datetime)
+    pass
 
-def initOLED(sda, scl, id):
-    i2c = I2C(sda=Pin(23), scl=Pin(22))
+def timeInRange(currentTime, timeOnStr, timeOffStr):
+    onHour, onMin = parseTimeStr(timeOnStr)
+    offHour, offMin = parseTimeStr(timeOffStr)
+
+    #ToDo: For now use this, if in the future is expected to work in midnight shifts add proper handling
+    if onHour <= currentTime[4] <= offHour and onMin <= currentTime[5] <= offMin:
+        return True
+    return False
+
+def parseTimeStr(timeOnStr):
+    timeOnList = timeOnStr.split(':')
+    hour = int(timeOnList[0])
+    min = int(timeOnList[0])
+    return (hour, min)
+
+def initOLED(sda, scl):
+    i2c = I2C(sda=Pin(sda), scl=Pin(scl))
     oled = SSD1306_I2C(128, 32, i2c)
     oled.fill(0)
     oled.show()
@@ -151,7 +180,7 @@ def readMoisture(analogSensors):
 def setPump(GPIOs, value):
     GPIOs["waterPump"].value(value)
 
-def getPump(GPIOs, value):
+def getPump(GPIOs):
     return GPIOs["waterPump"].value
 
 def getLowLevelState(GPIOs):
@@ -166,7 +195,7 @@ def initDS18X20(pin=28):
 
 def readDS18X20(ds, devices, index = 0):
     ds.convert_temp()
-    time.sleep_ms(750)
+    utime.sleep_ms(750)
     return ds.read_temp(devices[index])
 
 def wlanConnect(ssid, password):
@@ -189,6 +218,7 @@ def wlanConnect(ssid, password):
             print('connected')
         status = wlan.ifconfig()
         print('ip = ' + status[0])
+    return wlan
 
 #NOTE: strings must be byte string
 def connectMQTT(client_id, brokerServer, callback):
@@ -216,6 +246,7 @@ def initSubscribers(client):
     subscribe(client, "/MenyGarden2/timeOn/value")
     subscribe(client, "/MenyGarden2/timeOff/value")
     subscribe(client, "/MenyGarden2/waterPump/value")
+    subscribe(client, "/MenyGarden2/dateTime/value")
 
 def baseMQTTCallback(topic, msg):
     #this callback is to be called when message arrived to subscribed topics
@@ -239,16 +270,10 @@ def baseMQTTCallback(topic, msg):
         configObj = configs.get_data()
         if configObj["state"] == "manual":
             setPump(int(msg))
+    if topic == "/MenyGarden2/waterPump/value":
+        setDateTime(msg)
     pass
 
-
-def setAlarms(timeOn, timeOff):
-    # Set alarm 1 for 19:30 every Tuesday
-    onHour = int(timeOn[:1])
-    onMin = int(timeOn[2:])
-    offHour = int(timeOff[:1])
-    offMin = int(timeOff[2:])
-    dsClock.alarm2((30, 19, 2), match=dsClock.AL2_MATCH_HM, weekday=True)
 #    my_jsonfile = jsonfile("./test.json", default_data = {"a": "porty", "b": "portx"})
 #    print(my_jsonfile.get_data())
 #    update_data = {"c": "portc", "b": "portb"}
@@ -267,7 +292,7 @@ def publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data):
     jsonMsg = json.dump(mqx_tmp)
     publish(client, manifest["RootName"] + "waterLowLevel", jsonMsg)
 
-    ["waterLowLevel","photoResistor","moistureSensor","temperature","altitude","state","waterPump","timeOn","timeOff"]
+    
     mqx_tmp =  {
         "Name":"photoResistor",
         "Mode":"PUBLISHER",
@@ -366,28 +391,73 @@ def publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data):
     publish(client, jsonMsg)    
     pass
 
+printIndexCount = 4
+
+def printStates(lcdObj, wlan, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data, dsClock, printIndex):
+    lcdObj.fill(0)
+
+    if printIndex == 0:
+        lcdObj.text('Pico W Garden', 0, 0)
+        lcdObj.text('version ' + str(FW_VERSION), 0, 10)
+        lcdObj.text('IP: ' + wlan.ifconfig()[0], 0, 20)
+    elif printIndex == 1:
+        lcdObj.text('IO States', 0, 0)
+        lcdObj.text('Pump Output  '+ str(getPump(gpiosObj)), 10, 0)
+        lcdObj.text('Level Sensor '+ str(getLowLevelState(gpiosObj)), 20, 0)
+    elif printIndex == 2:
+        temp, press, alt = readBmp180(bmpSensorObj)
+        lcdObj.text('Sensors 1/2', 0, 0)
+        lcdObj.text('Water Temp  '+ str(readDS18X20(dsSensor)), 10, 0)
+        lcdObj.text('Temperature '+ str(temp), 20, 0)
+        lcdObj.text('Pressure    '+ str(press), 30, 0)
+    elif printIndex == 3:
+        lcdObj.text('Sensors 2/2', 0, 0)
+        lcdObj.text('Moisture   '+ str(readMoisture(analogSensors)), 10, 0)
+        lcdObj.text('Photo Res  '+ str(readPhotoresistor(analogSensors)), 20, 0)
+    elif printIndex == 4:
+        lcdObj.text('Data  '+ str(dsClock.datetime()[4]) + ":" + dsClock.datetime()[5], 0, 0)
+        lcdObj.text('State '+ data["state"], 10, 0)
+        lcdObj.text('t On  ' + data["timeOn"], 20, 0)
+        lcdObj.text('t Off ' + data["timeOff"], 30, 0)
+    else:
+        lcdObj.text('Pico W Garden', 0, 0)
+        lcdObj.text('version ' + str(FW_VERSION), 0, 10)
+        lcdObj.text('IP: ' + wlan.ifconfig()[0], 0, 20)
+    lcdObj.show()
+    pass
+
 if __name__ == "__main__":
+    idState = 0
     global configs
     global dsClock
     configs = jsonfile("./configs.json")
     configs.get_data()
 
+    oledI2c = initOLED(LCD_SDA_PIN,LCD_SCL_PIN)
     bmpSensorObj = initBmp(BMP_180_I2C_ID, BMP_180_I2C_BAUD)
     gpiosObj = initGPIOS()
     dsSensor = initDS18X20(DS18X20_SENSOR_PIN)
     analogSensors = initADCs()
     dsClock = initDS3231(DS_CLOCK_SDA_PIN, DS_CLOCK_SCL_PIN)
 
-    wlanConnect(ssid, password)
+    wlanObj = wlanConnect(ssid, password)
     client = connectMQTT(client_id, broker_server, baseMQTTCallback)
     initSubscribers(client)
 
     while True:
+        printIndex  = printIndex + 1
+        if printIndex > printIndexCount:
+            printIndex = 0
         client.check_msg()
         configs.load_file()
         data = configs.get_data()
         publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data)
 
-        if data["state"] == "auto": #ToDo: check for alarms
-        utime.sleep(2)
+        printStates(oledI2c, wlanObj, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data, dsClock, printIndex)
+
+        if data["state"] == "auto" and getLowLevelState(gpiosObj) and timeInRange(dsClock.datetime(),data["timeOn"],data["timeOff"]):
+            setPump(gpiosObj, True)
+        else:
+            setPump(gpiosObj, False)
+        utime.sleep(4)
     pass
