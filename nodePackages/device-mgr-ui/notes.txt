@@ -1,0 +1,1 @@
+gauge library https://github.com/antoniolago/react-gauge-component/tree/main/src/lib/GaugeComponent
