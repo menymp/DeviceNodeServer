@@ -8,12 +8,13 @@ export interface tableInit {
     headers: Array<string>,
     rows: Array<string>,
     detailBtn: boolean,
+    detailCallback: () => void,
     deleteBtn: boolean,
     editBtn: boolean
 }
 
 const BaseTable: React.FC<tableInit> = (props) => {
-    const {headers, rows, detailBtn, deleteBtn, editBtn} = props
+    const {headers, rows, detailBtn, deleteBtn, detailCallback, editBtn} = props
     return (
         <Container>
             <Row>
@@ -46,7 +47,7 @@ const BaseTable: React.FC<tableInit> = (props) => {
                 })}
                 {
                     detailBtn === true ? 
-                        <Col><Button>Details</Button></Col> : null
+                        <Col><Button onClick={detailCallback}>Details</Button></Col> : null
 
                 }
                 {
