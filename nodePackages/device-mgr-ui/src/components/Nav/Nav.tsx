@@ -6,6 +6,7 @@ import NavDropdown from 'react-bootstrap/NavDropdown';
 import Form from 'react-bootstrap/Form';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
+import Button from 'react-bootstrap/Button'
 
 const NavMenu: React.FC<{}> = () => {
     return (
@@ -39,6 +40,9 @@ const NavMenu: React.FC<{}> = () => {
                     </Col>
                     <Col>
                       <Form.Control type="password" placeholder="password..." />
+                    </Col>
+                    <Col>
+                      <Button>Log In</Button>
                     </Col>
                   </Row>
                 </Form.Group>

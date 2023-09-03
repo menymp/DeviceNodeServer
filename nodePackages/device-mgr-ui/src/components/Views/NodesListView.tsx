@@ -15,25 +15,46 @@ const NodesListView: React.FC = () => {
     return(
         <Container >
             <Row>
-                <Col>
+                <Col xs={2}>
                     <Button>New Node</Button>
                 </Col>
-                <Col size={1} >
-                    <Form >
+                <Col xs={5} >
+                    <Form className="mr-left ">
                         <Form.Group className="mb-3 form-check-inline" controlId="searchFilterField">
-                            <Form.Check type={"radio"} id={`name-radio`} label={`name`}/>
-                            <Form.Check type={"radio"} id={`type-radio`} label={`type`}/>
-                            <Form.Label>Name</Form.Label>
-                            <Form.Control type="text" placeholder="node name..." />
+                            <Row xs={12}>
+                                <Col xs={4}>
+                                    <Form.Select aria-label="Default select example">
+                                        <option value="1">Name</option>
+                                        <option value="2">Type</option>
+                                        <option value="3">Path</option>
+                                    </Form.Select>
+                                </Col>
+                                <Col xs={2}>
+                                    <Form.Label>Name</Form.Label>
+                                </Col>
+                                <Col xs={5}>
+                                    <Form.Control type="text" placeholder="node name..." />
+                                </Col>
+                            </Row>
                         </Form.Group>
                     </Form>
                 </Col>
                 <Col>
-                    <Button>Next page</Button>
-                    <Form>
-                        <Form.Label> 10 </Form.Label>
+                    <Form className="mr-left ">
+                        <Form.Group className="mb-3 form-check-inline" controlId="searchFilterField">
+                            <Row xs={12}>
+                                <Col xs={5}>
+                                    <Button>Next page</Button>
+                                </Col>
+                                <Col xs={1}>
+                                    <Form.Label> 10 </Form.Label>
+                                </Col>
+                                <Col xs={6}>
+                                    <Button>Previous page</Button>
+                                </Col>
+                            </Row>
+                        </Form.Group>
                     </Form>
-                    <Button>Previous page</Button>
                 </Col>
             </Row>
             <Row>
