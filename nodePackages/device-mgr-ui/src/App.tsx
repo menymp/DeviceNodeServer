@@ -7,6 +7,8 @@ import NavMenu from './components/Nav/Nav';
 import { Container, Row, Col } from 'react-bootstrap';
 import BaseTable from './components/Table/Table'
 import NodesListView from './components/Views/NodesListView'
+import About from './components/Views/About'
+import { Routes, Route } from "react-router-dom"
 
 
 function App() {
@@ -21,7 +23,10 @@ function App() {
         </Row>   
         <Row>
           <Col>
-            <NodesListView></NodesListView>
+            <Routes>
+              <Route path="/" element={<About></About>} />
+              <Route path="/Nodes" element={<NodesListView></NodesListView>} />
+            </Routes>
           </Col>
         </Row>
       </Container>
