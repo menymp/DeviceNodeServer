@@ -4,7 +4,7 @@ import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable from '../Table/Table'
 
 
-const NodesListView: React.FC = () => {
+const DevicesListView: React.FC = () => {
     const [show, setShow] = useState(false);
 
     const handleClose = () => setShow(false);
@@ -13,10 +13,8 @@ const NodesListView: React.FC = () => {
     const tableContentExample = {
         headers: ["header1", "header2", "header3", "header4"],
         rows: [["1val1", "1val2", "1val3", "1var4"],["2val1", "2val2", "2val3", "2vr4"],["3val1", "3val2", "3val3","3var5"]],
-        detailBtn: false,
-        deleteBtn: true,
-        editBtn: true,
-        editCallback: handleShow
+        detailBtn: true,
+        detailCallback: handleShow
     }
     // a pagination item already exists
     
@@ -24,39 +22,57 @@ const NodesListView: React.FC = () => {
         <>
             <Modal show={show} onHide={handleClose}>
                 <Modal.Header closeButton>
-                    <Modal.Title>Node details</Modal.Title>
+                    <Modal.Title>Device details</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
                     <Form>
-                        <Form.Group className="mb-3" controlId="nodeDetails.name">
-                            <Form.Label>Node name</Form.Label>
+                        <Form.Group className="mb-3" controlId="deviceDetails.name">
+                            <Form.Label>device id</Form.Label>
+                            <Form.Control
+                                type="text"
+                                placeholder="id ..."
+                                autoFocus
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3" controlId="deviceDetails.name">
+                            <Form.Label>device name</Form.Label>
                             <Form.Control
                                 type="text"
                                 placeholder="node name ..."
                                 autoFocus
                             />
                         </Form.Group>
-                        <Form.Group className="mb-3" controlId="nodeDetails.path">
-                            <Form.Label>Node path</Form.Label>
+                        <Form.Group className="mb-3" controlId="deviceDetails.path">
+                            <Form.Label>Mode</Form.Label>
                             <Form.Control
                                 type="text"
-                                placeholder="/nodePath/..."
+                                placeholder="mode..."
                                 autoFocus
                             />
                         </Form.Group>
-                        <Form.Group className="mb-3" controlId="nodeDetails.protocol">
-                            <Form.Label>Node protocol</Form.Label>
-                            <Form.Select aria-label="MQTT">
-                                <option value="1">MQTT</option>
-                                <option value="2">SOCKET</option>
-                            </Form.Select>
+                        <Form.Group className="mb-3" controlId="deviceDetails.name">
+                            <Form.Label>type</Form.Label>
+                            <Form.Control
+                                type="text"
+                                placeholder="type ..."
+                                autoFocus
+                            />
                         </Form.Group>
-                        <Form.Group
-                            className="mb-3"
-                            controlId="nodeDetails.parameters"
-                            >
-                            <Form.Label>Parameters</Form.Label>
-                            <Form.Control as="textarea" rows={3} />
+                        <Form.Group className="mb-3" controlId="deviceDetails.path">
+                            <Form.Label>device path</Form.Label>
+                            <Form.Control
+                                type="text"
+                                placeholder="/devicePath/..."
+                                autoFocus
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3" controlId="deviceParentNode.name">
+                            <Form.Label>parent node</Form.Label>
+                            <Form.Control
+                                type="text"
+                                placeholder="parent node ..."
+                                autoFocus
+                            />
                         </Form.Group>
                     </Form>
                 </Modal.Body>
@@ -64,35 +80,22 @@ const NodesListView: React.FC = () => {
                     <Button variant="secondary" onClick={handleClose}>
                         Close
                     </Button>
-                    <Button variant="primary" onClick={handleClose}>
-                        Save Changes
-                    </Button>
-                    <Button variant="primary" onClick={handleClose}>
-                        Delete
-                    </Button>
                 </Modal.Footer>
             </Modal>
             <Container >
                 <Row className="p-3 mb-2 bg-success bg-gradient text-white rounded-3">
-                    <Col xs={2}>
-                        <Button>New Node</Button>
-                    </Col>
                     <Col xs={5} >
                         <Form className="mr-left ">
                             <Form.Group className="mb-3 form-check-inline" controlId="searchFilterField">
                                 <Row xs={12}>
-                                    <Col xs={4}>
-                                        <Form.Select aria-label="Default select example">
-                                            <option value="1">Name</option>
-                                            <option value="2">Type</option>
-                                            <option value="3">Path</option>
-                                        </Form.Select>
-                                    </Col>
                                     <Col xs={2}>
-                                        <Form.Label>Name</Form.Label>
+                                        <Form.Label>Filter</Form.Label>
                                     </Col>
                                     <Col xs={5}>
                                         <Form.Control type="text" placeholder="node name..." />
+                                    </Col>
+                                    <Col xs={5}>
+                                        <Form.Control type="text" placeholder="parent node..." />
                                     </Col>
                                 </Row>
                             </Form.Group>
@@ -124,4 +127,4 @@ const NodesListView: React.FC = () => {
     )
 }
 
-export default NodesListView
+export default DevicesListView

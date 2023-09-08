@@ -26,11 +26,11 @@ const NavMenu: React.FC<{}> = () => {
             <Nav>
               <Nav.Link>Device Node</Nav.Link>
               <Nav.Link href="#home">Dashboard</Nav.Link>
-              <Nav.Link href="#link">Devices</Nav.Link>
+              <Nav.Link href="/Devices">Devices</Nav.Link>
               <Nav.Link href="/Nodes">Nodes</Nav.Link>
               <Nav.Link href="#link">Cameras</Nav.Link>
               <Nav.Link href="#link">video Dash</Nav.Link>
-              <Nav.Link href="#link">user info</Nav.Link>
+              <Nav.Link href="/Userinfo">user info</Nav.Link>
               <Form className="mr-left ">
                 <Form.Group className="mb-3 form-check-inline" controlId="userName">
                   <Row>

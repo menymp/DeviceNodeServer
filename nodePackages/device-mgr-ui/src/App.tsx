@@ -9,6 +9,8 @@ import BaseTable from './components/Table/Table'
 import NodesListView from './components/Views/NodesListView'
 import About from './components/Views/About'
 import { Routes, Route } from "react-router-dom"
+import DevicesListView from './components/Views/DevicesListView'
+import UserInfo from './components/Views/UserInfo';
 
 
 function App() {
@@ -26,6 +28,8 @@ function App() {
             <Routes>
               <Route path="/" element={<About></About>} />
               <Route path="/Nodes" element={<NodesListView></NodesListView>} />
+              <Route path="/Devices" element={<DevicesListView></DevicesListView>} />
+              <Route path="/Userinfo" element={<UserInfo></UserInfo>} />
             </Routes>
           </Col>
         </Row>
