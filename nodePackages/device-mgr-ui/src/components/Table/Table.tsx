@@ -6,7 +6,7 @@ export interface rowObject {
 
 export interface tableInit {
     headers: Array<string>,
-    rows: Array<string>,
+    rows: Array<Array<string>>,
     detailBtn: boolean,
     detailCallback: () => void,
     deleteBtn: boolean,
@@ -17,7 +17,7 @@ const BaseTable: React.FC<tableInit> = (props) => {
     const {headers, rows, detailBtn, deleteBtn, detailCallback, editBtn} = props
     return (
         <Container>
-            <Row>
+            <Row className='p-3 mb-2 bg-dark bg-gradient text-white rounded-2'>
                 {headers.map((header) => {
                     return (
                         <Col>{header}</Col>
@@ -39,28 +39,32 @@ const BaseTable: React.FC<tableInit> = (props) => {
 
                 }
             </Row>
-            <Row>
-                {rows.map((row) => {
-                    return (
-                        <Col>{row}</Col>
-                    )
-                })}
-                {
-                    detailBtn === true ? 
-                        <Col><Button onClick={detailCallback}>Details</Button></Col> : null
+            {rows.map((columns) => { 
+                return (
+                    <Row className="p-3 mb-2 bg-secondary bg-gradient text-white rounded-3">
+                        {columns.map((column) => {
+                            return (
+                                <Col>{column}</Col>
+                            )
+                        })}
+                        {
+                            detailBtn === true ? 
+                                <Col><Button onClick={detailCallback}>Details</Button></Col> : null
 
-                }
-                {
-                    editBtn === true ? 
-                        <Col><Button>Edit</Button></Col> : null
+                        }
+                        {
+                            editBtn === true ? 
+                                <Col><Button>Edit</Button></Col> : null
 
-                }
-                {
-                    deleteBtn === true ? 
-                        <Col><Button>Delete</Button></Col> : null
+                        }
+                        {
+                            deleteBtn === true ? 
+                                <Col><Button>Delete</Button></Col> : null
 
-                }
-            </Row>
+                        }
+                    </Row>
+                )
+            })}
         </Container>  
     )
 }

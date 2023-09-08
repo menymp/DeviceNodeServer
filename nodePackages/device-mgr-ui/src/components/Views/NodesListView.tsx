@@ -11,8 +11,8 @@ const NodesListView: React.FC = () => {
     const handleShow = () => setShow(true);
 
     const tableContentExample = {
-        headers: ["header1", "header2", "header3"],
-        rows: ["val1", "val2", "val3"],
+        headers: ["header1", "header2", "header3", "header4"],
+        rows: [["1val1", "1val2", "1val3", "1var4"],["2val1", "2val2", "2val3", "2vr4"],["3val1", "3val2", "3val3","3var5"]],
         detailBtn: true,
         detailCallback: handleShow,
         deleteBtn: true,
@@ -73,7 +73,7 @@ const NodesListView: React.FC = () => {
                 </Modal.Footer>
             </Modal>
             <Container >
-                <Row>
+                <Row className="p-3 mb-2 bg-success bg-gradient text-white rounded-3">
                     <Col xs={2}>
                         <Button>New Node</Button>
                     </Col>
