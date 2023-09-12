@@ -25,7 +25,7 @@ const NavMenu: React.FC<{}> = () => {
           <Navbar.Collapse id="basic-navbar-nav">
             <Nav>
               <Nav.Link>Device Node</Nav.Link>
-              <Nav.Link href="#home">Dashboard</Nav.Link>
+              <Nav.Link href="/Dashboard">Dashboard</Nav.Link>
               <Nav.Link href="/Devices">Devices</Nav.Link>
               <Nav.Link href="/Nodes">Nodes</Nav.Link>
               <Nav.Link href="#link">Cameras</Nav.Link>

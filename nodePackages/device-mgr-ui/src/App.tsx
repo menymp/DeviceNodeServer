@@ -11,7 +11,8 @@ import About from './components/Views/About'
 import { Routes, Route } from "react-router-dom"
 import DevicesListView from './components/Views/DevicesListView'
 import UserInfo from './components/Views/UserInfo';
-
+import DashboardView from  './components/Views/DashboardView'
+import DashboardEditor from './components/Views/DashboardEditor';
 
 function App() {
 
@@ -30,6 +31,8 @@ function App() {
               <Route path="/Nodes" element={<NodesListView></NodesListView>} />
               <Route path="/Devices" element={<DevicesListView></DevicesListView>} />
               <Route path="/Userinfo" element={<UserInfo></UserInfo>} />
+              <Route path="/Dashboard" element={<DashboardView />} />
+              <Route path="/DashboardEditor" element={<DashboardEditor />} />
             </Routes>
           </Col>
         </Row>
