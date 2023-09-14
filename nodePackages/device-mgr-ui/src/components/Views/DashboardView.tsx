@@ -80,7 +80,7 @@ const DashboardView: React.FC = () => {
             <Container >
                 <Row className="p-3 mb-2 bg-success bg-gradient text-white rounded-3">
                     <Col xs={2}>
-                        <Button onClick={() => navigate('/DashboardEditor')}>New element</Button>
+                        <Button onClick={() => navigate('/DashboardEditor')}>Editor</Button>
                     </Col>
                     <Col>
                         <Form className="mr-left ">

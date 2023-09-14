@@ -186,6 +186,7 @@ const DashboardEditor: React.FC = () => {
                     </Col>
                 </Row>
                 <Row>
+                    <Col><BaseTable {...tableContentExample}></BaseTable></Col>
                 </Row>
             </Container>
         </>
