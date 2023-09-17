@@ -38,14 +38,16 @@ Example:
 '''
 from machine import I2C, Pin, ADC 
 import time
+from ds1307 import DS1307
 from bmp180 import BMP180
 from ssd1306 import SSD1306_I2C
-from ds3231 import DS3231
+'''
 import onewire
 import ds18x20
 
 from simple import MQTTClient
 import network
+'''
 
 ssid = "ssid"
 password = "password"
@@ -61,10 +63,26 @@ DS18X20_SENSOR_PIN = 28
 PHOTORESISTOR_PIN = 29
 MOISTURE_SENSOR_PIN = 30
 
-def initDS3231():
-    i2c = I2C(sda=Pin(4), scl=Pin(5))
-    dsclk = DS3231(i2c)
+def initI2c():
+    i2c1 = I2C(0 ,sda=Pin(0), scl=Pin(1), freq=200000)
+    i2c2 = I2C(1 ,sda=Pin(2), scl=Pin(3), freq=200000)
+    return i2c1, i2c2
+
+def initDS1307(i2c):
+    dsclk = DS1307(i2c)
     return dsclk
+
+def initBmp(i2c):
+    bmp180 = BMP180(i2c)
+    bmp180.oversample_sett = 2
+    bmp180.baseline = 101325
+    return bmp180
+
+def initOLED(i2c):
+    oled = SSD1306_I2C(128, 32, i2c)
+    oled.fill(0)
+    oled.show()
+    return oled
 '''
 year = 2020 # Can be yyyy or yy format
 month = 10
@@ -82,27 +100,12 @@ Call ds.datetime() to get the current date and time. This will print a warning o
 ToDo: check alarms for the ON and OFF for the pump
 '''
 
-def initOLED(sda, scl, id):
-    i2c = I2C(sda=Pin(23), scl=Pin(22))
-    oled = SSD1306_I2C(128, 32, i2c)
-    oled.fill(0)
-    oled.show()
-    return oled
-
 def writeOLEDMsgs(oled, msgList):
     oled.fill(0)
     oled.show()
     for index in range(0, len(msgList)):
         oled.text(msgList[index][0] + " : "+msgList[index][1], 0, 10*index)
     oled.show()
-
-
-def initBmp(i2cBus = 1, baudrate = 100000):
-    bus = I2C(i2cBus, baudrate)           # on pyboard
-    bmp180 = BMP180(bus)
-    bmp180.oversample_sett = 2
-    bmp180.baseline = 101325
-    return bmp180
 
 def readBmp180(bmpSensor):
     return bmpSensor.temperature, bmpSensor.pressure, bmpSensor.altitude
@@ -208,7 +211,22 @@ def baseMQTTCallback(topic, msg):
 
 def publishData():
     pass
+	
 
+if __name__ == "__main__":
+	i2c1, i2c2 = initI2c()
+	ds = initDS1307(i2c1)
+	bmpSensorObj = initBmp(i2c1)
+	oled = initOLED(i2c2)
+	oled.text("test oled", 0, 0)
+	oled.show()
+	while True:
+		print(ds.datetime())
+		print(readBmp180(bmpSensorObj))
+		time.sleep(1)
+	pass
+
+'''
 if __name__ == "__main__":
     bmpSensorObj = initBmp(BMP_180_I2C_ID, BMP_180_I2C_BAUD)
     gpiosObj = initGPIOS()
@@ -237,3 +255,4 @@ if __name__ == "__main__":
 
         client.check_msg()
     pass
+'''
