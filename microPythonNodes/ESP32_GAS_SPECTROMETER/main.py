@@ -1,8 +1,30 @@
 from machine import Pin, ADC 
-import time
+import utime
+import json
 
 from simple import MQTTClient
 import network
+
+#Global constants
+MQ3_PIN = 5
+MQ4_PIN = 6
+MQ6_PIN = 2
+MQ7_PIN = 4
+MQ8_PIN = 1
+MQ135_PIN = 3
+
+manifest = {
+        "Name":"MenyGarden2",
+        "RootName":"/MenyGasNode1/",
+        "Devices":["MQ3","MQ4","MQ6","MQ7","MQ8","MQ135"]
+}
+jsonManifest = json.dump(manifest)
+
+ssid = "ssid"
+password = "password"
+max_wait = 10
+client_id = "ESP32_GAS_SPECTROMETER_MENY"
+broker_server = ""
 
 def wlanConnect(ssid, password):
     wlan = network.WLAN(network.STA_IF)
@@ -50,28 +72,65 @@ def baseMQTTCallback(topic, msg):
     #this callback is to be called when message arrived to subscribed topics
     pass
 
+def initADCs():
+    mq3 = ADC(MQ3_PIN)
+    mq4 = ADC(MQ4_PIN)
+    mq6 = ADC(MQ6_PIN)
+    mq7 = ADC(MQ7_PIN)
+    mq8 = ADC(MQ8_PIN)
+    mq135 = ADC(MQ135_PIN)
+
+    analogSensors = {
+        "MQ3":mq3,
+        "MQ4":mq4,
+        "MQ6":mq6,
+        "MQ7":mq7,
+        "MQ8":mq8,
+        "MQ135":mq135
+    }
+    return analogSensors
+
+def readMQSensor(analogSensors, name):
+    #ToDo: if a conversion is needed, this is the place
+    return analogSensors[name].read_u16()  
+
+def buildMQMsg(Name, Channel, value):
+    mqx_tmp =  {
+        "Name":Name,
+        "Mode":"PUBLISHER",
+        "Type":"STRING",
+        "Channel":Channel,
+        "Value":str(value)
+    }
+    jsonMsg = json.dump(mqx_tmp)
+    return jsonMsg
+
+def publishData(client ,analogSensors):
+    publish(client, manifest["RootName"], jsonManifest)
+
+    for mqSensor in manifest["Devices"]:
+        baseChanel = manifest["RootName"] + mqSensor + "/"
+        read = readMQSensor(mqSensor)
+        jsonObj = buildMQMsg(mqSensor, manifest["RootName"] + mqSensor, read)
+        publish(client, baseChanel, jsonObj)
+    pass
+
 if __name__ == "__main__":
     analogSensors = initADCs()
 
     wlanConnect(ssid, password)
     client = connectMQTT(client_id, broker_server, baseMQTTCallback)
-    
-    #ToDo: add this as part of the reconfiguration ini file
-    #      add main logic
-    manifest = {
-        "Name":"MenyGarden2",
-        "RootName":"/MenyGarden2/",
-        "Devices":["waterLowLevel","waterPump","photoResistor","moistureSensor","temperature","altitude","altitude","timeRange"]
-    }
-    exampleSensor =  {
-        "Name":"water low level",
+
+    mq3_val =  {
+        "Name":"MQ3 Measure",
         "Mode":"PUBLISHER",
         "Type":"STRING",
-        "Channel":"/MenyGarden2/waterLowLevel",
-        "Value":"OFF"
+        "Channel":"/MenyGasNode1/MQ3",
+        "Value":"0"
     }
-
+    analogSensors = initADCs()
     while True:
-
         client.check_msg()
+        publishData(analogSensors)
+        utime.sleep(2000)
     pass
