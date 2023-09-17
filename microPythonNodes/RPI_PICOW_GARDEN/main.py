@@ -42,20 +42,20 @@ from ds1307 import DS1307
 import utime
 from bmp180 import BMP180
 from ssd1306 import SSD1306_I2C
+from simple import MQTTClient
+import network
 '''
 import onewire
 import ds18x20
 
-from simple import MQTTClient
-import network
 '''
 import json
 from jsonConfigs import jsonfile
 
 FW_VERSION = 1.0
 
-ssid = "ssid"
-password = "password"
+ssid = ""
+password = ""
 max_wait = 10
 client_id = "PIPICO_GARDEN_MENY"
 broker_server = ""
@@ -67,8 +67,8 @@ LOW_WATER_SENSOR = 2
 BMP_180_I2C_ID = 1
 BMP_180_I2C_BAUD = 100000
 DS18X20_SENSOR_PIN = 28
-PHOTORESISTOR_PIN = 29
-MOISTURE_SENSOR_PIN = 30
+PHOTORESISTOR_PIN = 27
+MOISTURE_SENSOR_PIN = 26
 DS_CLOCK_SDA_PIN = 2
 DS_CLOCK_SCL_PIN = 3
 
@@ -98,7 +98,7 @@ manifest = {
         "RootName":"/MenyGarden2/",
         "Devices":["waterLowLevel","photoResistor","moistureSensor","temperature","presure","altitude","waterTemperature","state","waterPump","timeOn","timeOff","dateTime"]
 }
-jsonManifest = json.dump(manifest)
+jsonManifest = json.dumps(manifest)
 configs = None
 dsClock = None
 
@@ -202,6 +202,7 @@ def readDS18X20(ds, devices, index = 0):
     return ds.read_temp(devices[index])
 
 def wlanConnect(ssid, password):
+    global max_wait
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
     wlan.config(pm = 0xa11140) # Diable powersave mode
@@ -219,6 +220,7 @@ def wlanConnect(ssid, password):
             raise RuntimeError('wifi connection failed')
         else:
             print('connected')
+        
         status = wlan.ifconfig()
         print('ip = ' + status[0])
     return wlan
@@ -292,7 +294,7 @@ def publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data):
         "Channel":manifest["RootName"] + "waterLowLevel",
         "Value":str(getLowLevelState(gpiosObj))
     }
-    jsonMsg = json.dump(mqx_tmp)
+    jsonMsg = json.dumps(mqx_tmp)
     publish(client, manifest["RootName"] + "waterLowLevel", jsonMsg)
 
     
@@ -303,7 +305,7 @@ def publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data):
         "Channel":manifest["RootName"] + "photoResistor",
         "Value":str(readPhotoresistor(analogSensors))
     }
-    jsonMsg = json.dump(mqx_tmp)
+    jsonMsg = json.dumps(mqx_tmp)
     publish(client, manifest["RootName"] + "photoResistor", jsonMsg)
 
     mqx_tmp =  {
@@ -313,7 +315,7 @@ def publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data):
         "Channel":manifest["RootName"] + "moistureSensor",
         "Value":str(readMoisture(analogSensors))
     }
-    jsonMsg = json.dump(mqx_tmp)
+    jsonMsg = json.dumps(mqx_tmp)
     publish(client, manifest["RootName"] + "moistureSensor", jsonMsg)
 
     temp, press, alt = readBmp180(bmpSensorObj)
@@ -324,7 +326,7 @@ def publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data):
         "Channel":manifest["RootName"] + "temperature",
         "Value":str(temp)
     }
-    jsonMsg = json.dump(mqx_tmp)
+    jsonMsg = json.dumps(mqx_tmp)
     publish(client, manifest["RootName"] + "temperature", jsonMsg)
     mqx_tmp =  {
         "Name":"pressure",
@@ -333,7 +335,7 @@ def publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data):
         "Channel":manifest["RootName"] + "pressure",
         "Value":str(press)
     }
-    jsonMsg = json.dump(mqx_tmp)
+    jsonMsg = json.dumps(mqx_tmp)
     publish(client, manifest["RootName"] + "pressure", jsonMsg)
     mqx_tmp =  {
         "Name":"altitude",
@@ -342,7 +344,7 @@ def publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data):
         "Channel":manifest["RootName"] + "altitude",
         "Value":str(alt)
     }
-    jsonMsg = json.dump(mqx_tmp)
+    jsonMsg = json.dumps(mqx_tmp)
     publish(client, jsonMsg)
 
     mqx_tmp =  {
@@ -352,7 +354,7 @@ def publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data):
         "Channel":manifest["RootName"] + "waterTemperature",
         "Value":str(readDS18X20(dsSensor))
     }
-    jsonMsg = json.dump(mqx_tmp)
+    jsonMsg = json.dumps(mqx_tmp)
     publish(client, manifest["RootName"] + "waterTemperature", jsonMsg)
 
     mqx_tmp =  {
@@ -362,7 +364,7 @@ def publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data):
         "Channel":"/MenyGarden2/waterPump/value",
         "Value":getPump(gpiosObj)
     }
-    jsonMsg = json.dump(mqx_tmp)
+    jsonMsg = json.dumps(mqx_tmp)
     publish(client, manifest["RootName"] + "waterPump", jsonMsg)
 
     mqx_tmp =  {
@@ -372,7 +374,7 @@ def publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data):
         "Channel":"/MenyGarden2/state/value",
         "Value":data["state"]
     }
-    jsonMsg = json.dump(mqx_tmp)
+    jsonMsg = json.dumps(mqx_tmp)
     publish(client, manifest["RootName"] + "state", jsonMsg)
     mqx_tmp =  {
         "Name":"time on",
@@ -381,7 +383,7 @@ def publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data):
         "Channel":"/MenyGarden2/timeOn/value",
         "Value":data["timeOn"]
     }
-    jsonMsg = json.dump(mqx_tmp)
+    jsonMsg = json.dumps(mqx_tmp)
     publish(client, manifest["RootName"] + "timeOn", jsonMsg)
     mqx_tmp =  {
         "Name":"time off",
@@ -390,7 +392,7 @@ def publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data):
         "Channel":"/MenyGarden2/timeOff/value",
         "Value":data["timeOff"]
     }
-    jsonMsg = json.dump(mqx_tmp)
+    jsonMsg = json.dumps(mqx_tmp)
     publish(client, jsonMsg)    
     pass
 
@@ -435,12 +437,28 @@ if __name__ == "__main__":
 	ds = initDS1307(i2c1)
 	bmpSensorObj = initBmp(i2c1)
 	oled = initOLED(i2c2)
+	analogSensors = initADCs()
 	oled.text("test oled", 0, 0)
 	oled.show()
+	
+	wlanObj = wlanConnect(ssid, password)
+	client = connectMQTT(client_id, broker_server, baseMQTTCallback)
+	
 	while True:
 		print(ds.datetime())
 		print(readBmp180(bmpSensorObj))
-		time.sleep(1)
+		print(readPhotoresistor(analogSensors))
+		print(readMoisture(analogSensors))
+		mqx_tmp =  {
+			"Name":"waterLowLevel",
+			"Mode":"PUBLISHER",
+			"Type":"STRING",
+			"Channel":manifest["RootName"] + "waterLowLevel",
+			"Value":str(3.333)
+		}
+		jsonMsg = json.dumps(mqx_tmp)
+		publish(client, manifest["RootName"] + "waterLowLevel", jsonMsg)
+		time.sleep(6)
 	pass
 
 '''
