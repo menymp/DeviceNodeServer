@@ -32,11 +32,6 @@ Wiring the sensor to the pyboard
 | SCL    | SCL    |
 | SDA    | SDA    |
 
-Quickstart
-
-buy ds18x20
-max31865
-
 enclosure and wiring needs
 
 Example:
@@ -46,14 +41,11 @@ import time
 from ds1307 import DS1307
 import utime
 from bmp180 import BMP180
+import onewire
+import ds18x20
 from ssd1306 import SSD1306_I2C
 from simple import MQTTClient
 import network
-'''
-import onewire
-import ds18x20
-
-'''
 import json
 from jsonConfigs import jsonfile
 
@@ -71,7 +63,7 @@ WATER_PUMP_PIN = 25
 LOW_WATER_SENSOR = 24
 #BMP_180_I2C_ID = 1
 #BMP_180_I2C_BAUD = 100000
-#DS18X20_SENSOR_PIN = 28
+DS18X20_SENSOR_PIN = 22
 PHOTORESISTOR_PIN = 27
 MOISTURE_SENSOR_PIN = 26
 #DS_CLOCK_SDA_PIN = 2
@@ -202,9 +194,10 @@ def getPump(GPIOs):
 def getLowLevelState(GPIOs):
     return GPIOs["waterLowLevel"].value()
 
-def initDS18X20(pin=28):
+def initDS18X20(pin=22):
     ow = onewire.OneWire(Pin(pin))
     ds = ds18x20.DS18X20(ow)
+    utime.sleep_ms(750)
     devices = ds.scan()
     print('found devices:', devices)
     return ds, devices
@@ -301,7 +294,7 @@ def baseMQTTCallback(topic, msg):
 #    print(my_jsonfile.get_data())
 #    my_jsonfile.store_data()
 
-def publishData(client, gpiosObj, bmpSensorObj, analogSensors, data):
+def publishData(client, gpiosObj, bmpSensorObj, analogSensors, dsSensor, dsDevices, data):
     mqx_tmp =  {
         "Name":"waterLowLevel",
         "Mode":"PUBLISHER",
@@ -361,18 +354,16 @@ def publishData(client, gpiosObj, bmpSensorObj, analogSensors, data):
     }
     jsonMsg = json.dumps(mqx_tmp)
     publish(client, manifest["RootName"] + "altitude", jsonMsg)
-
-    '''
+    
     mqx_tmp =  {
         "Name":"water temperature",
         "Mode":"PUBLISHER",
         "Type":"STRING",
         "Channel":manifest["RootName"] + "waterTemperature",
-        "Value":str(readDS18X20(dsSensor))
+        "Value":str(readDS18X20(dsSensor, dsDevices, 0))
     }
     jsonMsg = json.dumps(mqx_tmp)
     publish(client, manifest["RootName"] + "waterTemperature", jsonMsg)
-    '''
     
     mqx_tmp =  {
         "Name":"water Pump",
@@ -413,34 +404,40 @@ def publishData(client, gpiosObj, bmpSensorObj, analogSensors, data):
     publish(client, manifest["RootName"] + "timeOff", jsonMsg)    
     pass
 
-printIndexCount = 4
+printIndexCount = 6
 
-def printStates(lcdObj, wlan, gpiosObj, bmpSensorObj, analogSensors, data, dsClock, printIndex):
+def printStates(lcdObj, wlan, gpiosObj, bmpSensorObj, analogSensors, data, dsClock, dsSensor, dsDevices, printIndex):
     lcdObj.fill(0)
 
     if printIndex == 0:
         lcdObj.text('Pico W Garden', 0, 0)
         lcdObj.text('version:' + str(FW_VERSION), 0, 10)
-        lcdObj.text('IP: ' + wlan.ifconfig()[0], 0, 20)
+        lcdObj.text('IP:' + wlan.ifconfig()[0], 0, 20)
     elif printIndex == 1:
         lcdObj.text('IO States', 0, 0)
-        lcdObj.text('Pump Output :'+ str(getPump(gpiosObj)), 0, 10)
-        lcdObj.text('Level Sensor:'+ str(getLowLevelState(gpiosObj)), 0, 20)
+        lcdObj.text('P/O:'+ str(getPump(gpiosObj)), 0, 10)
+        lcdObj.text('L/I:'+ str(getLowLevelState(gpiosObj)), 0, 20)
     elif printIndex == 2:
         temp, press, alt = readBmp180(bmpSensorObj)
-        lcdObj.text('Sensors 1/2', 0, 0)
-        #lcdObj.text('Water Temp  '+ str(readDS18X20(dsSensor)), 10, 0)
-        lcdObj.text('Temperature:'+ str(temp), 0, 20)
-        lcdObj.text('Pressure   :'+ str(press), 0, 30)
+        lcdObj.text('Sensors 1/3', 0, 0)
+        lcdObj.text('Tw:'+ str(readDS18X20(dsSensor, dsDevices, 0)), 0, 10)
+        lcdObj.text('T:'+ str(temp), 0, 20)
     elif printIndex == 3:
-        lcdObj.text('Sensors 2/2', 0, 0)
-        lcdObj.text('Moisture :'+ str(readMoisture(analogSensors)), 0, 10)
-        lcdObj.text('Photo Res:'+ str(readPhotoresistor(analogSensors)), 0, 20)
+        lcdObj.text('Sensors 2/3', 0, 0)
+        lcdObj.text('Ms:'+ str(readMoisture(analogSensors)), 0, 10)
+        lcdObj.text('Pr:'+ str(readPhotoresistor(analogSensors)), 0, 20)
     elif printIndex == 4:
-        lcdObj.text('Date :'+ str(dsClock.datetime()[4]) + ":" + dsClock.datetime()[5], 0, 0)
-        lcdObj.text('State:'+ data["state"], 0, 10)
-        lcdObj.text('t On :' + data["timeOn"], 0, 20)
-        lcdObj.text('t Off:' + data["timeOff"], 0, 30)
+        temp, press, alt = readBmp180(bmpSensorObj)
+        lcdObj.text('Sensors 3/3', 0, 0)
+        lcdObj.text('P:'+ str(press), 0, 10)
+    elif printIndex == 5:
+        lcdObj.text('Timer 1/2', 0, 0)
+        lcdObj.text('Date :'+ str(dsClock.datetime()[4]) + ':' + dsClock.datetime()[5], 0, 10)
+        lcdObj.text('S:'+ data["state"], 0, 20)
+    elif printIndex == 6:
+        lcdObj.text('Timer 2/2', 0, 0)
+        lcdObj.text('on:' + data["timeOn"], 0, 10)
+        lcdObj.text('off:' + data["timeOff"], 0, 20)
     else:
         lcdObj.text('Pico W Garden', 0, 0)
         lcdObj.text('version:' + str(FW_VERSION), 0, 10)
@@ -461,6 +458,7 @@ if __name__ == "__main__":
 	oled = initOLED(i2c2)
 	analogSensors = initADCs()
 	gpiosObj = initGPIOS()
+	dsSensor, dsDevices = initDS18X20(DS18X20_SENSOR_PIN)
 	oled.text("test oled", 0, 0)
 	oled.show()
 	
@@ -472,9 +470,9 @@ if __name__ == "__main__":
 		client.check_msg()
 		configsS.load_file()
 		data = configsS.get_data()
-		publishData(client, gpiosObj, bmpSensorObj, analogSensors, data)
+		publishData(client, gpiosObj, bmpSensorObj, analogSensors, dsSensor, dsDevices, data)
 		
-		printStates(oled, wlanObj, gpiosObj, bmpSensorObj, analogSensors, data, ds, printIndex)
+		printStates(oled, wlanObj, gpiosObj, bmpSensorObj, analogSensors, data, ds, dsSensor, dsDevices, printIndex)
 		printIndex  = printIndex + 1
 		if printIndex > printIndexCount:
 			printIndex = 0
