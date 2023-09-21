@@ -97,8 +97,9 @@ manifest = {
         "Devices":["waterLowLevel","photoResistor","moistureSensor","temperature","presure","altitude","waterTemperature","state","waterPump","timeOn","timeOff","dateTime"]
 }
 jsonManifest = json.dumps(manifest)
-#configsS
-#dsClock
+
+configsS = None
+dsClock = None
 
 def setGlobals(configs, dsClk):
     global configsS
@@ -118,7 +119,7 @@ weekday = 6 # Optional
 
 Call ds.datetime() to get the current date and time. This will print a warning on the REPL when the Oscillator Stop Flag (OSF) is set. When not using the REPL the OSF
 '''
-#expected str input format: 2023-07-23 16:30:43.320847
+#expected str input format: 2023-07-23-1 16:30:43.320847
 def setDateTime(dsClock, dateTimeStr):
     dateTimeList = dateTimeStr.split(' ')
     dateList = dateTimeList[0].split('-')
@@ -126,10 +127,12 @@ def setDateTime(dsClock, dateTimeStr):
     year = int(dateList[0])
     month = int(dateList[1])
     mday = int(dateList[2])
+    wday = int(dateList[3])
     hour = int(timeList[0])
     minute = int(timeList[1])
     second = int(timeList[2])
-    datetime = (year, month, mday, hour, minute, second)
+    datetime = (year, month, mday, wday, hour, minute, second)
+    #print('received date :' + str(datetime))
     dsClock.datetime(datetime)
     pass
 
@@ -189,7 +192,7 @@ def setPump(GPIOs, value):
     GPIOs["waterPump"].value(value)
 
 def getPump(GPIOs):
-    return GPIOs["waterPump"].value
+    return GPIOs["waterPump"].value()
 
 def getLowLevelState(GPIOs):
     return GPIOs["waterLowLevel"].value()
@@ -265,26 +268,30 @@ def baseMQTTCallback(topic, msg):
     configsS = jsonfile("./configs.json")
     configsS.get_data()
     #a proper data validation should be performed here
+    print('received from: ' + str(topic) + 'msg: ' + str(msg))
     
-    if topic == "/MenyGarden2/state/value":
+    if topic == b'/MenyGarden2/state/value':
         configObj = configsS.get_data()
-        configObj["state"] = msg
+        configObj["state"] = msg.decode("utf-8")
+        print('state updated')
         configsS.update_data_dict(configObj)
-        configsS.load_file()
-    if topic == "/MenyGarden2/timeOn/value":
+        configsS.store_data()
+    if topic == b'/MenyGarden2/timeOn/value':
         configObj = configsS.get_data()
-        configObj["timeOn"] = msg
+        configObj["timeOn"] = msg.decode("utf-8")
         configsS.update_data_dict(configObj)
-        configsS.load_file()
-    if topic == "/MenyGarden2/timeOff/value":
+        configsS.store_data()
+    if topic == b'/MenyGarden2/timeOff/value':
         configObj = configsS.get_data()
-        configObj["timeOff"] = msg
+        configObj["timeOff"] = msg.decode("utf-8")
         configsS.update_data_dict(configObj)
-        configsS.load_file()
-    if topic == "/MenyGarden2/waterPump/value":
+        configsS.store_data()
+    if topic == b'/MenyGarden2/waterPump/value':
         configObj = configsS.get_data()
         if configObj["state"] == "manual":
             setPump(int(msg))
+    if topic == b'/MenyGarden2/dateTime/value':
+        setDateTime(dsClock, msg.decode("utf-8"))
     pass
 
 #    my_jsonfile = jsonfile("./test.json", default_data = {"a": "porty", "b": "portx"})
@@ -404,7 +411,7 @@ def publishData(client, gpiosObj, bmpSensorObj, analogSensors, dsSensor, dsDevic
     publish(client, manifest["RootName"] + "timeOff", jsonMsg)    
     pass
 
-printIndexCount = 6
+printIndexCount = 7
 
 def printStates(lcdObj, wlan, gpiosObj, bmpSensorObj, analogSensors, data, dsClock, dsSensor, dsDevices, printIndex):
     lcdObj.fill(0)
@@ -431,10 +438,15 @@ def printStates(lcdObj, wlan, gpiosObj, bmpSensorObj, analogSensors, data, dsClo
         lcdObj.text('Sensors 3/3', 0, 0)
         lcdObj.text('P:'+ str(press), 0, 10)
     elif printIndex == 5:
-        lcdObj.text('Timer 1/2', 0, 0)
-        lcdObj.text('Date :'+ str(dsClock.datetime()[4]) + ':' + dsClock.datetime()[5], 0, 10)
-        lcdObj.text('S:'+ data["state"], 0, 20)
+        lcdObj.text('Flags 1/1', 0, 0)
+        lcdObj.text('S:' + data["state"], 0, 10)
     elif printIndex == 6:
+        lcdObj.text('Timer 1/2', 0, 0)
+        #(2023, 9, 20, 4, 19, 46, 0)
+        #print('clk: '+ str(dsClock.datetime()[4]))
+        lcdObj.text('D:'+ str(dsClock.datetime()[0]) + '-' + str(dsClock.datetime()[1]) + '-' + str(dsClock.datetime()[2]), 0, 10)
+        lcdObj.text('T:'+ str(dsClock.datetime()[4]) + ':' + str(dsClock.datetime()[5]) + ':' + str(dsClock.datetime()[6]), 0, 20)
+    elif printIndex == 7:
         lcdObj.text('Timer 2/2', 0, 0)
         lcdObj.text('on:' + data["timeOn"], 0, 10)
         lcdObj.text('off:' + data["timeOff"], 0, 20)
@@ -454,6 +466,8 @@ if __name__ == "__main__":
 	
 	i2c1, i2c2 = initI2c()
 	ds = initDS1307(i2c1)
+	setGlobals(configsS, ds) 
+	
 	bmpSensorObj = initBmp(i2c1)
 	oled = initOLED(i2c2)
 	analogSensors = initADCs()
@@ -461,9 +475,14 @@ if __name__ == "__main__":
 	dsSensor, dsDevices = initDS18X20(DS18X20_SENSOR_PIN)
 	oled.text("test oled", 0, 0)
 	oled.show()
-	
+	#while True:
+	#	try:
 	wlanObj = wlanConnect(ssid, password)
 	client = connectMQTT(client_id, broker_server, baseMQTTCallback)
+	#		break
+	#	except:
+	#		print('connection failed, retry...')
+	#	pass
 	initSubscribers(client)
 	printIndex = 0
 	while True:
@@ -471,13 +490,11 @@ if __name__ == "__main__":
 		configsS.load_file()
 		data = configsS.get_data()
 		publishData(client, gpiosObj, bmpSensorObj, analogSensors, dsSensor, dsDevices, data)
-		
 		printStates(oled, wlanObj, gpiosObj, bmpSensorObj, analogSensors, data, ds, dsSensor, dsDevices, printIndex)
 		printIndex  = printIndex + 1
 		if printIndex > printIndexCount:
 			printIndex = 0
-		print(ds.datetime())
-		time.sleep(6)
+		time.sleep(5)
 	pass
 
 '''
