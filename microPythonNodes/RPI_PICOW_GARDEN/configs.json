@@ -1,5 +1,9 @@
 {
     "state":"manual",
     "timeOn":"8:00",
-    "timeOff":"12:00"
+    "timeOff":"12:00",
+    "wifi_ssid":"",
+    "wifi_pwd":"",
+    "mqtt_broker":"",
+    "mqtt_client_id":""
 }

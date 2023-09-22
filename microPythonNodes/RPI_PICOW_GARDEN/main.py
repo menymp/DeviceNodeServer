@@ -18,6 +18,8 @@ OK    ds18x20 water resistant temperature sensor
     mqtt communication
     config.json file capability
 
+micropython uOTA future
+
 '''
 
 
@@ -51,27 +53,24 @@ from jsonConfigs import jsonfile
 
 FW_VERSION = 1.0
 
-ssid = ""
-password = ""
 max_wait = 10
-client_id = "PIPICO_GARDEN_MENY"
-broker_server = ""
 
-#LCD_SDA_PIN = 1
-#LCD_SCL_PIN = 2
+#hw specific constants
+I2C1_SDA_PIN = 0
+I2C1_SCL_PIN = 1
+I2C1_CLK_F = 200000
+I2C2_SDA_PIN = 2
+I2C2_SCL_PIN = 3
+I2C2_CLK_F = 200000
 WATER_PUMP_PIN = 25
 LOW_WATER_SENSOR = 24
-#BMP_180_I2C_ID = 1
-#BMP_180_I2C_BAUD = 100000
 DS18X20_SENSOR_PIN = 22
 PHOTORESISTOR_PIN = 27
 MOISTURE_SENSOR_PIN = 26
-#DS_CLOCK_SDA_PIN = 2
-#DS_CLOCK_SCL_PIN = 3
 
 def initI2c():
-    i2c1 = I2C(0 ,sda=Pin(0), scl=Pin(1), freq=200000)
-    i2c2 = I2C(1 ,sda=Pin(2), scl=Pin(3), freq=200000)
+    i2c1 = I2C(0 ,sda=Pin(I2C1_SDA_PIN), scl=Pin(I2C1_SCL_PIN), freq=I2C1_CLK_F)
+    i2c2 = I2C(1 ,sda=Pin(I2C2_SDA_PIN), scl=Pin(I2C2_SCL_PIN), freq=I2C2_CLK_F)
     return i2c1, i2c2
 
 def initDS1307(i2c):
@@ -132,7 +131,6 @@ def setDateTime(dsClock, dateTimeStr):
     minute = int(timeList[1])
     second = int(timeList[2])
     datetime = (year, month, mday, wday, hour, minute, second)
-    #print('received date :' + str(datetime))
     dsClock.datetime(datetime)
     pass
 
@@ -216,22 +214,13 @@ def wlanConnect(ssid, password):
     wlan.active(True)
     wlan.config(pm = 0xa11140) # Diable powersave mode
     wlan.connect(ssid, password)
-
-    while max_wait > 0:
-        if wlan.status() < 0 or wlan.status() >= 3:
-            break
-        max_wait -= 1
-        print('waiting for connection...')
-        utime.sleep(1)
-
-        #Handle connection error
-        if wlan.status() != 3:
-            raise RuntimeError('wifi connection failed')
-        else:
-            print('connected')
-        
-        status = wlan.ifconfig()
-        print('ip = ' + status[0])
+    if not wlan.isconnected():
+        print('connecting to network...')
+        wlan.active(True)
+        wlan.connect(ssid, password)
+        while not wlan.isconnected():
+            pass
+    print('network config:', wlan.ifconfig())
     return wlan
 
 #NOTE: strings must be byte string
@@ -442,8 +431,6 @@ def printStates(lcdObj, wlan, gpiosObj, bmpSensorObj, analogSensors, data, dsClo
         lcdObj.text('S:' + data["state"], 0, 10)
     elif printIndex == 6:
         lcdObj.text('Timer 1/2', 0, 0)
-        #(2023, 9, 20, 4, 19, 46, 0)
-        #print('clk: '+ str(dsClock.datetime()[4]))
         lcdObj.text('D:'+ str(dsClock.datetime()[0]) + '-' + str(dsClock.datetime()[1]) + '-' + str(dsClock.datetime()[2]), 0, 10)
         lcdObj.text('T:'+ str(dsClock.datetime()[4]) + ':' + str(dsClock.datetime()[5]) + ':' + str(dsClock.datetime()[6]), 0, 20)
     elif printIndex == 7:
@@ -462,7 +449,7 @@ if __name__ == "__main__":
 	idState = 0
 	
 	configsS = jsonfile("./configs.json")
-	configsS.get_data()
+	data = configsS.get_data()
 	
 	i2c1, i2c2 = initI2c()
 	ds = initDS1307(i2c1)
@@ -475,14 +462,8 @@ if __name__ == "__main__":
 	dsSensor, dsDevices = initDS18X20(DS18X20_SENSOR_PIN)
 	oled.text("test oled", 0, 0)
 	oled.show()
-	#while True:
-	#	try:
-	wlanObj = wlanConnect(ssid, password)
-	client = connectMQTT(client_id, broker_server, baseMQTTCallback)
-	#		break
-	#	except:
-	#		print('connection failed, retry...')
-	#	pass
+	wlanObj = wlanConnect(data["wifi_ssid"], data["wifi_pwd"])
+	client = connectMQTT(data["mqtt_client_id"], data["mqtt_broker"], baseMQTTCallback)
 	initSubscribers(client)
 	printIndex = 0
 	while True:
