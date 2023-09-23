@@ -3,6 +3,15 @@
 use examples from micropython-ota.py api
 
 in the server apache is expected to have the following structure and use_version_prefix = false in the call
+the library was altered to the following changes
+version handles the current data as well as the list of files to download
+
+the version file contents must have the following form
+version and the expected file names to be downloaded with the version
+{
+   "version":"v1.0.0"
+   "files":["main.py","boot.py","module.py"]
+}
 
 server-root/
 |- <project_name>/

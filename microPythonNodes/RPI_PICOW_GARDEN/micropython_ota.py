@@ -1,15 +1,51 @@
+'''
+Modified version of micropython_ota.py file
+menymp
+Sept 2023
+
+if there are new files with new content, instead of the targer device to have a list for the
+files to be downloaded, the list is provided within the version file, that way, the update 
+should handle de adition of new library or module files instead of manualy add to the system
+in this case, the version file in the project must contain the current version of the project
+as well as the names for the available libraries
+
+below an example based on the directory as a version file
+
+server-root/
+|- <project_name>/
+|  |- version
+|  |- <version_subdir>
+|     |- <filename1>
+|     |- <filename2>
+|     |- ...
+|- <project_name>/
+   |- version
+   |- <version_subdir>
+      |- <filename1>
+      |- <filename2>
+      |- ...
+
+for each version file inside project name, the version file contains should be in the following form
+
+{
+    "version":"v1.0.0.0"
+    "files":["main.py","boot.py","module.py"]
+}
+
+'''
 import machine
 import ubinascii
 import uos
 import urequests
+import json
 
-
-def check_version(host, project, auth=None, timeout=5) -> (bool, str):
+def check_version(host, project, auth=None, timeout=5) -> (bool, str, []):
     current_version = ''
     try:
         if 'version' in uos.listdir():
             with open('version', 'r') as current_version_file:
-                current_version = current_version_file.readline().strip()
+                #current_version = current_version_file.readline().strip()
+                current_version, current_files = get_version_files(current_version_file.read())
 
         if auth:
             response = urequests.get(f'{host}/{project}/version', headers={'Authorization': f'Basic {auth}'}, timeout=timeout)
@@ -21,12 +57,17 @@ def check_version(host, project, auth=None, timeout=5) -> (bool, str):
         if response_status_code != 200:
             print(f'Remote version file {host}/{project}/version not found')
             return False, current_version
-        remote_version = response_text.strip()
-        return current_version != remote_version, remote_version
+        #remote_version = response_text.readline().strip()
+        remote_version, remote_files = get_version_files(response_text)
+        
+        return current_version != remote_version, remote_version, remote_files
     except Exception as ex:
         print(f'Something went wrong: {ex}')
         return False, current_version
 
+def get_version_files(jsonStr):
+    dVersionFiles = json.loads(jsonStr)
+    return dVersionFiles["version"], dVersionFiles["files"]
 
 def generate_auth(user=None, passwd=None) -> str | None:
     if not user and not passwd:
@@ -42,13 +83,16 @@ def ota_update(host, project, filenames, use_version_prefix=True, user=None, pas
     auth = generate_auth(user, passwd)
     prefix_or_path_separator = '_' if use_version_prefix else '/'
     try:
-        version_changed, remote_version = check_version(host, project, auth=auth, timeout=timeout)
+        version_changed, remote_version, remote_files = check_version(host, project, auth=auth, timeout=timeout)
         if version_changed:
             try:
                 uos.mkdir('tmp')
             except:
                 pass
-            for filename in filenames:
+            #for filename in filenames:
+            #The server version file is expected to contain the files to be downloaded
+            #in this case, if a new file lib is added, the system should handle the new file
+            for filename in remote_files
                 if auth:
                     response = urequests.get(f'{host}/{project}/{remote_version}{prefix_or_path_separator}{filename}', headers={'Authorization': f'Basic {auth}'}, timeout=timeout)
                 else:
@@ -85,7 +129,7 @@ def ota_update(host, project, filenames, use_version_prefix=True, user=None, pas
 
 def check_for_ota_update(host, project, user=None, passwd=None, timeout=5, soft_reset_device=False):
     auth = generate_auth(user, passwd)
-    version_changed, remote_version = check_version(host, project, auth=auth, timeout=timeout)
+    version_changed, remote_version, remote_files = check_version(host, project, auth=auth, timeout=timeout)
     if version_changed:
         if soft_reset_device:
             print(f'Found new version {remote_version}, soft-resetting device...')
