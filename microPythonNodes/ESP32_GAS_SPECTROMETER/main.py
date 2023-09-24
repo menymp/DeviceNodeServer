@@ -1,51 +1,50 @@
 from machine import Pin, ADC 
 import utime
 import json
-
+from jsonConfigs import jsonfile
 from simple import MQTTClient
 import network
 
 #Global constants
-MQ3_PIN = 5
-MQ4_PIN = 6
-MQ6_PIN = 2
-MQ7_PIN = 4
-MQ8_PIN = 1
-MQ135_PIN = 3
+FW_VERSION = 1.0
+MQ3_PIN = 32
+MQ4_PIN = 33
+MQ6_PIN = 34
+MQ7_PIN = 35
+MQ8_PIN = 36
+MQ135_PIN = 39
 
 manifest = {
-        "Name":"MenyGarden2",
+        "Name":"MenyGasNode1",
         "RootName":"/MenyGasNode1/",
-        "Devices":["MQ3","MQ4","MQ6","MQ7","MQ8","MQ135"]
+        "Devices":["MQ3","MQ4","MQ6","MQ7","MQ8","MQ135"] #
 }
-jsonManifest = json.dump(manifest)
+jsonManifest = json.dumps(manifest)
 
-ssid = "ssid"
-password = "password"
+
 max_wait = 10
-client_id = "ESP32_GAS_SPECTROMETER_MENY"
-broker_server = ""
 
 def wlanConnect(ssid, password):
+    global max_wait
     wlan = network.WLAN(network.STA_IF)
-    wlan.active(True)
-    wlan.config(pm = 0xa11140) # Diable powersave mode
-    wlan.connect(ssid, password)
-
-    while max_wait > 0:
-        if wlan.status() < 0 or wlan.status() >= 3:
-            break
-        max_wait -= 1
-        print('waiting for connection...')
-        utime.sleep(1)
-
-        #Handle connection error
-        if wlan.status() != 3:
-            raise RuntimeError('wifi connection failed')
+    if not wlan.isconnected():
+        wlan.active(True)
+        wlan.connect(ssid, password)
+        print('Connecting to: %s' % ssid)
+        timeout = time.ticks_ms()
+        while not wlan.isconnected():
+            time.sleep(0.15)
+            if (time.ticks_diff (time.ticks_ms(), timeout) > 15000):
+                break
+        if wlan.isconnected():
+            print('Successful connection to: %s' % ssid)
+            print('IP: %s\nSUBNET: %s\nGATEWAY: %s\nDNS: %s' % wlan.ifconfig()[0:4])
         else:
-            print('connected')
-        status = wlan.ifconfig()
-        print('ip = ' + status[0])
+            wlan.active(False)
+            print('Failed to connect to: %s' % ssid)
+    else:
+        print('Connected\nIP: %s\nSUBNET: %s\nGATEWAY: %s\nDNS: %s' % wlan.ifconfig()[0:4])
+    return wlan
 
 #NOTE: strings must be byte string
 def connectMQTT(client_id, brokerServer, callback):
@@ -73,13 +72,19 @@ def baseMQTTCallback(topic, msg):
     pass
 
 def initADCs():
-    mq3 = ADC(MQ3_PIN)
-    mq4 = ADC(MQ4_PIN)
-    mq6 = ADC(MQ6_PIN)
-    mq7 = ADC(MQ7_PIN)
-    mq8 = ADC(MQ8_PIN)
-    mq135 = ADC(MQ135_PIN)
-
+    mq3 = ADC(Pin(MQ3_PIN))
+    mq3.atten(ADC.ATTN_11DB)
+    mq4 = ADC(Pin(MQ4_PIN))
+    mq4.atten(ADC.ATTN_11DB)
+    mq6 = ADC(Pin(MQ6_PIN))
+    mq6.atten(ADC.ATTN_11DB)
+    mq7 = ADC(Pin(MQ7_PIN))
+    mq7.atten(ADC.ATTN_11DB)
+    mq8 = ADC(Pin(MQ8_PIN))
+    mq8.atten(ADC.ATTN_11DB)
+    mq135 = ADC(Pin(MQ135_PIN))
+    mq135.atten(ADC.ATTN_11DB)
+    
     analogSensors = {
         "MQ3":mq3,
         "MQ4":mq4,
@@ -92,7 +97,7 @@ def initADCs():
 
 def readMQSensor(analogSensors, name):
     #ToDo: if a conversion is needed, this is the place
-    return analogSensors[name].read_u16()  
+    return analogSensors[name].read()  
 
 def buildMQMsg(Name, Channel, value):
     mqx_tmp =  {
@@ -102,35 +107,30 @@ def buildMQMsg(Name, Channel, value):
         "Channel":Channel,
         "Value":str(value)
     }
-    jsonMsg = json.dump(mqx_tmp)
+    jsonMsg = json.dumps(mqx_tmp)
     return jsonMsg
 
 def publishData(client ,analogSensors):
-    publish(client, manifest["RootName"], jsonManifest)
+    publish(client, manifest["RootName"] + "manifest", jsonManifest)
 
     for mqSensor in manifest["Devices"]:
-        baseChanel = manifest["RootName"] + mqSensor + "/"
-        read = readMQSensor(mqSensor)
+        baseChanel = manifest["RootName"] + mqSensor
+        read = readMQSensor(analogSensors, mqSensor)
         jsonObj = buildMQMsg(mqSensor, manifest["RootName"] + mqSensor, read)
         publish(client, baseChanel, jsonObj)
     pass
 
 if __name__ == "__main__":
+    configsS = jsonfile("./configs.json")
+    data = configsS.get_data()
     analogSensors = initADCs()
-
-    wlanConnect(ssid, password)
-    client = connectMQTT(client_id, broker_server, baseMQTTCallback)
-
-    mq3_val =  {
-        "Name":"MQ3 Measure",
-        "Mode":"PUBLISHER",
-        "Type":"STRING",
-        "Channel":"/MenyGasNode1/MQ3",
-        "Value":"0"
-    }
+    print("connecting...")
+    wlanObj = wlanConnect(data["wifi_ssid"], data["wifi_pwd"])
+    client = connectMQTT(data["mqtt_client_id"], data["mqtt_broker"], baseMQTTCallback)
+    print("successfuly connected!")
     analogSensors = initADCs()
     while True:
         client.check_msg()
-        publishData(analogSensors)
-        utime.sleep(2000)
+        publishData(client, analogSensors)
+        utime.sleep(6)
     pass

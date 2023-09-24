@@ -291,6 +291,7 @@ def baseMQTTCallback(topic, msg):
 #    my_jsonfile.store_data()
 
 def publishData(client, gpiosObj, bmpSensorObj, analogSensors, dsSensor, dsDevices, data):
+    publish(client, manifest["RootName"]+"manifest",manifest)
     mqx_tmp =  {
         "Name":"waterLowLevel",
         "Mode":"PUBLISHER",
@@ -460,7 +461,7 @@ if __name__ == "__main__":
 	analogSensors = initADCs()
 	gpiosObj = initGPIOS()
 	dsSensor, dsDevices = initDS18X20(DS18X20_SENSOR_PIN)
-	oled.text("test oled", 0, 0)
+	oled.text("connecting...", 0, 0)
 	oled.show()
 	wlanObj = wlanConnect(data["wifi_ssid"], data["wifi_pwd"])
 	client = connectMQTT(data["mqtt_client_id"], data["mqtt_broker"], baseMQTTCallback)

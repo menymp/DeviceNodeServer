@@ -1,5 +1,6 @@
 {
-    "Name":"MenyGarden2",
-    "RootName":"/MenyGarden2/",
-    "Devices":["waterLowLevel","waterPump","photoResistor","moistureSensor","temperature","altitude","altitude","timeRange"]
+    "wifi_ssid":"",
+    "wifi_pwd":"",
+    "mqtt_broker":"",
+    "mqtt_client_id":""
 }
