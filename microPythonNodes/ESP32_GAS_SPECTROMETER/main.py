@@ -1,5 +1,6 @@
 from machine import Pin, ADC 
 import utime
+import time
 import json
 from jsonConfigs import jsonfile
 from simple import MQTTClient
@@ -7,11 +8,26 @@ import network
 
 #Global constants
 FW_VERSION = 1.0
+'''
+MQ2_PIN = 32
+MQ3_PIN = 33
+MQ4_PIN = 34
+MQ6_PIN = 35
+MQ7_PIN = 36
+MQ8_PIN = 27
+MQ135_PIN = 39
+'''
+#
+# important note: pins 37 38 are internal and not externaly available
+# ADC2 is not possible to be used while WIFI is connected, that leads to
+# an error called invalid atten, or TIMEOUT
+#MQ2_PIN = 32
 MQ3_PIN = 32
 MQ4_PIN = 33
 MQ6_PIN = 34
 MQ7_PIN = 35
 MQ8_PIN = 36
+#MQ9_PIN = 26
 MQ135_PIN = 39
 
 manifest = {
@@ -84,7 +100,7 @@ def initADCs():
     mq8.atten(ADC.ATTN_11DB)
     mq135 = ADC(Pin(MQ135_PIN))
     mq135.atten(ADC.ATTN_11DB)
-    
+    #in the future, an important sensor is mq9 for carbon monoxide
     analogSensors = {
         "MQ3":mq3,
         "MQ4":mq4,
@@ -123,7 +139,7 @@ def publishData(client ,analogSensors):
 if __name__ == "__main__":
     configsS = jsonfile("./configs.json")
     data = configsS.get_data()
-    analogSensors = initADCs()
+    #analogSensors = initADCs()
     print("connecting...")
     wlanObj = wlanConnect(data["wifi_ssid"], data["wifi_pwd"])
     client = connectMQTT(data["mqtt_client_id"], data["mqtt_broker"], baseMQTTCallback)
