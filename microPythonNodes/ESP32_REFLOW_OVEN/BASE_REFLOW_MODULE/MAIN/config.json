@@ -24,7 +24,7 @@
         "interrupt": 35
     },
     "buzzer_pin": 22,
-    "sensor_type": "MAX31855",
+    "sensor_type": "MAX6675",
     "sensor_offset": 0.0,
     "sensor_pins": {
         "hwspi": 2,
@@ -45,7 +45,11 @@
         "overshoot_comp": 0
     },
     "ftp": {
-        "enable": true,
+        "enable": false,
         "ssid": "Reflower ftp://192.168.4.1"
-    }
+    },
+    "wifi_ssid":"",
+    "wifi_pwd":"",
+    "mqtt_broker":"",
+    "mqtt_client_id":""
 }
