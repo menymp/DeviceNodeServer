@@ -67,6 +67,9 @@ LOW_WATER_SENSOR = 24
 DS18X20_SENSOR_PIN = 22
 PHOTORESISTOR_PIN = 27
 MOISTURE_SENSOR_PIN = 26
+GENERIC_OUTPUT1_PIN = 0
+GENERIC_OUTPUT2_PIN = 0
+GENERIC_OUTPUT3_PIN = 0
 
 def initI2c():
     i2c1 = I2C(0 ,sda=Pin(I2C1_SDA_PIN), scl=Pin(I2C1_SCL_PIN), freq=I2C1_CLK_F)
@@ -93,16 +96,33 @@ def initOLED(i2c):
 manifest = {
         "Name":"MenyGarden2",
         "RootName":"/MenyGarden2/",
-        "Devices":["waterLowLevel","photoResistor","moistureSensor","temperature","presure","altitude","waterTemperature","state","waterPump","timeOn","timeOff","dateTime"]
+        "Devices":["waterLowLevel",
+                   "photoResistor",
+                   "moistureSensor",
+                   "temperature",
+                   "presure",
+                   "altitude",
+                   "waterTemperature",
+                   "state",
+                   "waterPump",
+                   "timeOn",
+                   "timeOff",
+                   "dateTime",
+                   "outputRelay1",
+                   "outputRelay2",
+                   "outputRelay3"
+                   ]
 }
 jsonManifest = json.dumps(manifest)
 
 configsS = None
 dsClock = None
+GPIOs = None
 
-def setGlobals(configs, dsClk):
+def setGlobals(configs, dsClk, GPIOs):
     global configsS
     global dsClock
+    global GPIOs
     configsS = configs
     dsClock = dsClk
     
@@ -160,12 +180,23 @@ def readBmp180(bmpSensor):
     return bmpSensor.temperature, bmpSensor.pressure, bmpSensor.altitude
 
 def initGPIOS():
+    #outputs
     waterPump = Pin(WATER_PUMP_PIN, mode=Pin.OUT)
     waterPump.value(0)
+    outRelay1 = Pin(GENERIC_OUTPUT1_PIN, mode=Pin.OUT)
+    outRelay1.value(0)
+    outRelay2 = Pin(GENERIC_OUTPUT2_PIN, mode=Pin.OUT)
+    outRelay2.value(0)
+    outRelay3 = Pin(GENERIC_OUTPUT3_PIN, mode=Pin.OUT)
+    outRelay3.value(0)
+    #inputs
     waterLowLevel = Pin(LOW_WATER_SENSOR, mode=Pin.IN, pull=Pin.PULL_UP)
     GPIOs = {
         "waterPump":waterPump,
-        "waterLowLevel":waterLowLevel
+        "waterLowLevel":waterLowLevel,
+        "outputRelay1":outRelay1,
+        "outputRelay2":outRelay2,
+        "outputRelay3":outRelay3
     }
     return GPIOs
 
@@ -186,13 +217,19 @@ def readMoisture(analogSensors):
     #ToDo: if a conversion is needed, this is the place
     return analogSensors["moistureSensor"].read_u16()  
 
-def setPump(GPIOs, value):
+def setPump(value):
     GPIOs["waterPump"].value(value)
 
-def getPump(GPIOs):
+def getPump():
     return GPIOs["waterPump"].value()
 
-def getLowLevelState(GPIOs):
+def getOutput(name):
+    return GPIOs[name].value()
+
+def getOutput(name, value):
+    return GPIOs[name].value(value)
+
+def getLowLevelState():
     return GPIOs["waterLowLevel"].value()
 
 def initDS18X20(pin=22):
@@ -250,6 +287,10 @@ def initSubscribers(client):
     subscribe(client, "/MenyGarden2/timeOff/value")
     subscribe(client, "/MenyGarden2/waterPump/value")
     subscribe(client, "/MenyGarden2/dateTime/value")
+    subscribe(client, "/MenyGarden2/outputRelay1/value")
+    subscribe(client, "/MenyGarden2/outputRelay2/value")
+    subscribe(client, "/MenyGarden2/outputRelay3/value")
+    
 
 def baseMQTTCallback(topic, msg):
     #this callback is to be called when message arrived to subscribed topics
@@ -281,6 +322,12 @@ def baseMQTTCallback(topic, msg):
             setPump(int(msg))
     if topic == b'/MenyGarden2/dateTime/value':
         setDateTime(dsClock, msg.decode("utf-8"))
+    if topic == b'/MenyGarden2/outputRelay1/value':
+        setOutput("outputRelay1", int(msg))
+    if topic == b'/MenyGarden2/outputRelay2/value':
+        setOutput("outputRelay2", int(msg))
+    if topic == b'/MenyGarden2/outputRelay3/value':
+        setOutput("outputRelay3", int(msg))
     pass
 
 #    my_jsonfile = jsonfile("./test.json", default_data = {"a": "porty", "b": "portx"})
@@ -297,7 +344,7 @@ def publishData(client, gpiosObj, bmpSensorObj, analogSensors, dsSensor, dsDevic
         "Mode":"PUBLISHER",
         "Type":"STRING",
         "Channel":manifest["RootName"] + "waterLowLevel",
-        "Value":str(getLowLevelState(gpiosObj))
+        "Value":str(getLowLevelState())
     }
     jsonMsg = json.dumps(mqx_tmp)
     publish(client, manifest["RootName"] + "waterLowLevel", jsonMsg)
@@ -367,7 +414,7 @@ def publishData(client, gpiosObj, bmpSensorObj, analogSensors, dsSensor, dsDevic
         "Mode":"SUBSCRIBER",
         "Type":"STRING",
         "Channel":"/MenyGarden2/waterPump/value",
-        "Value":getPump(gpiosObj)
+        "Value":str(getPump())
     }
     jsonMsg = json.dumps(mqx_tmp)
     publish(client, manifest["RootName"] + "waterPump", jsonMsg)
@@ -399,6 +446,33 @@ def publishData(client, gpiosObj, bmpSensorObj, analogSensors, dsSensor, dsDevic
     }
     jsonMsg = json.dumps(mqx_tmp)
     publish(client, manifest["RootName"] + "timeOff", jsonMsg)    
+    mqx_tmp =  {
+        "Name":"outputRelay1",
+        "Mode":"SUBSCRIBER",
+        "Type":"STRING",
+        "Channel": manifest["RootName"] + "outputRelay1" + "/value",
+        "Value":str(getOutput("outputRelay1"))
+    }
+    jsonMsg = json.dumps(mqx_tmp)
+    publish(client, manifest["RootName"] + "outputRelay1", jsonMsg)    
+    mqx_tmp =  {
+        "Name":"outputRelay2",
+        "Mode":"SUBSCRIBER",
+        "Type":"STRING",
+        "Channel": manifest["RootName"] + "outputRelay2" + "/value",
+        "Value":str(getOutput("outputRelay2"))
+    }
+    jsonMsg = json.dumps(mqx_tmp)
+    publish(client, manifest["RootName"] + "outputRelay2", jsonMsg)   
+    mqx_tmp =  {
+        "Name":"outputRelay3",
+        "Mode":"SUBSCRIBER",
+        "Type":"STRING",
+        "Channel": manifest["RootName"] + "outputRelay3" + "/value",
+        "Value":str(getOutput("outputRelay3"))
+    }
+    jsonMsg = json.dumps(mqx_tmp)
+    publish(client, manifest["RootName"] + "outputRelay3", jsonMsg)   
     pass
 
 printIndexCount = 7
@@ -412,8 +486,8 @@ def printStates(lcdObj, wlan, gpiosObj, bmpSensorObj, analogSensors, data, dsClo
         lcdObj.text('IP:' + wlan.ifconfig()[0], 0, 20)
     elif printIndex == 1:
         lcdObj.text('IO States', 0, 0)
-        lcdObj.text('P/O:'+ str(getPump(gpiosObj)), 0, 10)
-        lcdObj.text('L/I:'+ str(getLowLevelState(gpiosObj)), 0, 20)
+        lcdObj.text('P/O:'+ str(getPump()), 0, 10)
+        lcdObj.text('L/I:'+ str(getLowLevelState()), 0, 20)
     elif printIndex == 2:
         temp, press, alt = readBmp180(bmpSensorObj)
         lcdObj.text('Sensors 1/3', 0, 0)
@@ -451,10 +525,10 @@ if __name__ == "__main__":
 	
 	configsS = jsonfile("./configs.json")
 	data = configsS.get_data()
-	
+	gpiosObj = initGPIOS()
 	i2c1, i2c2 = initI2c()
 	ds = initDS1307(i2c1)
-	setGlobals(configsS, ds) 
+	setGlobals(configsS, ds, gpiosObj) 
 	
 	bmpSensorObj = initBmp(i2c1)
 	oled = initOLED(i2c2)
