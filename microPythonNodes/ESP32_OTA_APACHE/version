@@ -1,0 +1,4 @@
+{
+  "version":"1.0.1",
+  "files":["main.py","example_module1.py","micropython_ota.py","example_module2.py"]
+}
