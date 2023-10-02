@@ -1,8 +1,12 @@
+import os
 import requests
 
-url = 'http://..../uploadUpdate.php'
-files = {'file': ('examplefile1.txt', open('examplefile1.txt', 'rb')),
-         'file': ('examplefile2.txt', open('examplefile2.txt', 'rb'))}
+url = 'http://your-php-endpoint.com/upload.php'
+files = {}
+for filename in os.listdir('.'):
+    if filename.endswith('.py'):
+        with open(filename, 'rb') as f:
+            files['file[]'] = (filename, f.read())
 
 r = requests.post(url, files=files)
 print(r.text)
