@@ -2,9 +2,11 @@ from machine import Pin, ADC
 import utime
 import time
 import json
+import _thread
 from jsonConfigs import jsonfile
 from simple import MQTTClient
 import network
+import micropython_ota
 
 #Global constants
 FW_VERSION = 1.0
@@ -136,6 +138,15 @@ def publishData(client ,analogSensors):
         publish(client, baseChanel, jsonObj)
     pass
 
+#this task checks for available updates
+# ToDo: add sync for the wifi shared UI
+#       flags for safe before reset
+def update_task(configs):
+    while(True):
+        utime.sleep(20)
+        micropython_ota.check_for_ota_update(configs["ota_host_url"], configs["ota_project_name"], soft_reset_device=False, timeout=5)
+        
+
 if __name__ == "__main__":
     configsS = jsonfile("./configs.json")
     data = configsS.get_data()
@@ -144,6 +155,12 @@ if __name__ == "__main__":
     wlanObj = wlanConnect(data["wifi_ssid"], data["wifi_pwd"])
     client = connectMQTT(data["mqtt_client_id"], data["mqtt_broker"], baseMQTTCallback)
     print("successfuly connected!")
+    # OTA Block update
+    filenames = ["main.py","micropython_ota.py","simple.py"]
+    micropython_ota.ota_update(data["ota_host_url"], data["ota_project_name"], filenames, use_version_prefix=False, hard_reset_device=True, soft_reset_device=False, timeout=5)
+    #init a second thread that will check for updates at specific intervals
+    _thread.start_new_thread(update_task, (data,)) #start second core thread
+    # if no updates, proceed to the main routine
     analogSensors = initADCs()
     while True:
         client.check_msg()
