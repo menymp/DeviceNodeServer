@@ -49,7 +49,9 @@ from ssd1306 import SSD1306_I2C
 from simple import MQTTClient
 import network
 import json
+import _thread
 from jsonConfigs import jsonfile
+import micropython_ota
 
 FW_VERSION = 1.0
 
@@ -518,7 +520,16 @@ def printStates(lcdObj, wlan, gpiosObj, bmpSensorObj, analogSensors, data, dsClo
         lcdObj.text('IP:' + wlan.ifconfig()[0], 0, 20)
     lcdObj.show()
     pass
-	
+
+#this task checks for available updates
+# ToDo: add sync for the wifi shared UI   OK
+#       flags for safe before reset       PENDING
+def update_task(configs, networkLock):
+    while(True):
+        utime.sleep(20)
+        networkLock.acquire()
+        micropython_ota.check_for_ota_update(configs["ota_host_url"], configs["ota_project_name"], soft_reset_device=False, timeout=5)
+        networkLock.release()
 
 if __name__ == "__main__":
 	idState = 0
@@ -541,11 +552,20 @@ if __name__ == "__main__":
 	client = connectMQTT(data["mqtt_client_id"], data["mqtt_broker"], baseMQTTCallback)
 	initSubscribers(client)
 	printIndex = 0
+    # OTA Block update
+    filenames = ["main.py","micropython_ota.py","simple.py","bmp180.py","ds1307.py","ssd1306.py","jsonConfigs.py"]
+    micropython_ota.ota_update(data["ota_host_url"], data["ota_project_name"], filenames, use_version_prefix=False, hard_reset_device=True, soft_reset_device=False, timeout=5)
+    networkLock = _thread.allocate_lock()
+    _thread.start_new_thread(update_task, (data,networkLock,)) #start second core thread
+    # if no updates, proceed to the main routine
+
 	while True:
-		client.check_msg()
-		configsS.load_file()
+        configsS.load_file()
 		data = configsS.get_data()
+        networkLock.acquire()
+		client.check_msg()
 		publishData(client, gpiosObj, bmpSensorObj, analogSensors, dsSensor, dsDevices, data)
+        networkLock.release()
 		printStates(oled, wlanObj, gpiosObj, bmpSensorObj, analogSensors, data, ds, dsSensor, dsDevices, printIndex)
 		printIndex  = printIndex + 1
 		if printIndex > printIndexCount:

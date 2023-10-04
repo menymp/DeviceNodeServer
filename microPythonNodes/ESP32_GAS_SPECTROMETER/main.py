@@ -139,12 +139,14 @@ def publishData(client ,analogSensors):
     pass
 
 #this task checks for available updates
-# ToDo: add sync for the wifi shared UI
-#       flags for safe before reset
-def update_task(configs):
+# ToDo: add sync for the wifi shared UI   OK
+#       flags for safe before reset       PENDING
+def update_task(configs, networkLock):
     while(True):
         utime.sleep(20)
+        networkLock.acquire()
         micropython_ota.check_for_ota_update(configs["ota_host_url"], configs["ota_project_name"], soft_reset_device=False, timeout=5)
+        networkLock.release()
         
 
 if __name__ == "__main__":
@@ -156,14 +158,17 @@ if __name__ == "__main__":
     client = connectMQTT(data["mqtt_client_id"], data["mqtt_broker"], baseMQTTCallback)
     print("successfuly connected!")
     # OTA Block update
-    filenames = ["main.py","micropython_ota.py","simple.py"]
+    filenames = ["main.py","micropython_ota.py","simple.py","jsonConfigs.py"]
     micropython_ota.ota_update(data["ota_host_url"], data["ota_project_name"], filenames, use_version_prefix=False, hard_reset_device=True, soft_reset_device=False, timeout=5)
     #init a second thread that will check for updates at specific intervals
-    _thread.start_new_thread(update_task, (data,)) #start second core thread
+    networkLock = _thread.allocate_lock()
+    _thread.start_new_thread(update_task, (data,networkLock,)) #start second core thread
     # if no updates, proceed to the main routine
     analogSensors = initADCs()
     while True:
+        networkLock.acquire()
         client.check_msg()
         publishData(client, analogSensors)
+        networkLock.release()
         utime.sleep(6)
     pass
