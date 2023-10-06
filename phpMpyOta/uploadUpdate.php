@@ -35,27 +35,34 @@ When you upload a group of .py files to this script, it creates a new directory 
  It then moves all uploaded .py files to this new directory and creates a new file named version inside this directory with two keys: version, 
  which contains the name of the parent directory, and files, which contains an array of all .py files present in this directory. Finally, 
  it copies the new version file to sampleproject/version_{current_version} and replaces the contents of sampleproject/version with the contents of the new version file.
+
+ chatgpt is still a long way to be a real coder, but the result are really impresive at first glance
 */
-$dir = 'sampleproject';
+
+$projectName = $_POST['name'];
+
+$dir = './' . $projectName;
 $version_file = $dir . '/version';
 $version_data = json_decode(file_get_contents($version_file), true);
 $version = $version_data['version'];
 $new_version = $version + 1;
 $new_dir = $dir . '/' . $new_version;
 mkdir($new_dir);
-$files = $_FILES['file'];
+$files = $_FILES['files'];
 $file_names = array();
-foreach ($files['name'] as $i => $name) {
-    if (pathinfo($name, PATHINFO_EXTENSION) == 'py') {
+foreach ($files as $file) {
+    if (pathinfo($file['name'], PATHINFO_EXTENSION) == 'py') {
         $file_names[] = $name;
-        move_uploaded_file($files['tmp_name'][$i], $new_dir . '/' . $name);
+        file_put_contents($new_dir . '/'. $file['name'],  $file['data']);
     }
 }
-$new_version_data = array(
+
+$new_version_data = (object) [
     'version' => $new_version,
     'files' => $file_names
-);
-file_put_contents($new_dir . '/version', json_encode($new_version_data));
+];
+
+file_put_contents($new_dir . '/version', json_encode($new_version_data, JSON_FORCE_OBJECT ));
 copy($version_file, $dir . '/version_' . $version);
 copy($new_dir . '/version', $dir . '/version');
 ?>

@@ -1,12 +1,33 @@
 import os
 import requests
+import sys
 
-url = 'http://your-php-endpoint.com/upload.php'
+url = '...../versions/uploadUpdate.php'
 files = {}
-for filename in os.listdir('.'):
+
+def parseArgs():
+    args = {}
+    for arg in sys.argv:
+        if arg =="uploadClient.py"
+            continue
+        tokens = arg.split("=")
+        if len(tokens) != 2:
+            continue
+        if tokens[0] == "--name":
+            args["name"] = tokens[1]
+    return args
+
+
+args = parseArgs()
+
+files["name"] = args["name"]
+files["files"] = []
+
+#if not specified, python gets the current directory
+for filename in os.listdir():
     if filename.endswith('.py'):
         with open(filename, 'rb') as f:
-            files['file[]'] = (filename, f.read())
+            files['files'].append({"name":filename, "data":f.read()})
 
 r = requests.post(url, files=files)
 print(r.text)
