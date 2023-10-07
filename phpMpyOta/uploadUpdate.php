@@ -39,7 +39,7 @@ When you upload a group of .py files to this script, it creates a new directory 
  chatgpt is still a long way to be a real coder, but the result are really impresive at first glance
 */
 
-$projectName = $_POST['name'];
+$projectName = $_POST['projectName'];
 
 $dir = './' . $projectName;
 $version_file = $dir . '/version';
@@ -50,19 +50,20 @@ $new_dir = $dir . '/' . $new_version;
 mkdir($new_dir);
 $files = $_FILES['files'];
 $file_names = array();
-foreach ($files as $file) {
-    if (pathinfo($file['name'], PATHINFO_EXTENSION) == 'py') {
-        $file_names[] = $name;
-        file_put_contents($new_dir . '/'. $file['name'],  $file['data']);
+for($i = 0; $i < count($files['name']); $i++) {
+    if (pathinfo($files['name'][$i], PATHINFO_EXTENSION) == 'py') {
+        $file_names[] = $files['name'][$i];
+        move_uploaded_file($files['tmp_name'][$i], $new_dir . '/'. $files['name'][$i]);
+        // file_put_contents($new_dir . '/'. $file['name'],  $file['data']);
     }
 }
-
 $new_version_data = (object) [
     'version' => $new_version,
     'files' => $file_names
 ];
 
-file_put_contents($new_dir . '/version', json_encode($new_version_data, JSON_FORCE_OBJECT ));
+file_put_contents($new_dir . '/version', json_encode($new_version_data));
 copy($version_file, $dir . '/version_' . $version);
-copy($new_dir . '/version', $dir . '/version');
+$result = copy($new_dir . '/version', $dir . '/version');
+echo(var_export($result));
 ?>
