@@ -1,0 +1,4 @@
+{
+  "version":"100",
+  "files":["main.py","simple.py","robust.py","micropython_ota.py","jsonConfigs.py","analogExample.py","bmp180.py","boot.py","DS18X20_example.py","ds1307.py","ds3231.py","main_ota.py","main_upy_ota_lib.py","ssd1306.py"]
+}

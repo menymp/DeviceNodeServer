@@ -4,5 +4,5 @@
     "mqtt_broker":"",
     "mqtt_client_id":"",
     "ota_host_url":"",
-    "ota_project_name":""
+    "ota_project_name":"ESP32_GAS_SPECTROMETER"
 }
