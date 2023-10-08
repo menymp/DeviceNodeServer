@@ -1,0 +1,10 @@
+{
+    "networkId":"",
+    "comm":
+    {
+        "commType":"",
+        "commPath":"",
+        "commArgs":""
+    },
+    "mqttBroker":""
+}
