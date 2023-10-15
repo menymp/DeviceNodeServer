@@ -5,6 +5,9 @@ to be updated with control commands over serial interface
 */
 
 #include <SoftwareSerial.h>;
+#include <String.h>
+
+#define CALL_NUMBER_LEN  10
 
 SoftwareSerial SIM900(7, 8); // configure software sim900 serial interface
 
@@ -31,15 +34,21 @@ void make_call()
 }
 
 //SMS function
-void sms_send()
+void sms_send(char * number, char * msg)
 {
+	const char numberBuff[20]{};
+	
+	strcat(numberBuff, "AT+CMGS=\"");
+	strcat(numberBuff, number);
+	strcat(numberBuff, "\"");
+	
     SIM900.print("AT+CMGF=1\r"); // AT command to send SMS message
     delay(100);
-    SIM900.println("AT+CMGS=\"33XXXXXXXX\""); // recipient's mobile number, in international format
+    SIM900.println(numberBuff); // recipient's mobile number, in international format
     delay(100);
-    SIM900.println("Saludos desde HetPro"); // message to send
+    SIM900.println(msg); // message to send
     delay(100);
-    SIM900.println((char)26); // End AT command with a ^Z, ASCII code 26 //Comando de finalizacion
+    SIM900.println((char)26); // End AT command with a ^Z, ASCII code 26
     delay(100);
     SIM900.println();
     delay(5000); // wait time
@@ -70,28 +79,53 @@ void receive_sms_mode()
     delay(1000);
 }
 
+void parse_serial_command()
+{
+	char inputCmdBuffer[20]{};
+	
+	Serial.readBytesUntil(NULL ,inputBuffer ,sizeof(inputBuffer));
+	
+	if(!strcmp(inputCmdBuffer, "SMSSEND"))
+	{
+		char inputNumber[30]{};
+		char inputMsg[100]{};
+		
+		Serial.readBytesUntil(NULL ,inputNumber ,sizeof(inputNumber));
+		Serial.readBytesUntil(NULL ,inputMsg ,sizeof(inputMsg));
+		if(strlen(inputNumber) != CALL_NUMBER_LEN)
+		{
+			Serial.println("Error:Wrong Number Len!");
+			return;
+		}
+		if(strlen(inputMsg) == 0)
+		{
+			Serial.println("Error:Empy Message!");
+			return;
+		}
+		/*ToDo: check if there is a way to read the sim state and return error*/
+		sms_send(inputNumber, inputMsg);
+		Serial.println("SUCCESS");
+	}
+	String serialCommand = Serial.readBytesUntil(NULL ,inputBuffer ,sizeof(inputBuffer));
+}
+
 void loop()
 {
-    make_call(); //do a call
+	parse_serial_command();
+	/*
     sms_send(); //send message
     receive_sms_mode();
     for(;;)
     {
         if(SIM900.available()>0)
         {
-            incoming_char=SIM900.read(); //Get the character from the cellular serial port.
-            Serial.print(incoming_char); //Print the incoming character to the terminal.
+            incoming_char=SIM900.read();
+            Serial.print(incoming_char);
         }
         if(Serial.available()>0)
         {
             if(Serial.read() == 'A') break;
         }
     }
-    Serial.println("OK-2");
-
-    delay(100);
-    SIM900.println();
-    delay(30000);
-    while(1); //wait forever, end of demo
-
+	*/
 }
