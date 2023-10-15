@@ -38,7 +38,7 @@ class nodeMqttHandler():
 	def disconnect(self):
 		self.client.disconnect()
 	
-	def add_subscriber(self, topic, Name, dataType, callback, valueName = 'value'):
+	def add_subscriber(self, Name, dataType, callback, valueName = 'value', args = None):
 		mqx_tmp =  {
 			"Name":Name,
 			"Mode":"SUBSCRIBER",
@@ -46,11 +46,11 @@ class nodeMqttHandler():
 			"Channel":self.path + Name + '/' + valueName,
 			"Value":None
 		}
-		self.devices.add((mqx_tmp, callback))
+		self.devices.add((mqx_tmp, callback, args))
 		self.client.subscribe(mqx_tmp["Channel"])
 		return True
 	
-	def add_publisher(self, topic, Name, dataType, path):
+	def add_publisher(self, Name, dataType, path):
 		devExists, devObj = self.deviceExists(name=Name)
 		if devExists:
 			raise ValueError('Device name already exists!')
@@ -102,10 +102,10 @@ class nodeMqttHandler():
 			#check if callback is known
 			if not devExists:
 				return
-			if device[0]["Mode"] != "SUBSCRIBER" or device[1] is None:
+			if len(device) != 3 or device[0]["Mode"] != "SUBSCRIBER" or device[1] is None:
 				return
 			#once validated everithing is correct, do the callback
-			device[1](m_decode)
+			device[1](m_decode, device[2])
             device[0]["Value"] = m_decode
         except:
             #self.client.subscribe(self.path)
