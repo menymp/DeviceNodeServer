@@ -23,6 +23,6 @@ def readLocalConfigs():
 
 
 if __name__ == "__main__":
-	#ToDo: with the configs, use the nodeMqttHandler to define the endpoints
+	#ToDo: with the configs, use the nodeMqttHandler to define the endpoints/
 
 	pass
