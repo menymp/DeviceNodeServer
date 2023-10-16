@@ -19,10 +19,10 @@ In construction ...
 
 import time
 import threading
-import paho.mqtt.client as mqtt
-import paho.mqtt.publish as publish
+import json
 from digi.xbee.models.status import NetworkDiscoveryStatus
 from digi.xbee.devices import XBeeDevice
+from nodeMqtt import nodeMqttHandler
 
 
 # TODO: Replace with the serial port where your local module is connected to.
@@ -30,70 +30,23 @@ PORT = "COM1"
 # TODO: Replace with the baud rate of your local module.
 BAUD_RATE = 9600
 
-manifest = {
-        "Name":"ID OF THE EXPECTED NETWORK",
-        "RootName":"/MenyGasNode1/",
-        "Devices":["MQ3","MQ4","MQ6","MQ7","MQ8","MQ135"] #
-}
-jsonManifest = json.dumps(manifest)
+def get_global_configs():
+	return globalConfigs
 
-class mqttDriver():
-    def init(self, args, path = ""):
-        self.subscriberPath = path
-        self.connArgs = json.loads(args)
-        self.initDriver()
-        self.value = ""
-        self.lastSentCmd = ""
-        self.lockUpdateFlag = False
-        #self.initDriver()
-        pass
-    #locks the result until a new response is sent
-    #since the backend is designed in this way this should
-    #mitigate the effect of the delayed update
-    def getLockFlag(self):
-        return self.lockUpdateFlag
+def get_local_configs():
+	return localConfigs
 
-    def initDriver(self):
-        self.client = mqtt.Client()
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
-        self.client.connect(self.connArgs["broker"], self.connArgs["port"], self.connArgs["keepalive"])
+class xbeeNetMqttCoordinator():
+	def __init__(self):
+		pass
+	#... put relevant stuff there
+	pass
 
-        taskListen = threading.Thread(target=self.clientlisten, args=(self.client,))
-        taskListen.start()
-        pass
-
-    def clientlisten(self, arg):
-        arg.loop_forever()
-        pass
-
-    def sendCommand(self,command, args):
-        self.lockUpdateFlag  = True
-        self.lastSentCmd = command
-        publish.single(topic = args, payload = command, hostname = self.connArgs["broker"])
-        pass
-
-    def getValue(self):
-        return self.value
-
-    def on_connect(self, client, userdata, flags, rc):
-        if self.subscriberPath == "":
-            return
-        self.client.subscribe(self.subscriberPath)
-        pass
-
-    def on_message(self, client, userdata, msg):
-        m_decode=str(msg.payload.decode("utf-8","ignore"))
-        data = json.loads(m_decode)
-        self.value = data["Value"]
-        if self.lockUpdateFlag and self.lastSentCmd == self.value: #ToDo: a race condition may happens if no update received
-            self.lockUpdateFlag = False
-        pass
-
-def discoveryDevices():
+#This Task is performed often to discover available devices
+def discoveryDevices(device):
     print("scanning Xbee network for available devices")
 
-    device = XBeeDevice(PORT, BAUD_RATE)
+    #device = XBeeDevice(PORT, BAUD_RATE)
 
     try:
         device.open()
@@ -126,9 +79,58 @@ def discoveryDevices():
     finally:
         if device is not None and device.is_open():
             device.close()
+	return xbee_network.get_devices()
 
+
+def sync_devices_mqtt(devices, nodeProxy):
+	for xbeeDevice in devices:
+		#ToDo: map this to nodeProxy with the id
+		if not nodeProxy.deviceExists(name=#######):
+			nodeProxy.add_publisher(........)
+			nodeProxy.add_subscriber(......)
+	pass
+
+def initXbeeCoordinator(port_path, baud_rate, message_received_callback):
+	xbee = XBeeDevice("COM1", 9600)
+	xbee.open()
+	
+'''
+# Instantiate a local XBee node.
+xbee = XBeeDevice("COM1", 9600)
+xbee.open()
+
+# Define the callback.
+def my_data_received_callback(xbee_message):
+    address = xbee_message.remote_device.get_64bit_addr()
+    data = xbee_message.data.decode("utf8")
+    print("Received data from %s: %s" % (address, data))
+
+# Add the callback.
+xbee.add_data_received_callback(my_data_received_callback)
+'''
+#when message is received from 
+def message_received_callback(xbee_message):
+	address = xbee_message.remote_device.get_64bit_addr()
+	data = xbee_message.data.decode("utf8")
+	print("Received data from %s: %s" % (address, data))
+	
+	#ToDo: add device callback
+	#	   Create as a class
+	pass
+	
 
 #ToDo: add mqtt manifest callback for compliance with devices
 #each device will create a channel under mqtt standard broker
 if __name__ == '__main__':
+	localConfigs = get_local_configs()
+	configs = get_global_configs()
+	
+	nodeProxy = nodeMqtt(configs["mqttHost"],configs["mqttPort"],configs["Name"])
+	nodeProxy.connect()
+	
+	
+	
+	while True:
+		nodeProxy.publish_manifest()
+		time.sleep(7)
     pass

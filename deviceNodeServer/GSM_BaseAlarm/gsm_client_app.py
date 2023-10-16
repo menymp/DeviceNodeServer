@@ -7,7 +7,7 @@ import threading
 import json
 import Serial
 
-from nodeMqtt import nodeMqttHandler
+from nodeMqtt import nodeMqttHandler #ToDo: move to a global state
 
 SEND_SMS_CMD = "SENDSMS"
 
@@ -66,5 +66,6 @@ if __name__ == "__main__":
 	nodeProxy.add_subscriber(localConfigs["name"],"STRING",SIM900SerialPort)
 	
 	while True:
-		pass
+		nodeProxy.publish_manifest()
+		time.sleep(7)
 	pass
