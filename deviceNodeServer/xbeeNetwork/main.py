@@ -21,9 +21,8 @@ import time
 import threading
 from threading import Timer
 import json
-from digi.xbee.models.status import NetworkDiscoveryStatus
-from digi.xbee.devices import XBeeDevice
 from nodeMqtt import nodeMqttHandler
+from xbeeNetMqttCoordinator import xbeeNetMqttCoordinator
 
 
 # TODO: Replace with the serial port where your local module is connected to.
@@ -37,96 +36,48 @@ def get_global_configs():
 def get_local_configs():
 	return localConfigs
 
-class xbeeNetMqttCoordinator():
-    def __init__(self, discoveryTime = 20):
-        self.networkDevices = []
-        self.discoveryTime = discoveryTime
-        self.stopSearch = True
+class xbeeNetworkController():
+    def __init__(self, configs):
+        self.nodeProxy = nodeMqttHandler(configs["mqttHost"],configs["mqttPort"],configs["Name"])
+        self.xbeeCoordinator = xbeeNetMqttCoordinator()
+        self.configs = configs
         pass
 
-    def init(self, port_path, baud_rate, message_received_callback = None, sync_devices_callback = None):
-        self.coordinatorDevice = XBeeDevice(port_path, baud_rate)
-        self.coordinatorDevice.open()
-        self.coordinatorDevice.add_data_received_callback(self._message_arrived_callback)
-        self._message_received_callback = message_received_callback
-        self._sync_devices_callback = sync_devices_callback
-        self._initXbeeNetwork()
-        pass
-    
     def start(self):
-        self.searchTimer = Timer(self.discoveryTime, self._discoveryDevices).start()
-        self.stopSearch = False
+        self.xbeeCoordinator.init(self.configs["port_path"], self.configs["baud_rate"], self._message_received_callback, self._sync_devices_mqtt)
+        self.nodeProxy.connect()
+        self.xbeeCoordinator.start()
         pass
 
     def stop(self):
-        self.stopSearch = True
-        pass
-
-    def close(self):
-        self.stop()
-        self.coordinatorDevice.close()
-        pass
-
-    def sendMessage(self, address64bit, data):
-        exists, remoteDevice = self.deviceExists(address64bit)
-        if not exists:
-            return False
-        self.coordinatorDevice.send_data(remoteDevice, data)
-            
-        pass
-
-    def deviceExists(self, address64bit):
-        device = None
-        found = False
-        for xbeeDevice in self.networkDevices:
-            if xbeeDevice.get_64bit_addr() == address64bit:
-                device = xbeeDevice
-                found = True
-                break
-        return found, device
-    
-    def _message_arrived_callback(self, xbee_message):
-        if self._message_received_callback is None:
-             print("Warning! message received without callback!")
-             return
-        address = xbee_message.remote_device.get_64bit_addr()
-        data = xbee_message.data.decode("utf8")
-        self._message_received_callback(address, data)
+        self.nodeProxy.disconnect()
+        self.xbeeCoordinator.stop()
+        self.xbeeCoordinator.close()
         pass
     
-    def _initXbeeNetwork(self):
-        self.xbee_network = self.coordinatorDevice.get_network()
-        self.xbee_network.set_discovery_timeout(self.discoveryTime)
-        self.xbee_network.clear()
-        # Callback for discovered devices.
-        def callback_device_discovered(remote):
-            print("Device discovered: %s" % remote)
-        # Callback for discovery finished.
-        def callback_discovery_finished(status):
-            if status == NetworkDiscoveryStatus.SUCCESS:
-                print("Discovery process finished successfully.")
-            else:
-                print("There was an error discovering devices: %s" % status.description)
-        
-        self.xbee_network.add_device_discovered_callback(callback_device_discovered)
-        self.xbee_network.add_discovery_process_finished_callback(callback_discovery_finished)
+    #From Xbee to mqtt network
+    def _message_received_callback(self, address64bit, data):
+        print("Received data from %s: %s" % (address64bit, data))
+        self.nodeProxy.publishValue(str(address64bit) + "_OUT", data)
         pass
     
-    #This Task is performed often to discover available devices
-    def _discoveryDevices(self):
-        print("scanning Xbee network for available devices")
-        #device = XBeeDevice(PORT, BAUD_RATE)
-        try:
-            self.xbee_network.start_discovery_process()
-            print("Discovering remote XBee devices...")
-            while self.xbee_network.is_discovery_running():
-                time.sleep(0.1)
-        finally:
-            if self.coordinatorDevice is not None and self.coordinatorDevice.is_open():
-                self.coordinatorDevice.close()
-        self.networkDevices = self.xbee_network.get_devices()
-        self._sync_devices_callback(self.networkDevices)
-        self.searchTimer = Timer(self.discoveryTime, self._discoveryDevices).start() if not self.stopSearch else None
+    #From mqtt network to Xbee, args in this case is the 64 bit addr
+    def _callbackReceivedMessage(self, message, args):
+        self.xbeeCoordinator.sendMessage(args, message)
+        pass
+
+    def _sync_devices_mqtt(self, devices):
+        for xbeeDevice in devices:
+            #ToDo: map this to nodeProxy with the id
+            if not self.nodeProxy.deviceExists(name=str(xbeeDevice.get_64bit_addr()) + "_OUT"):
+                self.nodeProxy.add_publisher(str(xbeeDevice.get_64bit_addr()) + "_OUT","STRING")
+            if not self.nodeProxy.deviceExists(name=str(xbeeDevice.get_64bit_addr()) + "_IN"):
+                self.nodeProxy.add_subscriber(str(xbeeDevice.get_64bit_addr()) + "_IN",self._callbackReceivedMessage, xbeeDevice.get_64bit_addr())
+        pass
+
+    def publish_manifest(self):
+        self.publish_manifest()
+        pass
 
 	
 '''
@@ -144,29 +95,12 @@ def my_data_received_callback(xbee_message):
 xbee.add_data_received_callback(my_data_received_callback)
 '''
 #when message is received from 
-def message_received_callback(address64bit, data):
-	print("Received data from %s: %s" % (address64bit, data))
-	
-	#ToDo: add device callback
-	#	   Create as a class
-	pass
-	
-def sync_devices_mqtt(devices, nodeProxy):
-    for xbeeDevice in devices:
-        #ToDo: map this to nodeProxy with the id
-        if not nodeProxy.deviceExists(name=#######):
-            nodeProxy.add_publisher(........)
-            nodeProxy.add_subscriber(......)
-    pass
 
 #ToDo: add mqtt manifest callback for compliance with devices
 #each device will create a channel under mqtt standard broker
 if __name__ == '__main__':
 	localConfigs = get_local_configs()
 	configs = get_global_configs()
-	
-	nodeProxy = nodeMqtt(configs["mqttHost"],configs["mqttPort"],configs["Name"])
-	nodeProxy.connect()
 	
 	
 	
