@@ -21,8 +21,12 @@ import time
 import threading
 from threading import Timer
 import json
-from nodeMqtt import nodeMqttHandler
-from xbeeNetMqttCoordinator import xbeeNetMqttCoordinator
+import sys
+
+sys.path.append('../Libraries')
+from NodeMqttClient import NodeMqttClient
+from XbeeNetMqttCoordinator import XbeeNetMqttCoordinator
+import signal
 
 
 # TODO: Replace with the serial port where your local module is connected to.
@@ -30,21 +34,20 @@ PORT = "COM1"
 # TODO: Replace with the baud rate of your local module.
 BAUD_RATE = 9600
 
-def get_global_configs():
-	return globalConfigs
+def readConfigFile(self, path = './configs.json'):
+	with open(path) as f:
+		data = json.load(f)
+	return data
 
-def get_local_configs():
-	return localConfigs
-
-class xbeeNetworkController():
+class XbeeNetworkController():
     def __init__(self, configs):
-        self.nodeProxy = nodeMqttHandler(configs["mqttHost"],configs["mqttPort"],configs["Name"])
-        self.xbeeCoordinator = xbeeNetMqttCoordinator()
+        self.nodeProxy = NodeMqttClient(configs["mqtt-host"],configs["mqtt-port"],configs["name"])
+        self.xbeeCoordinator = XbeeNetMqttCoordinator()
         self.configs = configs
         pass
 
     def start(self):
-        self.xbeeCoordinator.init(self.configs["port_path"], self.configs["baud_rate"], self._message_received_callback, self._sync_devices_mqtt)
+        self.xbeeCoordinator.init(self.configs["com-port-path"], self.configs["com-baud-rate"], self._message_received_callback, self._sync_devices_mqtt)
         self.nodeProxy.connect()
         self.xbeeCoordinator.start()
         pass
@@ -98,13 +101,21 @@ xbee.add_data_received_callback(my_data_received_callback)
 
 #ToDo: add mqtt manifest callback for compliance with devices
 #each device will create a channel under mqtt standard broker
+
+
 if __name__ == '__main__':
-	localConfigs = get_local_configs()
-	configs = get_global_configs()
-	
-	
-	
-	while True:
-		nodeProxy.publish_manifest()
-		time.sleep(7)
+    configs = readConfigFile()
+
+    xbeeServer = XbeeNetworkController(configs)
+    xbeeServer.start()
+
+    def signal_term_handler(signal, frame):
+        xbeeServer.stop()
+        print('exit process')
+        sys.exit(0)
+    signal.signal(signal.SIGTERM, signal_term_handler)
+
+    while True:
+        xbeeServer.publish_manifest()
+        time.sleep(configs["manifest-publish-delay"])
     pass

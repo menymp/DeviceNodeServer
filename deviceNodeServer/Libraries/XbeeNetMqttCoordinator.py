@@ -3,7 +3,7 @@ from threading import Timer
 from digi.xbee.models.status import NetworkDiscoveryStatus
 from digi.xbee.devices import XBeeDevice
 
-class xbeeNetMqttCoordinator():
+class XbeeNetMqttCoordinator():
     def __init__(self, discoveryTime = 20):
         self.networkDevices = []
         self.discoveryTime = discoveryTime

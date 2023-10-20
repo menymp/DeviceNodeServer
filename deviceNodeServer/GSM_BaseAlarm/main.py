@@ -6,8 +6,11 @@ import time
 import threading
 import json
 import Serial
+import sys
+import signal
 
-from nodeMqtt import nodeMqttHandler #ToDo: move to a global state
+sys.path.append('../Libraries')
+from NodeMqttClient import NodeMqttClient
 
 SEND_SMS_CMD = "SENDSMS"
 
@@ -36,8 +39,10 @@ localConfigs = {
 	"localId":XXXXXXX
 }
 '''
-def readLocalConfigs():
-	return jsonLocalConfigs
+def readConfigFile(self, path = './configs.json'):
+	with open(path) as f:
+		data = json.load(f)
+	return data
 
 def send_sms(message, args):
 	try:
@@ -50,22 +55,31 @@ def send_sms(message, args):
 		time.sleep(0.01)
 		args.write(msgObj["msg"])
 		args.write(0)
+	except:
+
 	pass
 
 if __name__ == "__main__":
-	#ToDo: with the configs, use the nodeMqttHandler to define the endpoints/
-	localConfigs = readLocalConfigs() #get local id
-	configs = readGlobalConfigs() #get configs with local id
+	configs = readConfigFile() #get local info
 	
-	SIM900SerialPort = serial.Serial(port=localConfigs["portPath"],baudrate=localConfigs["baudrate"])
+	SIM900SerialPort = Serial.Serial(port=configs["gsm-serial-port-path"],baudrate=configs["gsm-serial-baudrate"])
 	
 
-	nodeProxy = nodeMqtt(configs["mqttHost"],configs["mqttPort"],configs["Name"])
+	nodeProxy = NodeMqttClient(configs["mqtt-host"],configs["mqtt-port"],configs["name"])
 	nodeProxy.connect()
 	
-	nodeProxy.add_subscriber(localConfigs["name"],"STRING",SIM900SerialPort)
+	def signal_term_handler(signal, frame):
+		nodeProxy.stop()
+		print('exit process')
+		sys.exit(0)
+	signal.signal(signal.SIGTERM, signal_term_handler)
+
+	nodeProxy.add_subscriber("send","STRING",send_sms, "message", SIM900SerialPort)
+	nodeProxy.add_publisher("state", "STRING")
+
+	#nodeProxy.publishMessage("state","example state!!!")
 	
 	while True:
 		nodeProxy.publish_manifest()
-		time.sleep(7)
+		time.sleep(configs["manifest-publish-delay"])
 	pass

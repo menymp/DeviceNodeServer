@@ -3,16 +3,7 @@ import threading
 import paho.mqtt.client as mqtt
 import json
 
-
-mqx_tmp =  {
-    "Name":Name,
-    "Mode":"PUBLISHER",
-    "Type":"STRING",
-    "Channel":Channel,
-    "Value":str(value)
-}
-
-class nodeMqttHandler():
+class NodeMqttClient():
 	def __init__(self, brokerHost, brokerPort, nodeName, keepalive = 60):
 		self.brokerHost = brokerHost
 		self.brokerPort = brokerPort
@@ -25,13 +16,13 @@ class nodeMqttHandler():
 		pass
 	
 	def connect(self):
-        self.client = mqtt.Client()
-        self.client.on_connect = self._on_connect
-        self.client.on_message = self._on_message
-        self.client.connect(self.brokerHost, self.brokerPort, self.keepalive)
-		
+		self.client = mqtt.Client()
+		self.client.on_connect = self._on_connect
+		self.client.on_message = self._on_message
+		self.client.connect(self.brokerHost, self.brokerPort, self.keepalive)
+
 		self.taskListen = threading.Thread(target=self._task_clientLoop)
-        self.taskListen.start()
+		self.taskListen.start()
 		return True
 	
 	#stops the mqtt main task
@@ -50,7 +41,7 @@ class nodeMqttHandler():
 		self.client.subscribe(mqx_tmp["Channel"])
 		return True
 	
-	def add_publisher(self, Name, dataType, path):
+	def add_publisher(self, Name, dataType):
 		devExists, devObj = self.deviceExists(name=Name)
 		if devExists:
 			raise ValueError('Device name already exists!')
@@ -79,11 +70,11 @@ class nodeMqttHandler():
 	def deviceExists(self, name = None, channel = None):
 		deviceExists = False
 		deviceObj = None
-		if(name is None and topic is None):
+		if(name is None and channel is None):
 			raise ValueError('Provide at least a channel name or a topic')
 		#check if device exists
 		for device in self.devices:
-			if(name is not None and device[0].Name == Name or 
+			if(name is not None and device[0].Name == name or 
 			channel is not None and device[0].Channel == channel):
 				deviceExists = True
 				deviceObj = device
@@ -94,10 +85,10 @@ class nodeMqttHandler():
 		pass
 	
 	def _on_message(self, client, userdata, msg):
-        try:
+		try:
 			topic=str(msg.topic.decode("utf-8","ignore"))
-            m_decode=str(msg.payload.decode("utf-8","ignore"))
-			
+			m_decode=str(msg.payload.decode("utf-8","ignore"))
+
 			devExists, device = self.deviceExists(channel=topic)
 			#check if callback is known
 			if not devExists:
@@ -106,13 +97,13 @@ class nodeMqttHandler():
 				return
 			#once validated everithing is correct, do the callback
 			device[1](m_decode, device[2])
-            device[0]["Value"] = m_decode
-        except:
+			device[0]["Value"] = m_decode
+		except:
             #self.client.subscribe(self.path)
-            pass 
-        pass
+			pass 
+		pass
 	
-	def _publishManifest(self):
+	def publish_manifest(self):
 		#Publish the existing devices manifest
 		deviceList = []
 		for device in self.devices:

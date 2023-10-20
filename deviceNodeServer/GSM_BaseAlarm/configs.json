@@ -3,6 +3,6 @@
     "mqtt-host":"",
     "mqtt-port":1883,
     "manifest-publish-delay":6,
-    "comm-port-path":"",
-    "com-baud-rate":115200
+    "gsm-serial-baudrate":"",
+    "gsm-serial-port-path":115200
 }
