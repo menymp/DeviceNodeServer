@@ -1,10 +1,13 @@
-from dbActions import dbDevicesActions
 import threading
 import json
 import time
+import sys
 import threading
 import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
+
+sys.path.append('../DButils')
+from dbActions import dbDevicesActions
 
 #
 class deviceManager():
