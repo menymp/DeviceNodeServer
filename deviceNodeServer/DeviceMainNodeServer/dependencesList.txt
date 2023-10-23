@@ -7,4 +7,5 @@ paho.mqtt
 mysql.connector
 telegram
 gen
+zmq
 
