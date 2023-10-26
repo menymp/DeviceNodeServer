@@ -10,11 +10,12 @@ sys.path.append('../ConfigsUtils')
 from nodeManager import nodeDeviceManager
 from configsCreate import configsParser
 
-SEARCH_DEVICES_PERIOD = 20
-
 if __name__ == "__main__":
     cfgObj = configsParser()
     args = cfgObj.readConfigData(os.getcwd() + "../configs.ini")
+    zmqCfg = cfgObj.readSection("zmqConfigs",os.getcwd() + "../configs.ini")
+    nodeDevMgrCfg = cfgObj.readSection("nodeDeviceMgr",os.getcwd() + "../configs.ini")
+
     devMgr = nodeDeviceManager()
     while(True):
         devMgr.getNodes(args)
@@ -23,5 +24,5 @@ if __name__ == "__main__":
         while devMgr.getState() != 'DONE':
             pass
         devMgr.registerNodes()
-        time.sleep(SEARCH_DEVICES_PERIOD)
+        time.sleep(int(nodeDevMgrCfg["search-devices-period"]))
     pass

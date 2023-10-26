@@ -11,9 +11,6 @@ from telegramCommands import TelegramCommandExecutor
 from configsCreate import configsParser
 
 
-MQ_DEV_MGR_SERVER_PATH = "tcp://*:5555" #NOTE: Shared with DeviceManager, add to configs.ini
-MQ_VIDEO_HANDLER_SERVER_PATH = "tcp://*:5556" #NOTE: Shared with VideoHandler, add to configs.ini
-
 class handleOnCmd():
     def __init__(self, zmqPath):
         context = zmq.Context()
@@ -44,10 +41,11 @@ class handleOnCmd():
 if __name__ == "__main__":
     cfgObj = configsParser()
     args = cfgObj.readConfigData(os.getcwd() + "../configs.ini")
+    zmqCfg = cfgObj.readSection("zmqConfigs",os.getcwd() + "../configs.ini")
 
-    devMgrProxy = handleOnCmd(MQ_DEV_MGR_SERVER_PATH)
+    devMgrProxy = handleOnCmd(zmqCfg["device-manager-server-path"])
     devMgrProxy.connect()
-    videoHandlerProxy = handleOnCmd(MQ_VIDEO_HANDLER_SERVER_PATH)
+    videoHandlerProxy = handleOnCmd(zmqCfg["video-handler-server-path"])
     videoHandlerProxy.connect()
     
     objInstances = {

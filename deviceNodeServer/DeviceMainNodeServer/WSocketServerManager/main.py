@@ -10,9 +10,6 @@ sys.path.append('../ConfigsUtils')
 from websocketHandler import wSocketServerManager
 from configsCreate import configsParser
 
-WEB_SOCKET_PORT = 8112
-MQ_DEV_MGR_SERVER_PATH = "tcp://*:5555" #NOTE: Shared with DeviceManager, add to configs.ini
-
 class handleOnMessage():
     def __init__(self, zmqPath):
         context = zmq.Context()
@@ -44,12 +41,14 @@ class handleOnMessage():
 if __name__ == "__main__":
     cfgObj = configsParser()
     args = cfgObj.readConfigData(os.getcwd() + "../configs.ini")
+    wSockCfg = cfgObj.readSection("wSocketServerManager",os.getcwd() + "../configs.ini")
+    zmqCfg = cfgObj.readSection("zmqConfigs",os.getcwd() + "../configs.ini")
 
-    onMsgHandler = handleOnMessage(MQ_DEV_MGR_SERVER_PATH)
+    onMsgHandler = handleOnMessage(zmqCfg["device-manager-server-path"])
     onMsgHandler.connect()
 
     WSServer = wSocketServerManager()
-    WSServer.init(WEB_SOCKET_PORT)
+    WSServer.init(wSockCfg["port"])
     WSServer.serverListen(onMsgHandler.on_MessageCmd)
     onMsgHandler.disconnect()
 

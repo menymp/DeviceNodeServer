@@ -3,12 +3,17 @@ import os
 
 class configsParser():
     def readConfigData(self, filePath = ""):
+        argsP = self.readSection("connConfigs", filePath)
+        return [argsP["host"],argsP["dbname"],argsP["user"],argsP["pass"],argsP["broker"]]
+    
+    def readSection(self, section, filePath = ""):
         if(filePath == ""):
             filePath = os.getcwd() + "\\configs.ini"
         config_obj = configparser.ConfigParser()
         config_obj.read(filePath)
-        argsP = config_obj["connConfigs"]
-        return [argsP["host"],argsP["dbname"],argsP["user"],argsP["pass"],argsP["broker"]]
+        argsP = config_obj[section]
+        return argsP
+
 
 
 #config = configparser.ConfigParser()

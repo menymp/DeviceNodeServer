@@ -12,12 +12,11 @@ from configsCreate import configsParser
 from videoHttpController import videoHandler
 
 
-MQ_VIDEO_HANDLER_SERVER_PATH = "tcp://*:5556"
 
 def initMQServer():
     context = zmq.Context()
     socket = context.socket(zmq.REP)
-    socket.bind(MQ_VIDEO_HANDLER_SERVER_PATH)
+    socket.bind(zmqCfg["video-handler-server-path"])
     return socket
 
 def taskHandleIncomingMsgs(videoHandler, mqServer, stopEvent):
@@ -54,11 +53,12 @@ def processIncommingMessage(videoHandler, message):
 if __name__ == "__main__":
     cfgObj = configsParser()
     args = cfgObj.readConfigData(os.getcwd() + "../configs.ini")
+    zmqCfg = cfgObj.readSection("zmqConfigs",os.getcwd() + "../configs.ini")
 
     videoHandlerObj = videoHandler(args)
     print("video service started ...")
     mqServerObj = initMQServer()
-    print("MQ Server started at: " + MQ_VIDEO_HANDLER_SERVER_PATH)
+    print("MQ Server started at: " + zmqCfg["video-handler-server-path"])
 
     taskHandleIncMsgs, stopEvent = startHandleIncomingMsgs(videoHandlerObj, mqServerObj)
     videoHandlerObj.serverListen()

@@ -11,14 +11,10 @@ sys.path.append('../ConfigsUtils')
 from deviceManager import deviceManager
 from configsCreate import configsParser
 
-#ToDo: move these configs to ini file
-DEVICE_MGR_ADD_DEVICES_TIME_POLL = 10
-MQ_DEV_MGR_SERVER_PATH = "tcp://*:5555"
-
-def initMQServer():
+def initMQServer(serverPath):
     context = zmq.Context()
     socket = context.socket(zmq.REP)
-    socket.bind(MQ_DEV_MGR_SERVER_PATH)
+    socket.bind(serverPath)
     return socket
 
 def taskLoadDevices(deviceManager, timeSleep, stopEvent):
@@ -27,9 +23,9 @@ def taskLoadDevices(deviceManager, timeSleep, stopEvent):
         time.sleep(timeSleep)
     pass
 
-def startLoadDevices(deviceManager):
+def startLoadDevices(deviceManager, add_time_poll):
     stopEvent = Event()
-    taskAddDevices = threading.Thread(target=taskLoadDevices, args=(deviceManager, DEVICE_MGR_ADD_DEVICES_TIME_POLL, stopEvent, ))
+    taskAddDevices = threading.Thread(target=taskLoadDevices, args=(deviceManager, add_time_poll, stopEvent, ))
     taskAddDevices.start()
     return taskAddDevices, stopEvent
 
@@ -56,12 +52,15 @@ def processIncommingMessage(deviceManager, message):
 if __name__ == "__main__":
     cfgObj = configsParser()
     args = cfgObj.readConfigData(os.getcwd() + "../configs.ini")
+    zmqCfg = cfgObj.readSection("zmqConfigs",os.getcwd() + "../configs.ini")
+    devMgrCfg = cfgObj.readSection("deviceMgr",os.getcwd() + "../configs.ini")
+
 
     deviceMgr = deviceManager()
     deviceMgr.init(args)
-    taskLoadDevices, stopEvent = startLoadDevices(deviceMgr)
+    taskLoadDevices, stopEvent = startLoadDevices(deviceMgr, int(devMgrCfg["add-devices-time-poll"]))
     print("device manager started...")
-    mqServerObj = initMQServer()
+    mqServerObj = initMQServer(zmqCfg["device-manager-server-path"])
     print("MQ Server started at: " + MQ_DEV_MGR_SERVER_PATH)
 
     while(True): #Add a stop signal
