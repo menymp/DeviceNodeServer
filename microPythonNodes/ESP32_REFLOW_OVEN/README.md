@@ -10,3 +10,5 @@ Mqtt objetives
 oven state (self.oven_state in oven control)
 elapsed time (UI sets to set_timer_text, called by _elapsed_timer_update in oven_control)
 ssid pwd UI configs
+
+https://www.elecrow.com/wiki/index.php?title=LVGL_ESP32_Display_Tutorial-A_Step-by-Step_Guide_to_LVGL_GUI_Development
