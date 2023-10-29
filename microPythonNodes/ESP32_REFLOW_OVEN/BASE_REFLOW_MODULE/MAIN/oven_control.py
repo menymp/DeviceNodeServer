@@ -4,7 +4,7 @@ import utime
 class OvenControl:
     states = ("wait", "ready", "start", "preheat", "soak", "reflow", "cool")
 
-    def __init__(self, oven_obj, temp_sensor_obj, pid_obj, reflow_profiles_obj, gui_obj, buzzer_obj, timer_obj, config):
+    def __init__(self, oven_obj, temp_sensor_obj, pid_obj, reflow_profiles_obj, gui_obj, buzzer_obj, timer_obj, config, on_send_state = None, on_send_time = None):
         self.config = config
         self.oven = oven_obj
         self.gui = gui_obj
@@ -34,11 +34,17 @@ class OvenControl:
         self.timer_last_called = None
         self.oven_reset()
         self.format_time(0)
+        #MQTT Logger
+        self._callback_send_state = on_send_state
+        self._callback_send_time = on_send_time
+
         self.gui.add_reflow_process_start_cb(self.reflow_process_start)
         self.gui.add_reflow_process_stop_cb(self.reflow_process_stop)
 
     def set_oven_state(self, state):
         self.oven_state = state
+        if self._callback_send_state:
+            self._callback_send_state(state)
         self._oven_state_change_timing_alert()
 
     def get_profile_temp(self, seconds):
@@ -93,6 +99,8 @@ class OvenControl:
         minutes = sec // 60
         seconds = int(sec) % 60
         time = "{:02d}:{:02d}".format(minutes, seconds, width=2)
+        if self._callback_send_time:
+            self._callback_send_time(time)
         self.gui.set_timer_text(time)
 
     def _reflow_temp_control(self):

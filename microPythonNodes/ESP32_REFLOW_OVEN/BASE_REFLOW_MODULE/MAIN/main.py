@@ -50,6 +50,8 @@ else:
     from load_profiles import LoadProfiles
     from oven_control import OvenControl
     from pid import PID
+    from wifi import wlanConnect
+    from uNodeMqttClient import NodeMqttClient
 
     if config.get('sensor_type') == 'MAX6675':
         from max6675 import MAX6675 as Sensor
@@ -96,11 +98,33 @@ else:
     temp_th = _thread.start_new_thread(measure_temp, ())
     buzzer_th = _thread.start_new_thread(buzzer_activate, ())
 
+    wlan = wlanConnect(config['wifi_ssid'], config['wifi_pwd']) #Connect to wlan
+
+    callback_log_state = None
+    callback_log_time = None
+
+    if wlan.isconnected():
+        nodeProxy = NodeMqttClient(config["mqtt_broker"],config["mqtt_port"],config["mqtt_client_id"])
+        nodeProxy.add_publisher("state","STRING")
+        nodeProxy.add_publisher("elapsed_time","STRING")
+        def log_state(state):
+            nodeProxy.publishValue("state", state)
+        callback_log_state = log_state
+        def log_time(time):
+            nodeProxy.publishValue("elapsed_time",time)
+        callback_log_time = log_time
+
+
     pid = PID(config['pid']['kp'], config['pid']['ki'], config['pid']['kd'])
 
     gui = GUI(reflow_profiles, config, pid, temp_sensor)
 
-    oven_control = OvenControl(heater, temp_sensor, pid, reflow_profiles, gui, buzzer, machine.Timer(0), config)
+    oven_control = OvenControl(heater, temp_sensor, pid, reflow_profiles, gui, buzzer, machine.Timer(0), config, callback_log_state, callback_log_time)
+
+    while True:
+        nodeProxy.publish_manifest()
+        utime.sleep(6)
+
 
 # Starting FTP service for future updates
 if config['ftp']['enable']:

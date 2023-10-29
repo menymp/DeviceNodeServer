@@ -1,27 +1,39 @@
-import time
-import threading
-import paho.mqtt.client as mqtt
+#Lightweight version of NodeMqttClient uses mqtt simple instead of paho
+#	menymp
+#	28 october 2023
+
+import utime
+import _thread
+from simple import MQTTClient
 import json
 
 class NodeMqttClient():
-	def __init__(self, brokerHost, brokerPort, nodeName, keepalive = 60):
+	def __init__(self, brokerHost, brokerPort, clientId, keepalive = 60):
 		self.brokerHost = brokerHost
 		self.brokerPort = brokerPort
 		self.keepalive = keepalive
 		
 		self.devices = []
 		
-		self.name = nodeName
-		self.rootpath = '/' + nodeName + '/'
+		self.name = clientId
+		self.rootpath = '/' + clientId + '/'
 		pass
 	
 	def connect(self):
-		self.client = mqtt.Client()
-		self.client.on_connect = self._on_connect
-		self.client.on_message = self._on_message
-		self.client.connect(self.brokerHost, self.brokerPort, self.keepalive)
+		self.client = MQTTClient(client_id=self.name,
+		server=self.brokerHost,
+		port=0,
+		#user=b"mydemoclient",
+		#password=b"passowrd",
+		keepalive=7200,
+		#ssl=True,
+		#ssl_params={'server_hostname':'8fbadaf843514ef286a2ae29e80b15a0.s1.eu.hivemq.cloud'}
+		)
+		self.client.connect()
+		#self.client.on_connect = self._on_connect
+		self.client.set_callback(self._on_message)
 
-		self.taskListen = threading.Thread(target=self._task_clientLoop)
+		self.taskListen = _thread.start_new_thread(self._task_clientLoop, ())
 		self.taskListen.start()
 		return True
 	
@@ -119,4 +131,5 @@ class NodeMqttClient():
 		pass
 	
 	def _task_clientLoop(self):
-		self.client.loop_forever()
+		self.client.check_msg()
+		utime.sleep(1)
