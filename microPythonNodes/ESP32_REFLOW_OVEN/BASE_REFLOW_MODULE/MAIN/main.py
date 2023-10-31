@@ -102,8 +102,9 @@ else:
 
     callback_log_state = None
     callback_log_time = None
-
+    print("attempts to connect")
     if wlan.isconnected():
+        print("connected correctly!")
         nodeProxy = NodeMqttClient(config["mqtt_broker"],config["mqtt_port"],config["mqtt_client_id"])
         nodeProxy.add_publisher("state","STRING")
         nodeProxy.add_publisher("elapsed_time","STRING")
@@ -113,8 +114,8 @@ else:
         def log_time(time):
             nodeProxy.publishValue("elapsed_time",time)
         callback_log_time = log_time
-
-
+    
+    print("pid initialization")
     pid = PID(config['pid']['kp'], config['pid']['ki'], config['pid']['kd'])
 
     gui = GUI(reflow_profiles, config, pid, temp_sensor)
