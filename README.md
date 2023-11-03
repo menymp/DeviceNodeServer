@@ -14,5 +14,5 @@ Updates List
 | user signup info	  	   | done  |
 | advanced debug	  	   | pending  |
 | trigger jobs	 	  	   | pending  |
-| refract server to process| pending  |
-| UI enhancements	 	   | pending  |
+| refract server to process| progress  |
+| UI enhancements	 	   | progress  |
