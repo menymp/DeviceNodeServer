@@ -24,9 +24,9 @@ void loop() {
   }
   if(cnt > 600)
   {
-    Serial.print("sensorRead,");
+    Serial.print("sensorRead:");
     Serial.print(analogRead(sensorAnalogPin));
-    Serial.print("output,");
+    Serial.print(",output:");
     Serial.println(digitalRead(outputPin));
     cnt = 0;
   }

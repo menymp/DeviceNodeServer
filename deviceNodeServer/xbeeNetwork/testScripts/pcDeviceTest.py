@@ -3,25 +3,28 @@
 
 # Import the serial module
 import serial
+from threading import Thread
+import time
 
 # Create a serial object for COM1 port
-ser = serial.Serial('COM1')
+ser = serial.Serial('COM11')
 
 # Define a function to send a string every 6 seconds
 def send_string():
-    # Create a string with humidity info
-    data = "humidity,1"
-    # Encode the string as bytes
-    data = data.encode()
-    # Write the bytes to the serial port
-    ser.write(data)
-    # Print a message to the terminal
-    print("Sent data: " + data.decode())
-    # Schedule the function to run again after 6 seconds
-    ser.timeout(6, send_string)
+    while True:
+        # Create a string with humidity info
+        data = "humidity,1"
+        # Encode the string as bytes
+        data = data.encode()
+        # Write the bytes to the serial port
+        ser.write(data)
+        # Print a message to the terminal
+        print("Sent data: " + data.decode())
+        time.sleep(6)
 
 # Start the function
-send_string()
+tSend = Thread(target=send_string)
+tSend.start()
 
 # Create an infinite loop to check for bytes to read
 while True:
