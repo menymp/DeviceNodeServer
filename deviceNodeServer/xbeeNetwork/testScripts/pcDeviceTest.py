@@ -7,7 +7,7 @@ from threading import Thread
 import time
 
 # Create a serial object for COM1 port
-ser = serial.Serial('COM11')
+ser = serial.Serial('COM7')
 
 # Define a function to send a string every 6 seconds
 def send_string():
@@ -33,6 +33,6 @@ while True:
         # Read the bytes and store them in a variable
         received = ser.read(ser.in_waiting)
         # Decode the bytes as a string
-        received = received.decode()
+        print(received)
         # Print the received string to the terminal
-        print("Received data: " + received)
+        #print("Received data: " + strreceived)
