@@ -42,7 +42,6 @@ def main():
         # Callback for discovered devices.
         def callback_device_discovered(remote):
             print("Device discovered: '%s'" % remote.get_64bit_addr())
-            device.send_data(remote, b'blyat')
 
         # Callback for discovery finished.
         def callback_discovery_finished(status):
@@ -64,6 +63,7 @@ def main():
 
     finally:
         if device is not None and device.is_open():
+            print(type(xbee_network.get_devices()[0].get_64bit_addr()))
             device.close()
 
 

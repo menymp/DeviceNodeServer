@@ -1,11 +1,14 @@
 import time
 from threading import Timer
 from digi.xbee.models.status import NetworkDiscoveryStatus
-from digi.xbee.devices import XBeeDevice
+from digi.xbee.devices import XBeeDevice, RemoteXBeeDevice
+from digi.xbee.models.address import XBee64BitAddress
 
 class XbeeNetMqttCoordinator():
     def __init__(self, discoveryTime = 20):
         self.networkDevices = []
+        self.remoteDevices = []
+        self.remoteStrAddresses = []
         self.discoveryTime = discoveryTime
         self.stopSearch = True
         pass
@@ -33,19 +36,18 @@ class XbeeNetMqttCoordinator():
         self.coordinatorDevice.close()
         pass
 
-    def sendMessage(self, address64bit, data):
-        exists, remoteDevice = self.deviceExists(address64bit)
+    def sendMessage(self, address64String, data):
+        exists, remoteDevice = self.deviceExists(address64String)
         if not exists:
             return False
         self.coordinatorDevice.send_data(remoteDevice, data)
-            
         pass
 
-    def deviceExists(self, address64bit):
+    def deviceExists(self, address64String):
         device = None
         found = False
-        for xbeeDevice in self.networkDevices:
-            if xbeeDevice.get_64bit_addr() == address64bit:
+        for xbeeDevice in self.remoteDevices:
+            if str(xbeeDevice.get_64bit_addr()) == address64String:
                 device = xbeeDevice
                 found = True
                 break
@@ -91,5 +93,8 @@ class XbeeNetMqttCoordinator():
             if self.coordinatorDevice is not None and self.coordinatorDevice.is_open():
                 self.coordinatorDevice.close()
         self.networkDevices = self.xbee_network.get_devices()
-        self._sync_devices_callback(self.networkDevices)
+        for device in self.networkDevices:
+            self.remoteDevices.append(RemoteXBeeDevice(self.coordinatorDevice, device.get_64bit_addr()))
+            self.remoteStrAddresses.append(str(device.get_64bit_addr()))
+        self._sync_devices_callback(self.remoteStrAddresses)
         self.searchTimer = Timer(self.discoveryTime, self._discoveryDevices).start() if not self.stopSearch else None
