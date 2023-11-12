@@ -16,6 +16,7 @@ const int sensorAnalogPin = 0;
 const int outputPin = 13;
 int cnt = 0;
 uint8_t data = 0;
+uint8_t option = 0;
 
 void setup() {
   pinMode(outputPin,OUTPUT);
@@ -26,7 +27,7 @@ void setup() {
 
 void loop() {
   xbee.readPacket(100);
-  if(Serial.available())
+  if(xbee.getResponse().isAvailable())
   {
     if (xbee.getResponse().getApiId() == RX_16_RESPONSE || xbee.getResponse().getApiId() == RX_64_RESPONSE) 
     {
