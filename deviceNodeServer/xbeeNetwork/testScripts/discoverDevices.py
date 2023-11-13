@@ -18,7 +18,7 @@ from digi.xbee.models.status import NetworkDiscoveryStatus
 from digi.xbee.devices import XBeeDevice
 
 # TODO: Replace with the serial port where your local module is connected to.
-PORT = "COM8"
+PORT = "COM3"
 # TODO: Replace with the baud rate of your local module.
 BAUD_RATE = 9600
 
