@@ -2,6 +2,7 @@
  * menymp
  * Simple script to uploat to arduino that emulates a device for the xbee network
  * nov 2023
+ * IMPORTANT: XBEE library works only with AP 2 mode
  */
 #include <XBee.h>
 
@@ -11,7 +12,7 @@ XBeeResponse response = XBeeResponse();
 Rx16Response rx16 = Rx16Response();
 Rx64Response rx64 = Rx64Response();
 
-
+XBeeAddress64 addr64 = XBeeAddress64(0x00000000, 0x00000000);
 const int sensorAnalogPin = 0;
 const int outputPin = 13;
 int cnt = 0;
@@ -49,13 +50,14 @@ void loop() {
       if(data == 'b') digitalWrite(outputPin, LOW);
     }
   }
-  if(cnt > 600)
+  if(cnt > 60)
   {
+    digitalWrite(outputPin,!digitalRead(outputPin));
     String bufferOut = "sensorRead:" + String(analogRead(sensorAnalogPin)) + ",output:" + String(digitalRead(outputPin)) + "\n";
-    Tx16Request tx = Tx16Request(0x1874, bufferOut.c_str(), bufferOut.length()); //ToDo: set modem address as static
+    Tx64Request tx = Tx64Request(addr64, bufferOut.c_str(), bufferOut.length()); //ToDo: set modem address as static
     xbee.send(tx);
     cnt = 0;
   }
   cnt ++;
-  delay(10);
+  //delay(10);
 }

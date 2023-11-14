@@ -1,6 +1,7 @@
 802.15.4 devices
 Click Load default firmware settings in the Radio Configuration toolbar to load the default values for the device firmware.
 Make sure API mode (API1 or API2) is enabled. To do so, set the AP parameter value to 1 (API mode without escapes) or 2 (API mode with escapes).
+    ACLARATION: Python library works with modes 1 and 2 but arduino library requires mode 2, select this!!!!!
 Configure ID (PAN ID) setting to CAFE.
 Configure CH (Channel setting) to C.
 Click Write radio settings in the Radio Configuration toolbar to apply the new values to the module.
