@@ -34,7 +34,7 @@ PORT = "COM1"
 # TODO: Replace with the baud rate of your local module.
 BAUD_RATE = 9600
 
-def readConfigFile(self, path = './configs.json'):
+def readConfigFile( path = './configs.json'):
 	with open(path) as f:
 		data = json.load(f)
 	return data
@@ -47,7 +47,7 @@ class XbeeNetworkController():
         pass
 
     def start(self):
-        self.xbeeCoordinator.init(self.configs["com-port-path"], self.configs["com-baud-rate"], self._message_received_callback, self._sync_devices_mqtt)
+        self.xbeeCoordinator.init(self.configs["comm-port-path"], self.configs["com-baud-rate"], self._message_received_callback, self._sync_devices_mqtt)
         self.nodeProxy.connect()
         self.xbeeCoordinator.start()
         pass
@@ -66,20 +66,27 @@ class XbeeNetworkController():
     
     #From mqtt network to Xbee, args in this case is the 64 bit addr
     def _callbackReceivedMessage(self, message, args):
-        self.xbeeCoordinator.sendMessage(args, message)
+        try:
+            self.xbeeCoordinator.sendMessage(args, message)
+        except:
+            print("error processing: " + str(message) + " args: " + str(args))
         pass
 
     def _sync_devices_mqtt(self, devices):
         for xbeeDevice in devices:
             #ToDo: map this to nodeProxy with the id
-            if not self.nodeProxy.deviceExists(name=str(xbeeDevice.get_64bit_addr()) + "_OUT"):
-                self.nodeProxy.add_publisher(str(xbeeDevice.get_64bit_addr()) + "_OUT","STRING")
-            if not self.nodeProxy.deviceExists(name=str(xbeeDevice.get_64bit_addr()) + "_IN"):
-                self.nodeProxy.add_subscriber(str(xbeeDevice.get_64bit_addr()) + "_IN",self._callbackReceivedMessage, xbeeDevice.get_64bit_addr())
+            publishExists, _ = self.nodeProxy.deviceExists(name=(xbeeDevice + "_OUT"))
+            subscribeExists, _ = self.nodeProxy.deviceExists(name=(xbeeDevice + "_IN"))
+            if not publishExists:
+                print("add publish")
+                self.nodeProxy.add_publisher(xbeeDevice + "_OUT","STRING")
+            if not subscribeExists:
+                print("add subscribe")
+                self.nodeProxy.add_subscriber(xbeeDevice + "_IN",self._callbackReceivedMessage, xbeeDevice.get_64bit_addr())
         pass
 
     def publish_manifest(self):
-        self.publish_manifest()
+        self.nodeProxy.publish_manifest()
         pass
 
 	

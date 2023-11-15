@@ -17,7 +17,7 @@ class NodeMqttClient():
 	
 	def connect(self):
 		self.client = mqtt.Client()
-		self.client.on_connect = self._on_connect
+		#self.client.on_connect = self._on_connect
 		self.client.on_message = self._on_message
 		self.client.connect(self.brokerHost, self.brokerPort, self.keepalive)
 
@@ -30,6 +30,7 @@ class NodeMqttClient():
 		self.client.disconnect()
 	
 	def add_subscriber(self, Name, dataType, callback, valueName = 'value', args = None):
+		print("adding subscriber " + Name)
 		mqx_tmp =  {
 			"Name":Name,
 			"Mode":"SUBSCRIBER",
@@ -37,11 +38,12 @@ class NodeMqttClient():
 			"Channel":self.rootpath + Name + '/' + valueName,
 			"Value":None
 		}
-		self.devices.add((mqx_tmp, callback, args))
+		self.devices.append((mqx_tmp, callback, args))
 		self.client.subscribe(mqx_tmp["Channel"])
 		return True
 	
 	def add_publisher(self, Name, dataType):
+		print("adding publisher " + Name)
 		devExists, devObj = self.deviceExists(name=Name)
 		if devExists:
 			raise ValueError('Device name already exists!')
@@ -52,10 +54,10 @@ class NodeMqttClient():
 			"Channel":self.rootpath + Name,
 			"Value":None
 		}
-		self.devices.add((mqx_tmp,None))
+		self.devices.append((mqx_tmp,None))
 		return True
 	
-	def publishValue(self, Name, value);
+	def publishValue(self, Name, value):
 		devExists, device = self.deviceExists(name=Name)
 		if not devExists:
 			raise ValueError('Device name does NOT exists!')
@@ -73,9 +75,12 @@ class NodeMqttClient():
 		if(name is None and channel is None):
 			raise ValueError('Provide at least a channel name or a topic')
 		#check if device exists
+		print("finding devices")
+		print(name)
+		print(self.devices)
 		for device in self.devices:
-			if(name is not None and device[0].Name == name or 
-			channel is not None and device[0].Channel == channel):
+			if(name is not None and device[0]["Name"] == name or 
+			channel is not None and device[0]["Channel"] == channel):
 				deviceExists = True
 				deviceObj = device
 				break

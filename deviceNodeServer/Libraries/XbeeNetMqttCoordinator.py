@@ -90,11 +90,14 @@ class XbeeNetMqttCoordinator():
             while self.xbee_network.is_discovery_running():
                 time.sleep(0.1)
         finally:
-            if self.coordinatorDevice is not None and self.coordinatorDevice.is_open():
-                self.coordinatorDevice.close()
+            pass
+            #if self.coordinatorDevice is not None and self.coordinatorDevice.is_open():
+            #    self.coordinatorDevice.close()
         self.networkDevices = self.xbee_network.get_devices()
         for device in self.networkDevices:
             self.remoteDevices.append(RemoteXBeeDevice(self.coordinatorDevice, device.get_64bit_addr()))
             self.remoteStrAddresses.append(str(device.get_64bit_addr()))
+        print("devices for sync !!!!!!!!!!!!!!!!!")
+        print(self.remoteStrAddresses)
         self._sync_devices_callback(self.remoteStrAddresses)
         self.searchTimer = Timer(self.discoveryTime, self._discoveryDevices).start() if not self.stopSearch else None
