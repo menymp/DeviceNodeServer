@@ -30,7 +30,6 @@ class NodeMqttClient():
 		self.client.disconnect()
 	
 	def add_subscriber(self, Name, dataType, callback, valueName = 'value', args = None):
-		print("adding subscriber " + Name)
 		mqx_tmp =  {
 			"Name":Name,
 			"Mode":"SUBSCRIBER",
@@ -43,7 +42,6 @@ class NodeMqttClient():
 		return True
 	
 	def add_publisher(self, Name, dataType):
-		print("adding publisher " + Name)
 		devExists, devObj = self.deviceExists(name=Name)
 		if devExists:
 			raise ValueError('Device name already exists!')
@@ -74,10 +72,6 @@ class NodeMqttClient():
 		deviceObj = None
 		if(name is None and channel is None):
 			raise ValueError('Provide at least a channel name or a topic')
-		#check if device exists
-		print("finding devices")
-		print(name)
-		print(self.devices)
 		for device in self.devices:
 			if(name is not None and device[0]["Name"] == name or 
 			channel is not None and device[0]["Channel"] == channel):
@@ -95,6 +89,7 @@ class NodeMqttClient():
 			m_decode=str(msg.payload.decode("utf-8","ignore"))
 
 			devExists, device = self.deviceExists(channel=topic)
+			#ToDo: validate the publish procedure
 			#check if callback is known
 			if not devExists:
 				return

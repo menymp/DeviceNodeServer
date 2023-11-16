@@ -61,7 +61,10 @@ class XbeeNetworkController():
     #From Xbee to mqtt network
     def _message_received_callback(self, address64bit, data):
         print("Received data from %s: %s" % (address64bit, data))
-        self.nodeProxy.publishValue(str(address64bit) + "_OUT", data)
+        try:
+            self.nodeProxy.publishValue(str(address64bit) + "_OUT", data)
+        except:
+            print("Error: " + str(address64bit) + "_OUT" + " Address not registered!")
         pass
     
     #From mqtt network to Xbee, args in this case is the 64 bit addr
@@ -78,11 +81,9 @@ class XbeeNetworkController():
             publishExists, _ = self.nodeProxy.deviceExists(name=(xbeeDevice + "_OUT"))
             subscribeExists, _ = self.nodeProxy.deviceExists(name=(xbeeDevice + "_IN"))
             if not publishExists:
-                print("add publish")
                 self.nodeProxy.add_publisher(xbeeDevice + "_OUT","STRING")
             if not subscribeExists:
-                print("add subscribe")
-                self.nodeProxy.add_subscriber(xbeeDevice + "_IN",self._callbackReceivedMessage, xbeeDevice.get_64bit_addr())
+                self.nodeProxy.add_subscriber(xbeeDevice + "_IN","STRING",self._callbackReceivedMessage, "value", xbeeDevice)
         pass
 
     def publish_manifest(self):
