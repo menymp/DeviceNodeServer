@@ -15,6 +15,12 @@ in the case of subscribers, an aditional subscription is created in order to acc
 
 
 In construction ...
+
+#ToDo: a new logic is needed, instead of the client devices to always transmit state, do a continuous
+device scanning by the coordinator AND each time a new message arrives, use a queue to store every transaction
+and process them in order.
+
+important: take in account that this system is slow as the long range rf communication is slow
 '''
 
 import time
