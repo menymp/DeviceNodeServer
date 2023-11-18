@@ -24,8 +24,7 @@ important: take in account that this system is slow as the long range rf communi
 '''
 
 import time
-import threading
-from threading import Timer
+from threading import Timer, Thread, Event
 import json
 import sys
 
@@ -80,6 +79,7 @@ class XbeeNetworkController():
         except:
             print("error processing: " + str(message) + " args: " + str(args))
         pass
+
 
     def _sync_devices_mqtt(self, devices):
         for xbeeDevice in devices:
