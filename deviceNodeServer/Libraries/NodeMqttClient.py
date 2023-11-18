@@ -83,12 +83,11 @@ class NodeMqttClient():
 	def _on_connect(self):
 		pass
 	
-	def _on_message(self, client, userdata, msg):
+	def _on_message(self, client, userdata, rc):
 		try:
-			topic=str(msg.topic.decode("utf-8","ignore"))
-			m_decode=str(msg.payload.decode("utf-8","ignore"))
-
-			devExists, device = self.deviceExists(channel=topic)
+			#topic=rc.topic.replace(self.rootpath,'').split('/')[0]
+			m_decode=rc.payload.decode("utf-8")
+			devExists, device = self.deviceExists(channel=rc.topic)
 			#ToDo: validate the publish procedure
 			#check if callback is known
 			if not devExists:
@@ -100,6 +99,7 @@ class NodeMqttClient():
 			device[0]["Value"] = m_decode
 		except:
             #self.client.subscribe(self.path)
+			print("exception attempting to process message " + str(rc))
 			pass 
 		pass
 	

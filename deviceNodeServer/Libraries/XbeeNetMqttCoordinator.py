@@ -1,3 +1,12 @@
+'''
+xbee coordinator class that allow the discovery and message backward and forward processing
+menymp
+Nov 2023
+
+ToDo: Since the discovery process would take place it will interrupt the process for a while, a better approach in the future could be split the process
+into two devices for search and for message relay
+'''
+
 import time
 from threading import Timer, Thread, Event
 import queue
@@ -6,7 +15,7 @@ from digi.xbee.devices import XBeeDevice, RemoteXBeeDevice
 from digi.xbee.models.address import XBee64BitAddress
 
 class XbeeNetMqttCoordinator():
-    def __init__(self, discoveryTime = 20, max_request_size=10):
+    def __init__(self, discoveryTime = 120, max_request_size=10):
         self.networkDevices = []
         self.remoteDevices = []
         self.remoteStrAddresses = []
@@ -22,22 +31,25 @@ class XbeeNetMqttCoordinator():
     def _task_submit_messages(self):
         while not self.stop_event.is_set():
             if self.search_devices.is_set():
-                self._discoveryDevices(self)
-                self.search_devices.reset()
+                self._discoveryDevices()
+                self.search_devices.clear()
             
             if not self.incoming_requests.empty():
-                net_msg = self.incoming_requests.pop()
-                if not self.sendMessage(net_msg["address"],net_msg["data"]):
-                    print("Error, full QUEUE")
+                net_msg = self.incoming_requests.get()
+                if not self._sendCoordinatorMessage(net_msg["address"],net_msg["data"]):
+                    print("Error attempting to send message")
             self._update_state()
+            time.sleep(0.1)
             pass
     
     def _update_state(self):
         remoteDevice = self.remoteDevices[self.state_index]
-        self.coordinatorDevice.send_data(remoteDevice, "UPDATE") #Every device should respond with a current value state and send to out
-        
+        try:
+            self.coordinatorDevice.send_data(remoteDevice, "UPDATE") #Every device should respond with a current value state and send to out
+        except:
+            print("error attempting to UPDATE for " + str(remoteDevice.get_64bit_addr()))
         self.state_index = self.state_index + 1
-        if self.state_index == (self.remoteDevices.len() - 1):
+        if self.state_index == (len(self.remoteDevices)):
             self.state_index = 0
         pass
 
@@ -53,7 +65,7 @@ class XbeeNetMqttCoordinator():
     def start(self):
         self.searchTimer = Timer(self.discoveryTime, self._set_search_flag).start()
         self.stopSearch = False
-        self.stop_event.reset()
+        self.stop_event.clear()
         self.search_devices.set()
         self.state_index = 0
         self._task_handle_requests = Thread(target=self._task_submit_messages)
@@ -62,8 +74,8 @@ class XbeeNetMqttCoordinator():
 
     def stop(self):
         self.stopSearch = True
-        self.search_devices.reset()
-        self.stop_event.reset()
+        self.search_devices.clear()
+        self.stop_event.clear()
         self.state_index = 0
         pass
 
@@ -77,7 +89,7 @@ class XbeeNetMqttCoordinator():
         if not exists:
             return False
         self.coordinatorDevice.send_data(remoteDevice, data)
-        pass
+        return True
 
     def sendMessage(self, address64String, data):
         msg = {
@@ -110,7 +122,7 @@ class XbeeNetMqttCoordinator():
     
     def _initXbeeNetwork(self):
         self.xbee_network = self.coordinatorDevice.get_network()
-        self.xbee_network.set_discovery_timeout(self.discoveryTime)
+        self.xbee_network.set_discovery_timeout(25)
         self.xbee_network.clear()
         # Callback for discovered devices.
         def callback_device_discovered(remote):
@@ -152,4 +164,4 @@ class XbeeNetMqttCoordinator():
             self.remoteStrAddresses.append(str(device.get_64bit_addr()))
         print("Available network devices" + str(self.remoteStrAddresses))
         self._sync_devices_callback(self.remoteStrAddresses)
-        self.searchTimer = Timer(self.discoveryTime, self._discoveryDevices).start() if not self.stopSearch else None
+        self.searchTimer = Timer(self.discoveryTime, self._set_search_flag).start() if not self.stopSearch else None
