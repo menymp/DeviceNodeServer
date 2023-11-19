@@ -5,6 +5,8 @@ Nov 2023
 
 ToDo: Since the discovery process would take place it will interrupt the process for a while, a better approach in the future could be split the process
 into two devices for search and for message relay
+ToDo: Devices seems to interfer with each other, a sync operation with an expected return data should be implemented for each device
+or maybe seek for the root cause
 '''
 
 import time
@@ -45,7 +47,7 @@ class XbeeNetMqttCoordinator():
     def _update_state(self):
         remoteDevice = self.remoteDevices[self.state_index]
         try:
-            self.coordinatorDevice.send_data(remoteDevice, "UPDATE") #Every device should respond with a current value state and send to out
+            self.coordinatorDevice.send_data_async(remoteDevice, "UPDATE") #Every device should respond with a current value state and send to out
         except:
             print("error attempting to UPDATE for " + str(remoteDevice.get_64bit_addr()))
         self.state_index = self.state_index + 1
@@ -88,7 +90,7 @@ class XbeeNetMqttCoordinator():
         exists, remoteDevice = self.deviceExists(address64String)
         if not exists:
             return False
-        self.coordinatorDevice.send_data(remoteDevice, data)
+        self.coordinatorDevice.send_data_async(remoteDevice, data)
         return True
 
     def sendMessage(self, address64String, data):
