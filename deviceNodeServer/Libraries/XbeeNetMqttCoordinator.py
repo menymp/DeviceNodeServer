@@ -25,6 +25,7 @@ class XbeeNetMqttCoordinator():
         self.stopSearch = True
         self.stop_event = Event()
         self.search_devices = Event()
+        self.received_message = Event()
         self.incoming_requests = queue.Queue(maxsize=10)
         self.state_index = 0
         pass
@@ -38,22 +39,34 @@ class XbeeNetMqttCoordinator():
             
             if not self.incoming_requests.empty():
                 net_msg = self.incoming_requests.get()
-                if not self._sendCoordinatorMessage(net_msg["address"],net_msg["data"]):
+                if not self._startRequestResponse(net_msg["address"],net_msg["data"]):
                     print("Error attempting to send message")
             self._update_state()
             time.sleep(0.1)
             pass
     
     def _update_state(self):
-        remoteDevice = self.remoteDevices[self.state_index]
+        remoteDeviceAddress = self.remoteStrAddresses[self.state_index]
         try:
-            self.coordinatorDevice.send_data_async(remoteDevice, "UPDATE") #Every device should respond with a current value state and send to out
+            self.coordinatorDevice._startRequestResponse(remoteDeviceAddress, "UPDATE") #Every device should respond with a current value state and send to out
         except:
-            print("error attempting to UPDATE for " + str(remoteDevice.get_64bit_addr()))
+            print("error attempting to UPDATE for " + remoteDeviceAddress)
         self.state_index = self.state_index + 1
         if self.state_index == (len(self.remoteDevices)):
             self.state_index = 0
         pass
+
+    def _startRequestResponse(self, address, message, timeout = 200):
+        self.received_message.clear()
+        tick_cnt = 0
+        self._sendCoordinatorMessage(address,message)
+        while not self.received_message.is_set() and tick_cnt < timeout:
+            time.sleep(0.01)
+            tick_cnt = tick_cnt + 1
+        if self.received_message.is_set():
+            self._message_received_callback(self.received_address, self.received_message)
+            return True
+        return False
 
     def init(self, port_path, baud_rate, message_received_callback = None, sync_devices_callback = None):
         self.coordinatorDevice = XBeeDevice(port_path, baud_rate)
@@ -119,7 +132,10 @@ class XbeeNetMqttCoordinator():
              return
         address = xbee_message.remote_device.get_64bit_addr()
         data = xbee_message.data.decode("utf8")
-        self._message_received_callback(address, data)
+        #self._message_received_callback(address, data)
+        self.received_message = data
+        self.received_address = address
+        self.received_message.set()
         pass
     
     def _initXbeeNetwork(self):
