@@ -6,7 +6,11 @@ import threading
 import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
 
-sys.path.append('../DButils')
+from os.path import dirname, realpath, sep, pardir
+# Get current main.py directory
+sys.path.append(dirname(realpath(__file__)) + sep + pardir)
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DBUtils")
+
 from dbActions import dbDevicesActions
 
 #

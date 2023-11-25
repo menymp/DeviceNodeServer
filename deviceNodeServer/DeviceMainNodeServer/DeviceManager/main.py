@@ -7,7 +7,11 @@ import threading
 import json
 from threading import Event
 
-sys.path.append('../ConfigsUtils')
+from os.path import dirname, realpath, sep, pardir
+# Get current main.py directory
+sys.path.append(dirname(realpath(__file__)) + sep + pardir)
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "ConfigsUtils")
+
 from deviceManager import deviceManager
 from configsCreate import configsParser
 
@@ -50,10 +54,15 @@ def processIncommingMessage(deviceManager, message):
     return result
 
 if __name__ == "__main__":
+    # Get the absolute path of the parent directory
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    configs_path = os.path.join(parent_dir, 'configs.ini')
+    print("configs path: " + configs_path)
+
     cfgObj = configsParser()
-    args = cfgObj.readConfigData(os.getcwd() + "../configs.ini")
-    zmqCfg = cfgObj.readSection("zmqConfigs",os.getcwd() + "../configs.ini")
-    devMgrCfg = cfgObj.readSection("deviceMgr",os.getcwd() + "../configs.ini")
+    args = cfgObj.readConfigData(configs_path)
+    zmqCfg = cfgObj.readSection("zmqConfigs",configs_path)
+    devMgrCfg = cfgObj.readSection("deviceMgr",configs_path)
 
 
     deviceMgr = deviceManager()
@@ -61,9 +70,9 @@ if __name__ == "__main__":
     taskLoadDevices, stopEvent = startLoadDevices(deviceMgr, int(devMgrCfg["add-devices-time-poll"]))
     print("device manager started...")
     mqServerObj = initMQServer(zmqCfg["device-manager-server-path"])
-    print("MQ Server started at: " + MQ_DEV_MGR_SERVER_PATH)
+    print("MQ Server started at: " + parent_dir)
 
-    while(True): #Add a stop signal
+    while(True): # ToDo: Add a stop signal
         message = mqServerObj.recv()
         result = processIncommingMessage(deviceMgr, message)
         #  Send reply back to client

@@ -1,12 +1,17 @@
+#!/usr/bin/python
 import sys
 import os
+from os.path import dirname, realpath, sep, pardir
 import time
 import zmq
 import threading
 import json
 from threading import Event
 
-sys.path.append('../ConfigsUtils')
+# Get current main.py directory
+sys.path.append(dirname(realpath(__file__)) + sep + pardir)
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "ConfigsUtils")
+
 from websocketHandler import wSocketServerManager
 from configsCreate import configsParser
 
@@ -40,11 +45,15 @@ class handleOnMessage():
 
 if __name__ == "__main__":
     cfgObj = configsParser()
-    args = cfgObj.readConfigData(os.getcwd() + "../configs.ini")
-    wSockCfg = cfgObj.readSection("wSocketServerManager",os.getcwd() + "../configs.ini")
-    zmqCfg = cfgObj.readSection("zmqConfigs",os.getcwd() + "../configs.ini")
-
-    onMsgHandler = handleOnMessage(zmqCfg["device-manager-server-path"])
+    # Get the absolute path of the parent directory
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    configs_path = os.path.join(parent_dir, 'configs.ini')
+    print("configs path: " + configs_path)
+    args = cfgObj.readConfigData(configs_path)
+    wSockCfg = cfgObj.readSection("wSocketServerManager",configs_path)
+    zmqCfg = cfgObj.readSection("zmqConfigs",configs_path)
+    print(zmqCfg["device-manager-server-path"])
+    onMsgHandler = handleOnMessage(zmqCfg["device-manager-local-conn"])
     onMsgHandler.connect()
 
     WSServer = wSocketServerManager()
