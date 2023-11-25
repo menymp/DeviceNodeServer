@@ -48,7 +48,7 @@ class XbeeNetMqttCoordinator():
     def _update_state(self):
         remoteDeviceAddress = self.remoteStrAddresses[self.state_index]
         try:
-            self.coordinatorDevice._startRequestResponse(remoteDeviceAddress, "UPDATE") #Every device should respond with a current value state and send to out
+            self._startRequestResponse(remoteDeviceAddress, "UPDATE") #Every device should respond with a current value state and send to out
         except:
             print("error attempting to UPDATE for " + remoteDeviceAddress)
         self.state_index = self.state_index + 1
@@ -56,7 +56,7 @@ class XbeeNetMqttCoordinator():
             self.state_index = 0
         pass
 
-    def _startRequestResponse(self, address, message, timeout = 200):
+    def _startRequestResponse(self, address, message, timeout = 100):
         self.received_message.clear()
         tick_cnt = 0
         self._sendCoordinatorMessage(address,message)
@@ -64,7 +64,7 @@ class XbeeNetMqttCoordinator():
             time.sleep(0.01)
             tick_cnt = tick_cnt + 1
         if self.received_message.is_set():
-            self._message_received_callback(self.received_address, self.received_message)
+            self._message_received_callback(self.received_address, self.received_data)
             return True
         return False
 
@@ -133,7 +133,7 @@ class XbeeNetMqttCoordinator():
         address = xbee_message.remote_device.get_64bit_addr()
         data = xbee_message.data.decode("utf8")
         #self._message_received_callback(address, data)
-        self.received_message = data
+        self.received_data = data
         self.received_address = address
         self.received_message.set()
         pass
