@@ -7,7 +7,11 @@ import threading
 import json
 from threading import Event
 
-sys.path.append('../ConfigsUtils')
+from os.path import dirname, realpath, sep, pardir
+# Get current main.py directory
+sys.path.append(dirname(realpath(__file__)) + sep + pardir)
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "ConfigsUtils")
+
 from configsCreate import configsParser
 from videoHttpController import videoHandler
 
@@ -51,9 +55,14 @@ def processIncommingMessage(videoHandler, message):
     return result
 
 if __name__ == "__main__":
+    # Get the absolute path of the parent directory
+    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    configs_path = os.path.join(parent_dir, 'configs.ini')
+    print("configs path: " + configs_path)
+
     cfgObj = configsParser()
-    args = cfgObj.readConfigData(os.getcwd() + "../configs.ini")
-    zmqCfg = cfgObj.readSection("zmqConfigs",os.getcwd() + "../configs.ini")
+    args = cfgObj.readConfigData(configs_path)
+    zmqCfg = cfgObj.readSection("zmqConfigs",configs_path)
 
     videoHandlerObj = videoHandler(args)
     print("video service started ...")

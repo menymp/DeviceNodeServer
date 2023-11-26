@@ -3,9 +3,16 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 from telegramBotUtil import TelegramBotUtil
 import threading
-from dbActions import dbUserActions
 import cv2
 import asyncio
+
+import sys
+from os.path import dirname, realpath, sep, pardir
+# Get current main.py directory
+sys.path.append(dirname(realpath(__file__)) + sep + pardir)
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DBUtils")
+
+from dbActions import dbUserActions
 #
 #objInstances expect to hold the main instances, for now just
 # video and device commands

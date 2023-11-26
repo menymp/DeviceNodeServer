@@ -9,6 +9,12 @@ import os
 from threading import Timer
 import json
 import asyncio
+import sys
+
+from os.path import dirname, realpath, sep, pardir
+# Get current main.py directory
+sys.path.append(dirname(realpath(__file__)) + sep + pardir)
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DBUtils")
 
 from dbActions import dbVideoActions
 from FrameConstructor import *

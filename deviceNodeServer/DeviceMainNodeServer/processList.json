@@ -2,7 +2,7 @@
     "processes":[
         {
             "id":"DeviceManager",
-            "path":"python ./WSocketServerManager/main.py",
+            "path":"python ./DeviceManager/main.py",
             "args":"",
             "description":"",
             "depends":[],

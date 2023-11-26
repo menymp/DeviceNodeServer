@@ -1,7 +1,13 @@
+import threading
+import sys
+from os.path import dirname, realpath, sep, pardir
+# Get current main.py directory
+sys.path.append(dirname(realpath(__file__)) + sep + pardir)
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DBUtils")
+
 from dbActions import dbNodesActions
 from dbActions import dbDevicesActions
 from nodeDiscoveryTool import nodeDeviceDiscoveryTool
-import threading
 
 class nodeDeviceManager():
     def getNodes(self,nodeDeviceManagerArgs):
