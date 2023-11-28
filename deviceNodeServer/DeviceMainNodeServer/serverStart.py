@@ -35,8 +35,8 @@ def tryRunnProcesses(plist):
     pRunning = 0
     for process in plist:
         if process["state"] == "stop" and checkDependences(process, plist):
-            pRunning = pRunning + 1
-            subprocess.run(process["path"], shell=False)
+            #subprocess.run(process["path"], shell=False)
+            print("subprocess '" + process["path"] + "' started")
             #ToDo: set an ack flag from each process to the output to determie if
             #      the process started correctly
             process["state"] = "running"
@@ -49,6 +49,8 @@ def tryRunnProcesses(plist):
 if __name__ == "__main__":
     plist = loadCoreProcesses()
     pCount = len(plist)
+    pRunning = 0
     while pCount != pRunning:
         pRunning = tryRunnProcesses(plist)
+    print("started '" + str(pRunning) + "' processes")
     pass
