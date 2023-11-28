@@ -6,6 +6,7 @@ import zmq
 import threading
 import json
 from threading import Event
+import signal
 
 from os.path import dirname, realpath, sep, pardir
 # Get current main.py directory
@@ -53,7 +54,37 @@ def processIncommingMessage(deviceManager, message):
         result = json.dumps(error)
     return result
 
+'''
+ToDo: implement proper signal termination process
+sample for stop process
+
+class MyThread(threading.Thread):
+    def __init__(self):
+        super().__init__()
+        self.lock = threading.Lock()
+        self.do_run = True
+
+    def run(self):
+        while True:
+            with self.lock:
+                if not self.do_run:
+                    break
+            print("working")
+
+    def stop(self):
+        with self.lock:
+            self.do_run = False
+'''
+
+
 if __name__ == "__main__":
+    eventStop = Event()
+    def sigterm_handler(signum, frame):
+        print("stop process")
+        eventStop.set()
+        #thread.stop()
+    signal.signal(signal.SIGTERM, sigterm_handler)
+    
     # Get the absolute path of the parent directory
     parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     configs_path = os.path.join(parent_dir, 'configs.ini')
@@ -72,7 +103,7 @@ if __name__ == "__main__":
     mqServerObj = initMQServer(zmqCfg["device-manager-server-path"])
     print("MQ Server started at: " + parent_dir)
 
-    while(True): # ToDo: Add a stop signal
+    while not stopEvent.is_set(): # ToDo: Add a stop signal
         message = mqServerObj.recv()
         result = processIncommingMessage(deviceMgr, message)
         #  Send reply back to client

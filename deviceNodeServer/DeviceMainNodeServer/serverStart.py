@@ -35,6 +35,10 @@ def tryRunnProcesses(plist):
     pRunning = 0
     for process in plist:
         if process["state"] == "stop" and checkDependences(process, plist):
+            '''
+            subprocess.Popen(process["path"], shell=True)
+            process.terminate()   #Send SIGTERM
+            '''
             #subprocess.run(process["path"], shell=False)
             print("subprocess '" + process["path"] + "' started")
             #ToDo: set an ack flag from each process to the output to determie if
