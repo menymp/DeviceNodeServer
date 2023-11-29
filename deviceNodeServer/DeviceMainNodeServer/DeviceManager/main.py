@@ -78,12 +78,6 @@ class MyThread(threading.Thread):
 
 
 if __name__ == "__main__":
-    eventStop = Event()
-    def sigterm_handler(signum, frame):
-        print("stop process")
-        eventStop.set()
-        #thread.stop()
-    signal.signal(signal.SIGTERM, sigterm_handler)
     
     # Get the absolute path of the parent directory
     parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -95,13 +89,21 @@ if __name__ == "__main__":
     zmqCfg = cfgObj.readSection("zmqConfigs",configs_path)
     devMgrCfg = cfgObj.readSection("deviceMgr",configs_path)
 
-
     deviceMgr = deviceManager()
     deviceMgr.init(args)
     taskLoadDevices, stopEvent = startLoadDevices(deviceMgr, int(devMgrCfg["add-devices-time-poll"]))
     print("device manager started...")
     mqServerObj = initMQServer(zmqCfg["device-manager-server-path"])
     print("MQ Server started at: " + parent_dir)
+
+    eventStop = Event()
+    def sigterm_handler(signum, frame):
+        print("stop process")
+        eventStop.set()
+        mqServerObj.destroy()
+    #signal.signal(signal.SIGTERM, sigterm_handler)
+    signal.signal(signal.SIGBREAK, sigterm_handler)
+    #signal.signal(signal.SIGINT, sigterm_handler)
 
     while not stopEvent.is_set(): # ToDo: Add a stop signal
         message = mqServerObj.recv()
@@ -110,4 +112,6 @@ if __name__ == "__main__":
         mqServerObj.send(result)
         pass
     stopLoadDevices(stopEvent)
+    
+    print("exit success for DeviceManager")
     pass
