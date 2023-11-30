@@ -136,6 +136,10 @@ class videoHandler():
 	def stopTimerFetch(self):
 		self.stop = True
 		pass
+
+	def stop(self):
+		self.stop = True
+		tornado.ioloop.IOLoop.current().stop()
 	
 	def serverListen(self):
 		#ToDo: bad practice, merge the tornado video logic with the socket server maybe?

@@ -101,9 +101,9 @@ if __name__ == "__main__":
         print("stop process")
         eventStop.set()
         mqServerObj.destroy()
-    #signal.signal(signal.SIGTERM, sigterm_handler)
-    signal.signal(signal.SIGBREAK, sigterm_handler)
-    #signal.signal(signal.SIGINT, sigterm_handler)
+    signal.signal(signal.SIGINT, sigterm_handler)
+    signal.signal(signal.SIGTERM, sigterm_handler)
+    #signal.signal(signal.SIGQUIT, sigterm_handler)
 
     while not stopEvent.is_set(): # ToDo: Add a stop signal
         message = mqServerObj.recv()

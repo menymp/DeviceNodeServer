@@ -24,9 +24,13 @@ class nodeDeviceDiscoveryTool():
             #[broker server address]
             self.listener = mqttNodeListener()
             self.listener.init(self.path, self.discoveryArgs, self.addDiscoveredChildDevice, self.discoveryListenerDone)
+            self.listener.start()
         else:
             raise Exception("Protocol "+args[4]+"not supported")
         pass
+
+    def stop(self):
+        self.listener.stop()
     
     def getState(self):
         return self.state
@@ -53,8 +57,6 @@ class mqttNodeListener():
         self.callbackAddDevice = callbackAddDevice
         self.callbackDiscoveryDone = callbackDiscoveryDone
         self.devicesAddedCount = 0
-        
-        self.Nodeclient, taskListen = self.startMqttClient(self.mqttBroketPath, self.on_Manifestconnect, self.on_Manifestmessage,self.port, self.keepalive)  
         pass
     
     def startMqttClient(self, mqttBrokerPath, on_connect, on_message, port, keepalive):
@@ -70,6 +72,13 @@ class mqttNodeListener():
     def clientlisten(self, arg):
         arg.loop_forever()
         pass
+    
+    def start(self):
+        self.Nodeclient, taskListen = self.startMqttClient(self.mqttBroketPath, self.on_Manifestconnect, self.on_Manifestmessage,self.port, self.keepalive)  
+
+    def stop(self):
+        self.Nodeclient.disconnect() # disconnect gracefully
+        self.Nodeclient.loop_stop() # stops network loop
     
     def on_Manifestconnect(self, client, userdata, flags, rc):
         client.subscribe(self.path + "manifest")

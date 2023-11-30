@@ -5,6 +5,7 @@ import zmq
 import threading
 import json
 from threading import Event
+import signal
 
 from os.path import dirname, realpath, sep, pardir
 # Get current main.py directory
@@ -25,7 +26,17 @@ if __name__ == "__main__":
     nodeDevMgrCfg = cfgObj.readSection("nodeDeviceManager",configs_path)
 
     devMgr = nodeDeviceManager()
-    while(True):
+
+    eventStop = Event()
+    def sigterm_handler(signum, frame):
+        print("stop process")
+        eventStop.set()
+        devMgr.stop()
+    signal.signal(signal.SIGINT, sigterm_handler)
+    signal.signal(signal.SIGTERM, sigterm_handler)
+
+    
+    while not eventStop.is_set():
         devMgr.getNodes(args)
         devMgr.discoverNodeDevices()
 

@@ -5,6 +5,7 @@ import zmq
 import threading
 import json
 from threading import Event
+import signal
 
 from os.path import dirname, realpath, sep, pardir
 # Get current main.py directory
@@ -64,12 +65,21 @@ if __name__ == "__main__":
     }
     objTelegramServer = TelegramCommandExecutor(args, objInstances)
     objTelegramServer.fetchUserTokens()
+    objTelegramServer.start()
+
+    eventStop = Event()
+    def sigterm_handler(signum, frame):
+        print("stop process")
+        eventStop.set()
+        objTelegramServer.stop()
+        devMgrProxy.disconnect()
+        videoHandlerProxy.disconnect()
+    signal.signal(signal.SIGINT, sigterm_handler)
+    signal.signal(signal.SIGTERM, sigterm_handler)
     #expect a better approach since its not suitable to add every device each thread
     #   UPDATE: a better approach was adopted to split in different processes and couple
     #   with a lose communication system, in this case zmq
-    objTelegramServer.start()
+    
     #ToDo: add proper signal killers to every process in order for the server to stop execution
-    while True:
+    while not eventStop.is_set():
         pass
-    devMgrProxy.disconnect()
-    videoHandlerProxy.disconnect()

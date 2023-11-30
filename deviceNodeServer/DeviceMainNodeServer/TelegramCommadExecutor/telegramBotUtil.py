@@ -19,6 +19,14 @@ class TelegramBotUtil():
 			pass
 		self.app.run_polling()
 	
+	def stop(self):
+		try:
+			self.app.stop()
+			return True
+		except:
+			return False
+
+	
 	def addHandlers(self, handlerList):
 		self.definedHandlers = handlerList
 		pass

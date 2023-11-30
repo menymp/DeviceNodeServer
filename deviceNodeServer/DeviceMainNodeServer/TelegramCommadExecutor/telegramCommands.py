@@ -25,8 +25,8 @@ class TelegramCommandExecutor():
 		self.dbName = initArgs[1]
 		self.dbUser = initArgs[2]
 		self.dbPass = initArgs[3]
-		
 		self.activeUserProcesses = []
+
 		#is this a good approach if the expected number of main apis grows?
 		self.definedHandlers = [('hello',hello, None),('devices',deviceCmdHandler, objInstances["devices"]),('cameras',videoCmdHandler, objInstances["cameras"])]
 		pass
@@ -38,6 +38,10 @@ class TelegramCommandExecutor():
 			self.initNewUserApi(token[0])
 			pass
 		pass
+
+	def stop(self):
+		for userProcess in self.activeUserProcesses:
+			userProcess[1].stop()
 	
 	def fetchUserTokens(self):
 		#checks for users with active tokens to try
@@ -57,7 +61,7 @@ class TelegramCommandExecutor():
 		userThread = threading.Thread(target=loopThreadForever, args=(userProcessHandler,))
 		userThread.start()
 		
-		self.activeUserProcesses.append(userThread)
+		self.activeUserProcesses.append((userThread, userProcessHandler))
 		pass
 
 def loopThreadForever(telegramBotObject):

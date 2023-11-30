@@ -1,4 +1,5 @@
 import threading
+from threading import Event
 import sys
 from os.path import dirname, realpath, sep, pardir
 # Get current main.py directory
@@ -31,20 +32,27 @@ class nodeDeviceManager():
             self.nodesDiscoveryObjs.append(nodeDiscoverObj)
             pass
         
+        self.stop_event = Event()
         taskListen = threading.Thread(target=self.taskWaitForDiscovery, args=())
         taskListen.start()
         
     
     def taskWaitForDiscovery(self):
         flagDone = 1
-        while flagDone == 1:
+        while flagDone == 1 or not self.stop_event.is_set():
             flagDone = 0
             for nodeDObj in self.nodesDiscoveryObjs:
                 if nodeDObj.getState() == 'WAIT':
                     flagDone = 1
                 pass
             pass
+        
         self.state = "DONE"
+    
+    def stop(self):
+        self.stop_event.set()
+        for dNode in self.nodesDiscoveryObjs:
+            dNode.stop()
 
     #{"Name":"Humidity","Mode":"PUBLISHER","Type":"FLOAT","Channel":"/MenyNode1/Humidity","Value":"40.00"}
     def registerNodes(self):

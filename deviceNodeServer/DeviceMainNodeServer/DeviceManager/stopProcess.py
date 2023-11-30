@@ -2,7 +2,7 @@ import subprocess
 import time
 import signal
 
-process = subprocess.Popen("python main.py", shell=True)
+process = subprocess.Popen(["python","main.py"])
 time.sleep(5)
 #process.terminate()
 process.send_signal(signal.CTRL_BREAK_EVENT)

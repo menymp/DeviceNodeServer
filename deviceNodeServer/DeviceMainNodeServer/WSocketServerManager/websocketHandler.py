@@ -17,11 +17,14 @@ class wSocketServerManager():
         pass
 
     def serverListen(self, on_MessageCmd):
-        app = tornado.web.Application(handlers=[(r"/workHandler", SocketHandler)],debug = True, template_path = os.path.join(os.path.dirname(__file__), "templates"),static_path = os.path.join(os.path.dirname(__file__), "static"), on_messageHandler = on_MessageCmd)
+        self.app = tornado.web.Application(handlers=[(r"/workHandler", SocketHandler)],debug = True, template_path = os.path.join(os.path.dirname(__file__), "templates"),static_path = os.path.join(os.path.dirname(__file__), "static"), on_messageHandler = on_MessageCmd)
         #app.init(on_MessageCmd) #colocar el metodo de ejecutar comando
-        app.listen(self.socketPort)
+        self.app.listen(self.socketPort)
         tornado.ioloop.IOLoop.instance().start()
         pass
+
+    def stop(self):
+        tornado.ioloop.IOLoop.current().stop()
 
 class SocketHandler(tornado.websocket.WebSocketHandler):
     """docstring for SocketHandler"""

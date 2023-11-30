@@ -6,6 +6,7 @@ import zmq
 import threading
 import json
 from threading import Event
+import signal
 
 from os.path import dirname, realpath, sep, pardir
 # Get current main.py directory
@@ -70,6 +71,17 @@ if __name__ == "__main__":
     print("MQ Server started at: " + zmqCfg["video-handler-server-path"])
 
     taskHandleIncMsgs, stopEvent = startHandleIncomingMsgs(videoHandlerObj, mqServerObj)
+
+    eventStop = Event()
+    def sigterm_handler(signum, frame):
+        print("stop process")
+        eventStop.set()
+        stopHandleIncomingMsgs(stopEvent)
+        videoHandlerObj.stop()
+        mqServerObj.destroy()
+    signal.signal(signal.SIGINT, sigterm_handler)
+    signal.signal(signal.SIGTERM, sigterm_handler)
+
     videoHandlerObj.serverListen()
-    stopHandleIncomingMsgs(stopEvent)
+    
     pass

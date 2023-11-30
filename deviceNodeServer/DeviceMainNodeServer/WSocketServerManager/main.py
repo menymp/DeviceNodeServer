@@ -7,6 +7,7 @@ import zmq
 import threading
 import json
 from threading import Event
+import signal
 
 # Get current main.py directory
 sys.path.append(dirname(realpath(__file__)) + sep + pardir)
@@ -53,8 +54,19 @@ if __name__ == "__main__":
     wSockCfg = cfgObj.readSection("wSocketServerManager",configs_path)
     zmqCfg = cfgObj.readSection("zmqConfigs",configs_path)
     print(zmqCfg["device-manager-server-path"])
+
     onMsgHandler = handleOnMessage(zmqCfg["device-manager-local-conn"])
     onMsgHandler.connect()
+
+    WSServer = wSocketServerManager()
+    eventStop = Event()
+    def sigterm_handler(signum, frame):
+        print("stop process")
+        eventStop.set()
+        WSServer.stop()
+        onMsgHandler.disconnect()
+    signal.signal(signal.SIGINT, sigterm_handler)
+    signal.signal(signal.SIGTERM, sigterm_handler)
 
     WSServer = wSocketServerManager()
     WSServer.init(wSockCfg["port"])
