@@ -2,7 +2,7 @@
     "processes":[
         {
             "id":"DeviceManager",
-            "path":"python ./DeviceManager/main.py",
+            "path":["python","./DeviceManager/main.py"],
             "args":"",
             "description":"",
             "depends":[],
@@ -10,7 +10,7 @@
         },
         {
             "id":"NodeDeviceManager",
-            "path":"python ./NodeDeviceManager/main.py",
+            "path":["python","./NodeDeviceManager/main.py"],
             "args":"",
             "description":"",
             "depends":[],
@@ -18,7 +18,7 @@
         },
         {
             "id":"TelegramCommandExecutor",
-            "path":"python ./TelegramCommandExecutor/main.py",
+            "path":["python","./TelegramCommadExecutor/main.py"],
             "args":"",
             "description":"",
             "depends":["DeviceManager", "VideoHandler"],
@@ -26,7 +26,7 @@
         },
         {
             "id":"VideoHandler",
-            "path":"python ./VideoHandler/main.py",
+            "path":["python","./VideoHandler/main.py"],
             "args":"",
             "description":"",
             "depends":[],
@@ -34,7 +34,7 @@
         },
         {
             "id":"WSocketServerManager",
-            "path":"python ./WSocketServerManager/main.py",
+            "path":["python","./WSocketServerManager/main.py"],
             "args":"",
             "description":"",
             "depends":["DeviceManager"],
