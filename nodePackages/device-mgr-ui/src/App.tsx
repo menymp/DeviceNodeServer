@@ -13,6 +13,7 @@ import DevicesListView from './components/Views/DevicesListView'
 import UserInfo from './components/Views/UserInfo';
 import DashboardView from  './components/Views/DashboardView'
 import DashboardEditor from './components/Views/DashboardEditor';
+import Login from './components/Login/Login'
 
 function App() {
 
@@ -33,6 +34,7 @@ function App() {
               <Route path="/Userinfo" element={<UserInfo></UserInfo>} />
               <Route path="/Dashboard" element={<DashboardView />} />
               <Route path="/DashboardEditor" element={<DashboardEditor />} />
+              <Route path="/Login" element={<Login></Login>} />
             </Routes>
           </Col>
         </Row>
