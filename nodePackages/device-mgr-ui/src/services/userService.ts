@@ -6,6 +6,10 @@ export type loginUserInfo = {
     pwd: string;
 }
 
+export type loginUserResult = {
+  result: string
+}
+
 export type userInfo = {
     username:string;
     email:string;
@@ -16,9 +20,9 @@ export type userInfo = {
 // Define a service using a base URL and expected endpoints
 export const userService = createApi({
   reducerPath: 'userApi',
-  baseQuery: fetchBaseQuery({ baseUrl: 'localhost:8080/DeviceNodeServer/phpWebApp/' }),
+  baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:8080/DeviceNodeServer/phpWebApp/' }),
   endpoints: (builder) => ({
-    loginUser: builder.mutation<void , loginUserInfo>({
+    loginUser: builder.mutation<loginUserResult , loginUserInfo>({
       query: (usrInfo) => ({
         url: 'userService.php',
         method: 'POST',

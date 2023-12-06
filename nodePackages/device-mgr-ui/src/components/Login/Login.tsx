@@ -1,16 +1,28 @@
 import { Col, Button, Row, Container, Card, Form } from "react-bootstrap";
 import { useLoginUserMutation } from "../../services/userService";
 import React, { useState, useEffect } from 'react';
+import { SUCCESS_RESULT } from '../../constants'
 
 export default function Login() {
     const [loginUser, {data: loginResponse, isLoading: isLoginLoading, isSuccess:isLoginSuccess}] = useLoginUserMutation()
+    const [username, setUsername] = useState<string>('')
+    const [password, setPassword] = useState<string>('')
+    //ToDo: missing user validation
+    const handleLogin = async (event: any) => {
+        event.preventDefault(); // 👈️ prevent page refresh
+        try {
+            // alert("log in" + ' ' + username + ' ' + password)
+            const result = await loginUser({
+                mailuid: username,
+                pwd: password
+            }).unwrap()
+            console.log(result)
+            alert(JSON.stringify(result))
+        }catch(e) {
+            alert(e)
+        }
 
-    const handleLogin = () => {
-        alert("log in")
-        loginUser({
-            mailuid: "......",
-            pwd: "......"
-        })
+
     }
     useEffect(() => {
         // Update the document title using the browser API
@@ -32,12 +44,12 @@ export default function Login() {
                     <h2 className="fw-bold mb-2 text-uppercase ">Device Node System</h2>
                     <p className=" mb-5">Please enter your login and password!</p>
                     <div className="mb-3">
-                        <Form>
+                        <Form onSubmit={handleLogin}>
                         <Form.Group className="mb-3" controlId="formBasicEmail">
                             <Form.Label className="text-center">
                             Email address
                             </Form.Label>
-                            <Form.Control type="email" placeholder="Enter email" />
+                            <Form.Control type="text" placeholder="Enter username" onChange={e => { setUsername(e.target.value)}}/>
                         </Form.Group>
 
                         <Form.Group
@@ -45,7 +57,7 @@ export default function Login() {
                             controlId="formBasicPassword"
                         >
                             <Form.Label>Password</Form.Label>
-                            <Form.Control type="password" placeholder="Password" />
+                            <Form.Control type="password" placeholder="Password" onChange={e => { setPassword(e.target.value)}}/>
                         </Form.Group>
                         <Form.Group
                             className="mb-3"
@@ -58,7 +70,7 @@ export default function Login() {
                             </p>
                         </Form.Group>
                         <div className="d-grid">
-                            <Button onClick={handleLogin} variant="primary" type="submit">
+                            <Button variant="primary" type="submit">
                             Login
                             </Button>
                         </div>
