@@ -7,8 +7,15 @@ import Form from 'react-bootstrap/Form';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Button from 'react-bootstrap/Button'
+import { useState, useEffect } from 'react';
 
 const NavMenu: React.FC<{}> = () => {
+    useEffect(() => {
+      if (!sessionStorage.getItem("user")) {
+        // ToDo:
+      }
+    },[sessionStorage])
+
     return (
         <Navbar bg="dark" variant="dark">
         <Nav className="container-fluid margin-left: 20px">
@@ -34,12 +41,6 @@ const NavMenu: React.FC<{}> = () => {
               <Form className="mr-left ">
                 <Form.Group className="mb-3 form-check-inline" controlId="userName">
                   <Row>
-                    <Col>
-                      <Form.Control type="text" placeholder="username..." />
-                    </Col>
-                    <Col>
-                      <Form.Control type="password" placeholder="password..." />
-                    </Col>
                     <Col>
                       <Button>Log In</Button>
                     </Col>

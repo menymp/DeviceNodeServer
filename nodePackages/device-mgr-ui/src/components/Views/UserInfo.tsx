@@ -1,11 +1,25 @@
 import React from "react";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
-import BaseTable from '../Table/Table'
-
+import BaseTable from '../Table/Table';
+import { useGetUserInfoMutation } from "../../services/userService";
 
 const DevicesListView: React.FC = () => {
+    const [getUserInfo] = useGetUserInfoMutation()
+
+    useEffect(() => {
+        requestUserInfo();
+    },[])
     
+    const requestUserInfo = async () => {
+        try {
+            const result = await getUserInfo().unwrap()
+            alert(JSON.stringify(result))
+        }catch(e) {
+            alert(e)
+        }
+    }
+
     return(
         <>
             <Form>
@@ -13,6 +27,7 @@ const DevicesListView: React.FC = () => {
                         <Form.Label>Username</Form.Label>
                             <Form.Control
                                 type="text"
+                                value={sessionStorage.getItem("user") as string}
                                 placeholder="name ..."
                                 autoFocus
                             />

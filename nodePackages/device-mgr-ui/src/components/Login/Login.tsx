@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { SUCCESS_RESULT } from '../../constants'
 
 export default function Login() {
-    const [loginUser, {data: loginResponse, isLoading: isLoginLoading, isSuccess:isLoginSuccess}] = useLoginUserMutation()
+    const [loginUser] = useLoginUserMutation()
     const [username, setUsername] = useState<string>('')
     const [password, setPassword] = useState<string>('')
     //ToDo: missing user validation
@@ -16,21 +16,15 @@ export default function Login() {
                 mailuid: username,
                 pwd: password
             }).unwrap()
-            console.log(result)
-            alert(JSON.stringify(result))
+            if (result.result === SUCCESS_RESULT) {
+                sessionStorage.setItem("user", username)
+            } else {
+                alert("Error: failed login!")
+            }
         }catch(e) {
             alert(e)
         }
-
-
     }
-    useEffect(() => {
-        // Update the document title using the browser API
-        if (!isLoginSuccess) {
-            return
-        }
-        alert(loginResponse)
-    },[isLoginSuccess, isLoginLoading])
 
     return (
         <>

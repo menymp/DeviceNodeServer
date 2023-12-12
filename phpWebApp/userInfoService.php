@@ -11,6 +11,8 @@ this is a service developed to compatibility for the new react UI
 
 a lot of work needs to be done for this to be minimaly operable, under construction
  */
+include_once 'corsBypass.php';
+
 ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
@@ -24,7 +26,7 @@ $POST = getJsonPostData();
 
 session_start();
 //echo '<p>id sss:'.$_SESSION['userId'].'</p>';
-if(!isset($POST['actionOption']))
+if(!isset($POST['type']))
 {
     http_response_code(402);
     echo EncodeJSONClientResponse(['message' => "no-option","result" =>"error"]);
@@ -32,7 +34,7 @@ if(!isset($POST['actionOption']))
 }
 if(!isset($_SESSION['userId']))
 {
-    http_response_code(402);
+    //http_response_code(402);
     echo EncodeJSONClientResponse(['message' => "no-session","result" =>"error"]);
     exit();
 }
