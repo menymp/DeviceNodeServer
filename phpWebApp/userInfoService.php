@@ -10,7 +10,9 @@ menymp
 this is a service developed to compatibility for the new react UI
 
 a lot of work needs to be done for this to be minimaly operable, under construction
- */
+*/
+session_start();
+
 include_once 'corsBypass.php';
 
 ini_set('display_errors', 1);
@@ -24,7 +26,7 @@ include 'dbConn.php';
 
 $POST = getJsonPostData();
 
-session_start();
+
 //echo '<p>id sss:'.$_SESSION['userId'].'</p>';
 if(!isset($POST['type']))
 {
@@ -32,15 +34,16 @@ if(!isset($POST['type']))
     echo EncodeJSONClientResponse(['message' => "no-option","result" =>"error"]);
     exit();
 }
+/* ToDo: Not Working as expected, test, dont send the user as a parameter
 if(!isset($_SESSION['userId']))
 {
-    //http_response_code(402);
+    http_response_code(402);
     echo EncodeJSONClientResponse(['message' => "no-session","result" =>"error"]);
     exit();
-}
+}*/
 //header("Location: ./index.php?error=sss".$_POST['userId']);
-$userId = $_SESSION['userId'];
-$operationOption = $POST['actionOption'];
+$userId = $POST['username'];
+$operationOption = $POST['type'];
 
 $configs = include('config.php');
 
@@ -51,8 +54,7 @@ $dbObj1->connect();
 if($operationOption == "fetchUserInfo")
 {
     
-    $sql = "SELECT username,email,registerdate,telegrambotToken FROM users WHERE idUser=?;";
-            
+    $sql = "SELECT username,email,registerdate,telegrambotToken FROM users WHERE username=?;";
     $result = $dbObj1->dbQuery($sql, "i", [$userId]);
     
     if ($result->num_rows > 0) 

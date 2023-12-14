@@ -17,6 +17,10 @@ export type userInfo = {
     telegrambotToken:string;
 }
 
+export type userInfoRequest = {
+  username: string
+}
+
 // Define a service using a base URL and expected endpoints
 export const userService = createApi({
   reducerPath: 'userApi',
@@ -26,6 +30,8 @@ export const userService = createApi({
       query: (usrInfo) => ({
         url: 'userService.php',
         method: 'POST',
+        dataType: 'JSON',
+        withcredentials: true,
         body: {...usrInfo, type:"login"}
       }),
     }),
@@ -33,21 +39,30 @@ export const userService = createApi({
         query: () => ({
           url: 'userService.php',
           method: 'POST',
+          dataType: 'JSON',
+          withcredentials: true,
           body: { type:"logout"}
         }),
     }),
-    getUserInfo: builder.mutation<userInfo , void>({
-        query: () => ({
+    getUserInfo: builder.mutation<any , userInfoRequest>({
+        query: (usrInfoReq) => ({
           url: 'userInfoService.php',
           method: 'POST',
-          body: { type:"fetchUserInfo"},
-          transformResponse: (response: Array<any>) => response[0]
+          dataType: 'JSON',
+          withcredentials: true,
+          body: { type:"fetchUserInfo", username: usrInfoReq.username},
+          transformResponse: (response: Array<userInfoRequest>) => {
+            alert(response[0])
+            return response[0] 
+          }
         }),
     }),
     updateUserInfo: builder.mutation<void , userInfo>({
         query: () => ({
           url: 'userInfoService.php',
           method: 'POST',
+          dataType: 'JSON',
+          withcredentials: true,
           body: { type:"setUserInfo"}
         }),
     }),
