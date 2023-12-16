@@ -44,7 +44,7 @@ export const userService = createApi({
           body: { type:"logout"}
         }),
     }),
-    getUserInfo: builder.mutation<any , userInfoRequest>({
+    getUserInfo: builder.mutation<Array<userInfo> , userInfoRequest>({
         query: (usrInfoReq) => ({
           url: 'userInfoService.php',
           method: 'POST',
