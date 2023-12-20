@@ -18,6 +18,7 @@ export default function Login() {
             }).unwrap()
             if (result.result === SUCCESS_RESULT) {
                 sessionStorage.setItem("user", username)
+                sessionStorage.setItem("userId", result.userId.toString())
             } else {
                 alert("Error: failed login!")
             }

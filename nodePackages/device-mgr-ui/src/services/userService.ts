@@ -7,7 +7,8 @@ export type loginUserInfo = {
 }
 
 export type loginUserResult = {
-  result: string
+  result: string;
+  userId: number;
 }
 
 export type userInfo = {

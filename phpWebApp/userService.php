@@ -66,7 +66,7 @@ if($action == ACTION_LOGIN) {
             $_SESSION['userId'] = $row['idUser'];
             $_SESSION['userUid'] = $row['username'];
             http_response_code(200);
-            echo EncodeJSONClientResponse(["result" =>SUCCESS_LOGIN]);
+            echo EncodeJSONClientResponse(["result" =>SUCCESS_LOGIN, "userId"=>$row['idUser']]);
         }
         else
         {
