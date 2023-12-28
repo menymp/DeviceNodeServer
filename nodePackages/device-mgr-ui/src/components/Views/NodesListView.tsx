@@ -1,11 +1,15 @@
 import React from "react";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
-import BaseTable from '../Table/Table'
+import BaseTable, { tableInit } from '../Table/Table'
+import { useFetchNodesMutation } from '../../services/nodesService'
+import { ITEM_LIST_DISPLAY_CNT } from '../../constants'
+
 
 
 const NodesListView: React.FC = () => {
     const [show, setShow] = useState(false);
+    const [getNodes] = useFetchNodesMutation()
 
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
@@ -18,6 +22,34 @@ const NodesListView: React.FC = () => {
         editBtn: true,
         editCallback: handleShow
     }
+
+    const [page, setPage] = useState<number>(0)
+    const [nodesDisplay, setNodesDisplay] = useState<tableInit>(tableContentExample)
+
+    const fetchNodes = async () => {
+        try {
+            const nodes = await getNodes({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT}).unwrap()
+            const newTable = {
+                headers: ['Node id', 'Name', 'Path', 'Protocol', 'Owner', 'Parameters'],
+                rows: nodes.map((node) => {return [node.idNodesTable.toString(), node.nodeName, node.nodePath, node.idDeviceProtocol.toString(), node.idOwnerUser.toString(), node.connectionParameters.toString()]}),
+                detailBtn: true,
+                deleteBtn: true,
+                editBtn: true,
+                editCallback: handleShow
+            } as tableInit
+            setNodesDisplay(newTable)
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    useEffect(() => {
+        fetchNodes()
+    },[page])
+
+    useEffect(() => {
+
+    }, [nodesDisplay])
     // a pagination item already exists
     
     return(
@@ -103,13 +135,13 @@ const NodesListView: React.FC = () => {
                             <Form.Group className="mb-3 form-check-inline" controlId="searchFilterField">
                                 <Row xs={12}>
                                     <Col xs={5}>
-                                        <Button>Next page</Button>
+                                        <Button onClick={() => {setPage(page + 1)}}>Next page</Button>
                                     </Col>
                                     <Col xs={1}>
-                                        <Form.Label> 10 </Form.Label>
+                                        <Form.Label>{page}</Form.Label>
                                     </Col>
                                     <Col xs={6}>
-                                        <Button>Previous page</Button>
+                                        <Button onClick={() => {(page > 0) && setPage(page - 1)}}>Previous page</Button>
                                     </Col>
                                 </Row>
                             </Form.Group>
@@ -117,7 +149,7 @@ const NodesListView: React.FC = () => {
                     </Col>
                 </Row>
                 <Row>
-                    <Col><BaseTable {...tableContentExample}></BaseTable></Col>
+                    <Col><BaseTable {...nodesDisplay}></BaseTable></Col>
                 </Row>
             </Container>
         </>

@@ -8,6 +8,7 @@ export type requestNodesInfo = {
 
 export type node = {
     idNodesTable: number
+    nodeName: string
     nodePath: string
     idDeviceProtocol: number
     idOwnerUser: number
@@ -84,7 +85,7 @@ export const nodesService = createApi({
         body: { type:"deleteNode", userId: parseInt(sessionStorage.getItem("userId") as string)}
       })
     }),
-  }),
+  })
 })
 
 // Export hooks for usage in functional components, which are
