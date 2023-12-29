@@ -3,17 +3,21 @@ import { configureStore } from '@reduxjs/toolkit'
 import { setupListeners } from '@reduxjs/toolkit/query'
 import { userService } from './services/userService'
 import { nodesService } from './services/nodesService'
+import { devicesService } from './services/deviceService'
 
 export const store = configureStore({
   reducer: {
     // Add the generated reducer as a specific top-level slice
     [userService.reducerPath]: userService.reducer,
     [nodesService.reducerPath]: nodesService.reducer,
+    [devicesService.reducerPath]: devicesService.reducer,
   },
   // Adding the api middleware enables caching, invalidation, polling,
   // and other useful features of `rtk-query`.
   middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware().concat(userService.middleware).concat(nodesService.middleware),
+    getDefaultMiddleware().concat(userService.middleware)
+    .concat(nodesService.middleware)
+    .concat(devicesService.middleware),
 })
 
 // optional, but required for refetchOnFocus/refetchOnReconnect behaviors
