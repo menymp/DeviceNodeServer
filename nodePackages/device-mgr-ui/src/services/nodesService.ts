@@ -37,7 +37,7 @@ export type messageResult = {
 
 // Define a service using a base URL and expected endpoints
 export const nodesService = createApi({
-  reducerPath: 'userApi',
+  reducerPath: 'nodesApi',
   baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:8080/DeviceNodeServer/phpWebApp/' }),
   endpoints: (builder) => ({
     fetchNodes: builder.mutation<Array<node> , requestNodesInfo>({
