@@ -1,10 +1,13 @@
 import React from "react";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
-import BaseTable from '../Table/Table'
+import BaseTable, { tableInit } from '../Table/Table'
+import { useFetchDevicesMutation } from '../../services/deviceService'
+import { ITEM_LIST_DISPLAY_CNT } from '../../constants'
 
 
 const DevicesListView: React.FC = () => {
+    const [getDevices] = useFetchDevicesMutation()
     const [show, setShow] = useState(false);
 
     const handleClose = () => setShow(false);
@@ -17,6 +20,30 @@ const DevicesListView: React.FC = () => {
         detailCallback: handleShow
     }
     // a pagination item already exists
+
+    const [page, setPage] = useState<number>(0)
+    const [devicesDisplay, setDevicesDisplay] = useState<tableInit>(tableContentExample)
+
+    const fetchDevices = async () => {
+        try {
+            const devices = await getDevices({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT}).unwrap()
+            const newTable = {
+                headers: ['Device id', 'Name', 'Mode', 'Type', 'Path', 'Parent node'],
+                rows: devices.map((device) => {return [device.idDevices.toString(), device.name, device.mode, device.type, device.channelPath, device.nodeName]}),
+                detailBtn: true,
+                deleteBtn: true,
+                editBtn: true,
+                editCallback: handleShow
+            } as tableInit
+            setDevicesDisplay(newTable)
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    useEffect(() => {
+        fetchDevices()
+    },[page])
     
     return(
         <>
@@ -106,13 +133,13 @@ const DevicesListView: React.FC = () => {
                             <Form.Group className="mb-3 form-check-inline" controlId="searchFilterField">
                                 <Row xs={12}>
                                     <Col xs={5}>
-                                        <Button>Next page</Button>
+                                        <Button onClick={() => {setPage(page + 1)}}>Next page</Button>
                                     </Col>
                                     <Col xs={1}>
-                                        <Form.Label> 10 </Form.Label>
+                                        <Form.Label>{page}</Form.Label>
                                     </Col>
                                     <Col xs={6}>
-                                        <Button>Previous page</Button>
+                                        <Button onClick={() => {(page > 0) && setPage(page - 1)}}>Previous page</Button>
                                     </Col>
                                 </Row>
                             </Form.Group>
@@ -120,7 +147,7 @@ const DevicesListView: React.FC = () => {
                     </Col>
                 </Row>
                 <Row>
-                    <Col><BaseTable {...tableContentExample}></BaseTable></Col>
+                    <Col><BaseTable {...devicesDisplay}></BaseTable></Col>
                 </Row>
             </Container>
         </>
