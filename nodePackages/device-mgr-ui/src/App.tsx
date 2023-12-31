@@ -14,6 +14,7 @@ import UserInfo from './components/Views/UserInfo';
 import DashboardView from  './components/Views/DashboardView'
 import DashboardEditor from './components/Views/DashboardEditor';
 import Login from './components/Login/Login'
+import CamerasListView from './components/Views/CamerasListView';
 
 function App() {
 
@@ -29,6 +30,7 @@ function App() {
           <Col>
             <Routes>
               <Route path="/" element={<About></About>} />
+              <Route path="/Cameras" element={<CamerasListView></CamerasListView>} />
               <Route path="/Nodes" element={<NodesListView></NodesListView>} />
               <Route path="/Devices" element={<DevicesListView></DevicesListView>} />
               <Route path="/Userinfo" element={<UserInfo></UserInfo>} />

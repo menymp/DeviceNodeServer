@@ -35,7 +35,7 @@ const NavMenu: React.FC<{}> = () => {
               <Nav.Link href="/Dashboard">Dashboard</Nav.Link>
               <Nav.Link href="/Devices">Devices</Nav.Link>
               <Nav.Link href="/Nodes">Nodes</Nav.Link>
-              <Nav.Link href="#link">Cameras</Nav.Link>
+              <Nav.Link href="/Cameras">Cameras</Nav.Link>
               <Nav.Link href="#link">video Dash</Nav.Link>
               <Nav.Link href="/Userinfo">user info</Nav.Link>
               <Form className="mr-left ">
