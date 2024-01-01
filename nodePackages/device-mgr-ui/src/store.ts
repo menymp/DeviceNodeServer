@@ -5,6 +5,7 @@ import { userService } from './services/userService'
 import { nodesService } from './services/nodesService'
 import { devicesService } from './services/deviceService'
 import { camerasService } from './services/camerasService'
+import { camerasDashboardService } from './services/camerasDashboardService'
 
 export const store = configureStore({
   reducer: {
@@ -13,6 +14,7 @@ export const store = configureStore({
     [nodesService.reducerPath]: nodesService.reducer,
     [devicesService.reducerPath]: devicesService.reducer,
     [camerasService.reducerPath]: camerasService.reducer,
+    [camerasDasboardService.reducerPath]: camerasDasboardService.reducer,
   },
   // Adding the api middleware enables caching, invalidation, polling,
   // and other useful features of `rtk-query`.
@@ -20,7 +22,8 @@ export const store = configureStore({
     getDefaultMiddleware().concat(userService.middleware)
     .concat(nodesService.middleware)
     .concat(devicesService.middleware)
-    .concat(camerasService.middleware),
+    .concat(camerasService.middleware)
+    .concat(camerasDashboardService.middleware),
 })
 
 // optional, but required for refetchOnFocus/refetchOnReconnect behaviors
