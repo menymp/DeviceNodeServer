@@ -2,7 +2,7 @@ import React from "react";
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable, { tableInit } from '../Table/Table'
-import { useFetchNodesMutation } from '../../services/nodesService'
+import { useFetchNodesMutation, node } from '../../services/nodesService'
 import { ITEM_LIST_DISPLAY_CNT } from '../../constants'
 
 
@@ -10,17 +10,28 @@ import { ITEM_LIST_DISPLAY_CNT } from '../../constants'
 const NodesListView: React.FC = () => {
     const [show, setShow] = useState(false);
     const [getNodes] = useFetchNodesMutation()
+    const [nodes, setNodes] = useState<Array<node>>()
+    const [selectedEditNode, setSelectedEditNode] = useState<node>()
 
     const handleClose = () => setShow(false);
-    const handleShow = () => setShow(true);
+    const handleEditNode = (nodeId: string) => {
+        const selectedEditNode = nodes?.find((nodeObj) => nodeObj.idNodesTable.toString() === nodeId)
+        if (selectedEditNode) {
+            setSelectedEditNode(selectedEditNode)
+            setShow(true)
+        }
+        else
+        {
+            setShow(false)
+        }
+    };
 
     const tableContentExample = {
         headers: ["header1", "header2", "header3", "header4"],
         rows: [["1val1", "1val2", "1val3", "1var4"],["2val1", "2val2", "2val3", "2vr4"],["3val1", "3val2", "3val3","3var5"]],
         detailBtn: false,
         deleteBtn: true,
-        editBtn: true,
-        editCallback: handleShow
+        editBtn: true
     }
 
     const [page, setPage] = useState<number>(0)
@@ -29,13 +40,17 @@ const NodesListView: React.FC = () => {
     const fetchNodes = async () => {
         try {
             const nodes = await getNodes({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT}).unwrap()
+            setNodes(nodes)
             const newTable = {
                 headers: ['Node id', 'Name', 'Path', 'Protocol', 'Owner', 'Parameters'],
                 rows: nodes.map((node) => {return [node.idNodesTable.toString(), node.nodeName, node.nodePath, node.idDeviceProtocol.toString(), node.idOwnerUser.toString(), node.connectionParameters.toString()]}),
-                detailBtn: true,
+                detailBtn: false,
                 deleteBtn: true,
                 editBtn: true,
-                editCallback: handleShow
+                editCallback: (selectedNode) => { 
+                    alert("edit" + " " + selectedNode[0])
+                    handleEditNode(selectedNode[0]) 
+                }
             } as tableInit
             setNodesDisplay(newTable)
         } catch (error) {
@@ -65,6 +80,7 @@ const NodesListView: React.FC = () => {
                             <Form.Control
                                 type="text"
                                 placeholder="node name ..."
+                                value={selectedEditNode?.nodeName}
                                 autoFocus
                             />
                         </Form.Group>
@@ -73,6 +89,7 @@ const NodesListView: React.FC = () => {
                             <Form.Control
                                 type="text"
                                 placeholder="/nodePath/..."
+                                value={selectedEditNode?.nodePath}
                                 autoFocus
                             />
                         </Form.Group>

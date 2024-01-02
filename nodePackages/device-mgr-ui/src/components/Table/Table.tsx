@@ -8,11 +8,11 @@ export interface tableInit {
     headers: Array<string>,
     rows: Array<Array<string>>,
     detailBtn?: boolean,
-    detailCallback?: () => void,
+    detailCallback?: (selectedObject: string[]) => void,
     deleteBtn?: boolean,
-    deleteCallback?: () => void,
+    deleteCallback?: (selectedObject: string[]) => void,
     editBtn?: boolean
-    editCallback?: () => void,
+    editCallback?: (selectedObject: string[]) => void,
 }
 
 const BaseTable: React.FC<tableInit> = (props) => {
@@ -51,17 +51,17 @@ const BaseTable: React.FC<tableInit> = (props) => {
                         })}
                         {
                             detailBtn === true ? 
-                                <Col><Button onClick={detailCallback}>Details</Button></Col> : null
+                                <Col><Button onClick={() => { detailCallback && detailCallback(columns)} }>Details</Button></Col> : null
 
                         }
                         {
                             editBtn === true ? 
-                                <Col><Button onClick={editCallback}>Edit</Button></Col> : null
+                                <Col><Button onClick={() => { editCallback && editCallback(columns)}}>Edit</Button></Col> : null
 
                         }
                         {
                             deleteBtn === true ? 
-                                <Col><Button onClick={deleteCallback}>Delete</Button></Col> : null
+                                <Col><Button onClick={() => { deleteCallback && deleteCallback(columns)}}>Delete</Button></Col> : null
 
                         }
                     </Row>
