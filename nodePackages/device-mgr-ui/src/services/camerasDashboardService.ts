@@ -23,7 +23,7 @@ export type configCameraData = {
 
 // Define a service using a base URL and expected endpoints
 export const camerasDashboardService = createApi({
-  reducerPath: 'cameraApi',
+  reducerPath: 'camerasDashboardApi',
   baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:8080/DeviceNodeServer/phpWebApp/' }),
   endpoints: (builder) => ({
     fetchConfigs: builder.mutation<Array<dashboardCameraConfigs> , requestConfigsInfo>({

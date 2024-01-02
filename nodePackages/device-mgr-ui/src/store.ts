@@ -14,7 +14,7 @@ export const store = configureStore({
     [nodesService.reducerPath]: nodesService.reducer,
     [devicesService.reducerPath]: devicesService.reducer,
     [camerasService.reducerPath]: camerasService.reducer,
-    [camerasDasboardService.reducerPath]: camerasDasboardService.reducer,
+    [camerasDashboardService.reducerPath]: camerasDashboardService.reducer,
   },
   // Adding the api middleware enables caching, invalidation, polling,
   // and other useful features of `rtk-query`.
