@@ -10,12 +10,12 @@ import { ITEM_LIST_DISPLAY_CNT } from '../../constants'
 const NodesListView: React.FC = () => {
     const [show, setShow] = useState(false);
     const [getNodes] = useFetchNodesMutation()
-    const [nodes, setNodes] = useState<Array<node>>()
+    const [nodesData, setNodesData] = useState<Array<node>>()
     const [selectedEditNode, setSelectedEditNode] = useState<node>()
 
     const handleClose = () => setShow(false);
     const handleEditNode = (nodeId: string) => {
-        const selectedEditNode = nodes?.find((nodeObj) => nodeObj.idNodesTable.toString() === nodeId)
+        const selectedEditNode = nodesData?.find((nodeObj) => nodeObj.idNodesTable.toString() === nodeId)
         if (selectedEditNode) {
             setSelectedEditNode(selectedEditNode)
             setShow(true)
@@ -40,15 +40,15 @@ const NodesListView: React.FC = () => {
     const fetchNodes = async () => {
         try {
             const nodes = await getNodes({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT}).unwrap()
-            setNodes(nodes)
+            console.log(nodes)
+            await setNodesData(nodes)
             const newTable = {
                 headers: ['Node id', 'Name', 'Path', 'Protocol', 'Owner', 'Parameters'],
                 rows: nodes.map((node) => {return [node.idNodesTable.toString(), node.nodeName, node.nodePath, node.idDeviceProtocol.toString(), node.idOwnerUser.toString(), node.connectionParameters.toString()]}),
                 detailBtn: false,
                 deleteBtn: true,
                 editBtn: true,
-                editCallback: (selectedNode) => { 
-                    alert("edit" + " " + selectedNode[0])
+                editCallback: (selectedNode) => {
                     handleEditNode(selectedNode[0]) 
                 }
             } as tableInit
