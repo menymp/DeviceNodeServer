@@ -84,7 +84,7 @@ export const nodesService = createApi({
         withcredentials: true,
         body: { type:"deleteNode", userId: parseInt(sessionStorage.getItem("userId") as string)}
       })
-    }),
+    })
   })
 })
 

@@ -9,11 +9,13 @@ import { ITEM_LIST_DISPLAY_CNT } from '../../constants'
 
 const NodesListView: React.FC = () => {
     const [show, setShow] = useState(false);
-    const [getNodes] = useFetchNodesMutation()
-    const [nodesData, setNodesData] = useState<Array<node>>()
-    const [selectedEditNode, setSelectedEditNode] = useState<node>()
+    const [getNodes, {isSuccess: nodesLoaded, data: nodesData}] = useFetchNodesMutation();
+    // const [nodesData, setNodesData] = useState<Array<node>>();
+    const [selectedEditNode, setSelectedEditNode] = useState<node>();
 
-    const handleClose = () => setShow(false);
+    const handleClose = () => {
+        setShow(false)
+    };
     const handleEditNode = (nodeId: string) => {
         const selectedEditNode = nodesData?.find((nodeObj) => nodeObj.idNodesTable.toString() === nodeId)
         if (selectedEditNode) {
@@ -33,38 +35,39 @@ const NodesListView: React.FC = () => {
         deleteBtn: true,
         editBtn: true
     }
-
-    const [page, setPage] = useState<number>(0)
-    const [nodesDisplay, setNodesDisplay] = useState<tableInit>(tableContentExample)
-
-    const fetchNodes = async () => {
-        try {
-            const nodes = await getNodes({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT}).unwrap()
-            console.log(nodes)
-            await setNodesData(nodes)
-            const newTable = {
-                headers: ['Node id', 'Name', 'Path', 'Protocol', 'Owner', 'Parameters'],
-                rows: nodes.map((node) => {return [node.idNodesTable.toString(), node.nodeName, node.nodePath, node.idDeviceProtocol.toString(), node.idOwnerUser.toString(), node.connectionParameters.toString()]}),
-                detailBtn: false,
-                deleteBtn: true,
-                editBtn: true,
-                editCallback: (selectedNode) => {
-                    handleEditNode(selectedNode[0]) 
-                }
-            } as tableInit
-            setNodesDisplay(newTable)
-        } catch (error) {
-            console.log(error);
-        }
+    const initialTableState = {
+        headers: ['Node id', 'Name', 'Path', 'Protocol', 'Owner', 'Parameters'],
+        rows: [],
+        detailBtn: false,
+        deleteBtn: false,
+        editBtn: false,
     }
+    const [page, setPage] = useState<number>(0);
+    const [nodesDisplay, setNodesDisplay] = useState<tableInit>(initialTableState);
 
     useEffect(() => {
-        fetchNodes()
-    },[page])
+        getNodes({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT})
+    },[page]);
 
     useEffect(() => {
+        if (!nodesLoaded || !nodesData || !nodesData.length) {
+            setNodesDisplay(initialTableState);
+            return
+        }
+             //For Some reason this varuable is not being updated, may i know why?????
+        const newTable = {
+            headers: ['Node id', 'Name', 'Path', 'Protocol', 'Owner', 'Parameters'],
+            rows: nodesData.map((node) => {return [node.idNodesTable.toString(), node.nodeName, node.nodePath, node.idDeviceProtocol.toString(), node.idOwnerUser.toString(), node.connectionParameters.toString()]}),
+            detailBtn: false,
+            deleteBtn: true,
+            editBtn: true,
+            editCallback: (selectedNode) => {
+                handleEditNode(selectedNode[0]) 
+            }
+        } as tableInit
+        setNodesDisplay(newTable);
+    }, [nodesLoaded, nodesData])
 
-    }, [nodesDisplay])
     // a pagination item already exists
     
     return(
