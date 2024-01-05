@@ -47,7 +47,7 @@ export const nodesService = createApi({
         dataType: 'JSON',
         withcredentials: true,
         body: {...requestNodeInfo, type:"fetchNodes", userId: parseInt(sessionStorage.getItem("userId") as string)}
-      }),
+      })
     }),
     fetchProtocols: builder.mutation<Array<protocolInfo> , void>({
         query: () => ({

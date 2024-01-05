@@ -2,16 +2,29 @@ import React from "react";
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable, { tableInit } from '../Table/Table'
-import { useFetchNodesMutation, node } from '../../services/nodesService'
+import { useFetchNodesMutation, node, useFetchProtocolsMutation, protocolInfo } from '../../services/nodesService'
 import { ITEM_LIST_DISPLAY_CNT } from '../../constants'
 
-
+const initialTableState = {
+    headers: ['Node id', 'Name', 'Path', 'Protocol', 'Owner', 'Parameters'],
+    rows: [],
+    detailBtn: false,
+    deleteBtn: false,
+    editBtn: false,
+}
 
 const NodesListView: React.FC = () => {
-    const [show, setShow] = useState(false);
+    
     const [getNodes, {isSuccess: nodesLoaded, data: nodesData}] = useFetchNodesMutation();
-    // const [nodesData, setNodesData] = useState<Array<node>>();
+    const [getProtocols, {isSuccess: protocolsLoaded, data: protocolData}] = useFetchProtocolsMutation();
+    const [protocols, setProtocols] = useState<Array<protocolInfo>>([]);
     const [selectedEditNode, setSelectedEditNode] = useState<node>();
+    const [show, setShow] = useState(false);
+    const [page, setPage] = useState<number>(0);
+    const [nodesDisplay, setNodesDisplay] = useState<tableInit>(initialTableState);
+
+    const [newName, setNewName] = useState<string>();
+    const handleChangeName = (event: React.ChangeEvent<HTMLInputElement>) => setNewName(event.target.value); //ToDo: perform validations
 
     const handleClose = () => {
         setShow(false)
@@ -20,6 +33,7 @@ const NodesListView: React.FC = () => {
         const selectedEditNode = nodesData?.find((nodeObj) => nodeObj.idNodesTable.toString() === nodeId)
         if (selectedEditNode) {
             setSelectedEditNode(selectedEditNode)
+            setNewName(selectedEditNode?.nodeName)
             setShow(true)
         }
         else
@@ -28,26 +42,21 @@ const NodesListView: React.FC = () => {
         }
     };
 
-    const tableContentExample = {
-        headers: ["header1", "header2", "header3", "header4"],
-        rows: [["1val1", "1val2", "1val3", "1var4"],["2val1", "2val2", "2val3", "2vr4"],["3val1", "3val2", "3val3","3var5"]],
-        detailBtn: false,
-        deleteBtn: true,
-        editBtn: true
+    const saveElement = () => {
+        alert(newName);
     }
-    const initialTableState = {
-        headers: ['Node id', 'Name', 'Path', 'Protocol', 'Owner', 'Parameters'],
-        rows: [],
-        detailBtn: false,
-        deleteBtn: false,
-        editBtn: false,
-    }
-    const [page, setPage] = useState<number>(0);
-    const [nodesDisplay, setNodesDisplay] = useState<tableInit>(initialTableState);
 
     useEffect(() => {
         getNodes({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT})
+        getProtocols();
     },[page]);
+
+    useEffect(() => {
+        if (!protocolsLoaded || !protocolData || !protocolData?.length) {
+            return
+        }
+        setProtocols(protocolData)
+    }, [protocolsLoaded ,protocolData])
 
     useEffect(() => {
         if (!nodesLoaded || !nodesData || !nodesData.length) {
@@ -59,7 +68,7 @@ const NodesListView: React.FC = () => {
             headers: ['Node id', 'Name', 'Path', 'Protocol', 'Owner', 'Parameters'],
             rows: nodesData.map((node) => {return [node.idNodesTable.toString(), node.nodeName, node.nodePath, node.idDeviceProtocol.toString(), node.idOwnerUser.toString(), node.connectionParameters.toString()]}),
             detailBtn: false,
-            deleteBtn: true,
+            deleteBtn: false,
             editBtn: true,
             editCallback: (selectedNode) => {
                 handleEditNode(selectedNode[0]) 
@@ -83,7 +92,8 @@ const NodesListView: React.FC = () => {
                             <Form.Control
                                 type="text"
                                 placeholder="node name ..."
-                                value={selectedEditNode?.nodeName}
+                                defaultValue={selectedEditNode?.nodeName}
+                                onChange={handleChangeName}
                                 autoFocus
                             />
                         </Form.Group>
@@ -92,15 +102,14 @@ const NodesListView: React.FC = () => {
                             <Form.Control
                                 type="text"
                                 placeholder="/nodePath/..."
-                                value={selectedEditNode?.nodePath}
+                                defaultValue={selectedEditNode?.nodePath}
                                 autoFocus
                             />
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="nodeDetails.protocol">
                             <Form.Label>Node protocol</Form.Label>
                             <Form.Select aria-label="MQTT">
-                                <option value="1">MQTT</option>
-                                <option value="2">SOCKET</option>
+                                {protocols?.map((value, index) => { return <option id={`${index}`} value={value.idsupportedProtocols}>{value.ProtocolName}</option>})}
                             </Form.Select>
                         </Form.Group>
                         <Form.Group
@@ -108,7 +117,7 @@ const NodesListView: React.FC = () => {
                             controlId="nodeDetails.parameters"
                             >
                             <Form.Label>Parameters</Form.Label>
-                            <Form.Control as="textarea" rows={3} />
+                            <Form.Control as="textarea" rows={3} placeholder='{"node":"parameters"}...' defaultValue={selectedEditNode?.connectionParameters} />
                         </Form.Group>
                     </Form>
                 </Modal.Body>
@@ -116,7 +125,9 @@ const NodesListView: React.FC = () => {
                     <Button variant="secondary" onClick={handleClose}>
                         Close
                     </Button>
-                    <Button variant="primary" onClick={handleClose}>
+                    <Button variant="primary" onClick={() => {
+                        saveElement();
+                    }}>
                         Save Changes
                     </Button>
                     <Button variant="primary" onClick={handleClose}>
