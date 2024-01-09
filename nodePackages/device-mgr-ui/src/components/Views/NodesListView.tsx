@@ -2,7 +2,7 @@ import React from "react";
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable, { tableInit } from '../Table/Table'
-import { useFetchNodesMutation, node, useFetchProtocolsMutation, protocolInfo } from '../../services/nodesService'
+import { useFetchNodesMutation, node, useFetchProtocolsMutation, protocolInfo, useSaveNodeMutation, useDeleteNodeMutation, useCreateNodeMutation } from '../../services/nodesService'
 import { ITEM_LIST_DISPLAY_CNT } from '../../constants'
 
 const initialTableState = {
@@ -17,6 +17,9 @@ const NodesListView: React.FC = () => {
     
     const [getNodes, {isSuccess: nodesLoaded, data: nodesData}] = useFetchNodesMutation();
     const [getProtocols, {isSuccess: protocolsLoaded, data: protocolData}] = useFetchProtocolsMutation();
+    const [updateNodeInfo, {isSuccess: updatedNodeInfo}] = useSaveNodeMutation();
+    const [deleteNode, {isSuccess: deletedNode}] = useDeleteNodeMutation();
+    const [createNode, {isSuccess: createNodeSuccess}] = useCreateNodeMutation();
     const [protocols, setProtocols] = useState<Array<protocolInfo>>([]);
     const [selectedEditNode, setSelectedEditNode] = useState<node>();
     const [show, setShow] = useState(false);
@@ -25,10 +28,17 @@ const NodesListView: React.FC = () => {
 
     const [newName, setNewName] = useState<string>();
     const handleChangeName = (event: React.ChangeEvent<HTMLInputElement>) => setNewName(event.target.value); //ToDo: perform validations
+    const [newPath, setNewPath] = useState<string>();
+    const handleChangePath = (event: React.ChangeEvent<HTMLInputElement>) => setNewPath(event.target.value); //ToDo: perform validations
+    const [newProtocol, setNewProtocol] = useState<number>();
+    const handleChangeProtocol = (event: React.ChangeEvent<HTMLSelectElement>) => setNewProtocol(parseInt(event.target.value)); //ToDo: perform validations
+    const [newParameters, setNewParameters] = useState<string>();
+    const handleChangeParameters = (event: React.ChangeEvent<HTMLInputElement>) => setNewParameters(event.target.value); //ToDo: perform validations
 
     const handleClose = () => {
         setShow(false)
     };
+
     const handleEditNode = (nodeId: string) => {
         const selectedEditNode = nodesData?.find((nodeObj) => nodeObj.idNodesTable.toString() === nodeId)
         if (selectedEditNode) {
@@ -43,7 +53,41 @@ const NodesListView: React.FC = () => {
     };
 
     const saveElement = () => {
-        alert(newName);
+        if (!newName || !newPath || !newProtocol || !newParameters) {
+            return
+        }
+        if (selectedEditNode?.idNodesTable == -1) {
+            createNode({nodeName: newName, 
+                nodePath: newPath, 
+                nodeProtocol: newProtocol.toString(), 
+                nodeParameters: newParameters,
+            });
+        } else {
+            updateNodeInfo({nodeName: newName, 
+                nodePath: newPath, 
+                nodeProtocol: newProtocol.toString(), 
+                nodeParameters: newParameters,
+            });
+        }
+        setShow(false);
+        cleanSelectedNode();
+        getNodes({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT})
+        getProtocols();
+    }
+
+    const deleteElement = () => {
+        if (!selectedEditNode?.nodeName) {
+            return
+        }
+        deleteNode({nodeName: selectedEditNode?.nodeName});
+        setShow(false);
+        cleanSelectedNode();
+        getNodes({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT})
+        getProtocols();
+    }
+
+    const cleanSelectedNode = () => {
+        setSelectedEditNode({nodeName: "", idDeviceProtocol: 0, nodePath: "", connectionParameters:"", idNodesTable: -1} as node);
     }
 
     useEffect(() => {
@@ -103,12 +147,13 @@ const NodesListView: React.FC = () => {
                                 type="text"
                                 placeholder="/nodePath/..."
                                 defaultValue={selectedEditNode?.nodePath}
+                                onChange={handleChangePath}
                                 autoFocus
                             />
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="nodeDetails.protocol">
                             <Form.Label>Node protocol</Form.Label>
-                            <Form.Select aria-label="MQTT">
+                            <Form.Select onChange={handleChangeProtocol} aria-label="MQTT">
                                 {protocols?.map((value, index) => { return <option id={`${index}`} value={value.idsupportedProtocols}>{value.ProtocolName}</option>})}
                             </Form.Select>
                         </Form.Group>
@@ -117,7 +162,11 @@ const NodesListView: React.FC = () => {
                             controlId="nodeDetails.parameters"
                             >
                             <Form.Label>Parameters</Form.Label>
-                            <Form.Control as="textarea" rows={3} placeholder='{"node":"parameters"}...' defaultValue={selectedEditNode?.connectionParameters} />
+                            <Form.Control as="textarea" rows={3} 
+                                onChange={handleChangeParameters} 
+                                placeholder='{"node":"parameters"}...' 
+                                defaultValue={selectedEditNode?.connectionParameters} 
+                            />
                         </Form.Group>
                     </Form>
                 </Modal.Body>
@@ -130,7 +179,7 @@ const NodesListView: React.FC = () => {
                     }}>
                         Save Changes
                     </Button>
-                    <Button variant="primary" onClick={handleClose}>
+                    <Button variant="primary" onClick={deleteElement}>
                         Delete
                     </Button>
                 </Modal.Footer>
@@ -138,7 +187,10 @@ const NodesListView: React.FC = () => {
             <Container >
                 <Row className="p-3 mb-2 bg-success bg-gradient text-white rounded-3">
                     <Col xs={2}>
-                        <Button>New Node</Button>
+                        <Button onClick={() => {
+                            cleanSelectedNode();
+                            setShow(true);
+                        }}>New Node</Button>
                     </Col>
                     <Col xs={5} >
                         <Form className="mr-left ">
