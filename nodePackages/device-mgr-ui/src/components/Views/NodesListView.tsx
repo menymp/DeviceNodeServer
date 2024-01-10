@@ -53,19 +53,25 @@ const NodesListView: React.FC = () => {
     };
 
     const saveElement = () => {
-        if (!newName || !newPath || !newProtocol || !newParameters) {
+        let selectedProtocol = "";
+        if (!getCurrentProtocolSelection()) {
+            selectedProtocol = getCurrentProtocolSelection() // ToDo check this!!!!
+        } else {
+            selectedProtocol = newProtocol?.toString()!
+        }
+        if (!newName || !newPath || !selectedProtocol || !newParameters) {
             return
         }
         if (selectedEditNode?.idNodesTable == -1) {
             createNode({nodeName: newName, 
                 nodePath: newPath, 
-                nodeProtocol: newProtocol.toString(), 
+                nodeProtocol: selectedProtocol.toString(), 
                 nodeParameters: newParameters,
             });
         } else {
             updateNodeInfo({nodeName: newName, 
                 nodePath: newPath, 
-                nodeProtocol: newProtocol.toString(), 
+                nodeProtocol: selectedProtocol.toString(), 
                 nodeParameters: newParameters,
             });
         }
@@ -121,6 +127,7 @@ const NodesListView: React.FC = () => {
         setNodesDisplay(newTable);
     }, [nodesLoaded, nodesData])
 
+    const getCurrentProtocolSelection = () => (document.getElementById('selectedProtocolItem') as HTMLSelectElement).value;//ToDo: check this
     // a pagination item already exists
     
     return(
@@ -153,7 +160,7 @@ const NodesListView: React.FC = () => {
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="nodeDetails.protocol">
                             <Form.Label>Node protocol</Form.Label>
-                            <Form.Select onChange={handleChangeProtocol} aria-label="MQTT">
+                            <Form.Select onChange={handleChangeProtocol} aria-label="MQTT" id="selectedProtocolItem">
                                 {protocols?.map((value, index) => { return <option id={`${index}`} value={value.idsupportedProtocols}>{value.ProtocolName}</option>})}
                             </Form.Select>
                         </Form.Group>
@@ -175,6 +182,7 @@ const NodesListView: React.FC = () => {
                         Close
                     </Button>
                     <Button variant="primary" onClick={() => {
+
                         saveElement();
                     }}>
                         Save Changes

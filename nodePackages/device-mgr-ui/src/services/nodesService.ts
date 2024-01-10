@@ -59,30 +59,30 @@ export const nodesService = createApi({
         })
     }),
     createNode: builder.mutation<messageResult , createNodeRequestInfo>({
-      query: () => ({
+      query: (newNodeInfo) => ({
         url: 'nodeService.php',
         method: 'POST',
         dataType: 'JSON',
         withcredentials: true,
-        body: { type:"createNode", userId: parseInt(sessionStorage.getItem("userId") as string)}
+        body: { ... newNodeInfo, type:"createNode", userId: parseInt(sessionStorage.getItem("userId") as string)}
       })
     }),
     saveNode: builder.mutation<messageResult , createNodeRequestInfo>({
-      query: () => ({
+      query: (existingNodeInfo) => ({
         url: 'nodeService.php',
         method: 'POST',
         dataType: 'JSON',
         withcredentials: true,
-        body: { type:"saveNode", userId: parseInt(sessionStorage.getItem("userId") as string)}
+        body: {...existingNodeInfo, type:"saveNode", userId: parseInt(sessionStorage.getItem("userId") as string)}
       })
     }),
     deleteNode: builder.mutation<messageResult , deleteNodeRequestInfo>({
-      query: () => ({
+      query: (deleteNodeInfo) => ({
         url: 'nodeService.php',
         method: 'POST',
         dataType: 'JSON',
         withcredentials: true,
-        body: { type:"deleteNode", userId: parseInt(sessionStorage.getItem("userId") as string)}
+        body: {...deleteNodeInfo, type:"deleteNode", userId: parseInt(sessionStorage.getItem("userId") as string)}
       })
     })
   })
