@@ -54,6 +54,7 @@ const NodesListView: React.FC = () => {
 
     const saveElement = () => {
         let selectedProtocol = "";
+        let tmp = getCurrentProtocolSelection();
         if (!getCurrentProtocolSelection()) {
             selectedProtocol = getCurrentProtocolSelection() // ToDo check this!!!!
         } else {
@@ -85,11 +86,14 @@ const NodesListView: React.FC = () => {
         if (!selectedEditNode?.nodeName) {
             return
         }
-        deleteNode({nodeName: selectedEditNode?.nodeName});
-        setShow(false);
-        cleanSelectedNode();
-        getNodes({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT})
-        getProtocols();
+        if (window.confirm('Quieres elimiar el nodo: ' + selectedEditNode?.nodeName + '?')) {
+            deleteNode({nodeName: selectedEditNode?.nodeName});
+            setShow(false);
+            cleanSelectedNode();
+            getNodes({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT})
+            getProtocols();
+        }
+
     }
 
     const cleanSelectedNode = () => {
@@ -113,7 +117,6 @@ const NodesListView: React.FC = () => {
             setNodesDisplay(initialTableState);
             return
         }
-             //For Some reason this varuable is not being updated, may i know why?????
         const newTable = {
             headers: ['Node id', 'Name', 'Path', 'Protocol', 'Owner', 'Parameters'],
             rows: nodesData.map((node) => {return [node.idNodesTable.toString(), node.nodeName, node.nodePath, node.idDeviceProtocol.toString(), node.idOwnerUser.toString(), node.connectionParameters.toString()]}),
@@ -126,8 +129,8 @@ const NodesListView: React.FC = () => {
         } as tableInit
         setNodesDisplay(newTable);
     }, [nodesLoaded, nodesData])
-
-    const getCurrentProtocolSelection = () => (document.getElementById('selectedProtocolItem') as HTMLSelectElement).value;//ToDo: check this
+    //ToDo: we can not change the node name once created, should it be selected instead by id??????
+    const getCurrentProtocolSelection = () => (document.getElementById('selectedProtocolItem') as HTMLSelectElement).value;
     // a pagination item already exists
     
     return(
@@ -225,14 +228,14 @@ const NodesListView: React.FC = () => {
                         <Form className="mr-left ">
                             <Form.Group className="mb-3 form-check-inline" controlId="searchFilterField">
                                 <Row xs={12}>
-                                    <Col xs={5}>
-                                        <Button onClick={() => {setPage(page + 1)}}>Next page</Button>
+                                    <Col xs={6}>
+                                        <Button onClick={() => {(page > 0) && setPage(page - 1)}}>Previous page</Button>
                                     </Col>
                                     <Col xs={1}>
                                         <Form.Label>{page}</Form.Label>
                                     </Col>
-                                    <Col xs={6}>
-                                        <Button onClick={() => {(page > 0) && setPage(page - 1)}}>Previous page</Button>
+                                    <Col xs={5}>
+                                        <Button onClick={() => {setPage(page + 1)}}>Next page</Button>
                                     </Col>
                                 </Row>
                             </Form.Group>
