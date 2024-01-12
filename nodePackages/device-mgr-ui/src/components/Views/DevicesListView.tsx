@@ -2,38 +2,48 @@ import React from "react";
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable, { tableInit } from '../Table/Table'
-import { useFetchDevicesMutation } from '../../services/deviceService'
+import { useFetchDevicesMutation, useFetchDeviceByIdMutation, device } from '../../services/deviceService'
 import { ITEM_LIST_DISPLAY_CNT } from '../../constants'
 
+const initialTableState = {
+    headers: ['Device id', 'Name', 'Mode', 'Type', 'Path', 'Parent node'],
+    rows: [],
+    detailBtn: false,
+    deleteBtn: false,
+    editBtn: false,
+}
 
 const DevicesListView: React.FC = () => {
     const [getDevices] = useFetchDevicesMutation()
+    const [getDeviceById, {isSuccess: selectedDeviceFound, data: matchDevices}] = useFetchDeviceByIdMutation()
     const [show, setShow] = useState(false);
 
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
 
-    const tableContentExample = {
-        headers: ["header1", "header2", "header3", "header4"],
-        rows: [["1val1", "1val2", "1val3", "1var4"],["2val1", "2val2", "2val3", "2vr4"],["3val1", "3val2", "3val3","3var5"]],
-        detailBtn: true,
-        detailCallback: handleShow
-    }
     // a pagination item already exists
 
     const [page, setPage] = useState<number>(0)
-    const [devicesDisplay, setDevicesDisplay] = useState<tableInit>(tableContentExample)
+    const [devicesDisplay, setDevicesDisplay] = useState<tableInit>(initialTableState)
+    const [deviceDetail, setDeviceDetail] = useState<device>();
+
+    const [filterNodeName, setFilterNodeName] = useState<string>('')
+    const handleChangeFilterNodeName = (event: React.ChangeEvent<HTMLInputElement>) => setFilterNodeName(event.target.value); //ToDo: perform validations
+    const [filterName, setFilterName] = useState<string>('')
+    const handleChangeFilterName = (event: React.ChangeEvent<HTMLInputElement>) => setFilterName(event.target.value); //ToDo: perform validations
+
+    const fetchDeviceDetails = (deviceId: string) => {
+        getDeviceById({deviceId: parseInt(deviceId)})
+    }
 
     const fetchDevices = async () => {
         try {
-            const devices = await getDevices({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT}).unwrap()
+            const devices = await getDevices({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT, nodeName: filterNodeName, deviceName: filterName}).unwrap()
             const newTable = {
                 headers: ['Device id', 'Name', 'Mode', 'Type', 'Path', 'Parent node'],
                 rows: devices.map((device) => {return [device.idDevices.toString(), device.name, device.mode, device.type, device.channelPath, device.nodeName]}),
                 detailBtn: true,
-                deleteBtn: true,
-                editBtn: true,
-                editCallback: handleShow
+                detailCallback: (devDetails) => { fetchDeviceDetails(devDetails[0]) }
             } as tableInit
             setDevicesDisplay(newTable)
         } catch (error) {
@@ -43,7 +53,15 @@ const DevicesListView: React.FC = () => {
 
     useEffect(() => {
         fetchDevices()
-    },[page])
+    },[page, filterNodeName, filterName])
+
+    useEffect(() => {
+        if (!selectedDeviceFound || !matchDevices || !matchDevices.length) {
+            return
+        }
+        setDeviceDetail(matchDevices[0]);
+        handleShow();
+    }, [selectedDeviceFound, matchDevices])
     
     return(
         <>
@@ -57,16 +75,20 @@ const DevicesListView: React.FC = () => {
                             <Form.Label>device id</Form.Label>
                             <Form.Control
                                 type="text"
-                                placeholder="id ..."
+                                placeholder="Device id ..."
                                 autoFocus
+                                readOnly
+                                defaultValue={deviceDetail?.idDevices}
                             />
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="deviceDetails.name">
                             <Form.Label>device name</Form.Label>
                             <Form.Control
                                 type="text"
-                                placeholder="node name ..."
+                                placeholder="name ..."
                                 autoFocus
+                                readOnly
+                                defaultValue={deviceDetail?.name}
                             />
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="deviceDetails.path">
@@ -75,6 +97,8 @@ const DevicesListView: React.FC = () => {
                                 type="text"
                                 placeholder="mode..."
                                 autoFocus
+                                readOnly
+                                defaultValue={deviceDetail?.mode}
                             />
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="deviceDetails.name">
@@ -83,6 +107,8 @@ const DevicesListView: React.FC = () => {
                                 type="text"
                                 placeholder="type ..."
                                 autoFocus
+                                readOnly
+                                defaultValue={deviceDetail?.type}
                             />
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="deviceDetails.path">
@@ -91,14 +117,18 @@ const DevicesListView: React.FC = () => {
                                 type="text"
                                 placeholder="/devicePath/..."
                                 autoFocus
+                                readOnly
+                                defaultValue={deviceDetail?.channelPath}
                             />
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="deviceParentNode.name">
                             <Form.Label>parent node</Form.Label>
                             <Form.Control
                                 type="text"
-                                placeholder="parent node ..."
+                                placeholder="parent node..."
                                 autoFocus
+                                readOnly
+                                defaultValue={deviceDetail?.nodeName}
                             />
                         </Form.Group>
                     </Form>
@@ -119,10 +149,10 @@ const DevicesListView: React.FC = () => {
                                         <Form.Label>Filter</Form.Label>
                                     </Col>
                                     <Col xs={5}>
-                                        <Form.Control type="text" placeholder="node name..." />
+                                        <Form.Control type="text" placeholder="node name..." onChange={handleChangeFilterNodeName}/>
                                     </Col>
                                     <Col xs={5}>
-                                        <Form.Control type="text" placeholder="parent node..." />
+                                        <Form.Control type="text" placeholder="parent node..." onChange={handleChangeFilterName}/>
                                     </Col>
                                 </Row>
                             </Form.Group>
@@ -132,14 +162,14 @@ const DevicesListView: React.FC = () => {
                         <Form className="mr-left ">
                             <Form.Group className="mb-3 form-check-inline" controlId="searchFilterField">
                                 <Row xs={12}>
-                                    <Col xs={5}>
-                                        <Button onClick={() => {setPage(page + 1)}}>Next page</Button>
+                                    <Col xs={6}>
+                                        <Button onClick={() => {(page > 0) && setPage(page - 1)}}>Previous page</Button>
                                     </Col>
                                     <Col xs={1}>
                                         <Form.Label>{page}</Form.Label>
                                     </Col>
-                                    <Col xs={6}>
-                                        <Button onClick={() => {(page > 0) && setPage(page - 1)}}>Previous page</Button>
+                                    <Col xs={5}>
+                                        <Button onClick={() => {setPage(page + 1)}}>Next page</Button>
                                     </Col>
                                 </Row>
                             </Form.Group>
