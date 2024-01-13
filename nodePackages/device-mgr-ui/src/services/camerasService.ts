@@ -48,7 +48,7 @@ export const camerasService = createApi({
         dataType: 'JSON',
         withcredentials: true,
         body: {...requestCamsInfo, actionOption:"fetchCams", userId: parseInt(sessionStorage.getItem("userId") as string)}
-      }),
+      })
     }),
     AddCam: builder.mutation<void , newCameraRequestInfo>({
         query: (requestNewCamInfo) => ({
@@ -57,7 +57,7 @@ export const camerasService = createApi({
           dataType: 'JSON',
           withcredentials: true,
           body: {...requestNewCamInfo, actionOption:"AddCam", userId: parseInt(sessionStorage.getItem("userId") as string)}
-        }),
+        })
       }),
     UpdateCam: builder.mutation<void , updateCameraRequestInfo>({
         query: (requestUpdateInfo) => ({
@@ -66,7 +66,7 @@ export const camerasService = createApi({
           dataType: 'JSON',
           withcredentials: true,
           body: {...requestUpdateInfo, actionOption:"UpdateCam", userId: parseInt(sessionStorage.getItem("userId") as string)}
-        }),
+        })
       }),
     DeleteCam: builder.mutation<void , deleteCameraRequestInfo>({
         query: (requestDeleteInfo) => ({
@@ -75,11 +75,11 @@ export const camerasService = createApi({
           dataType: 'JSON',
           withcredentials: true,
           body: {...requestDeleteInfo, actionOption:"DelCam", userId: parseInt(sessionStorage.getItem("userId") as string)}
-        }),
-      }),
+        })
+      })
   })
 })
 
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
-export const { useFetchCamerasMutation } = camerasService
+export const { useFetchCamerasMutation, useAddCamMutation, useUpdateCamMutation, useDeleteCamMutation  } = camerasService
