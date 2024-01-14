@@ -15,9 +15,9 @@ const initialCamerasState = {
 
 const CamerasListView: React.FC = () => {
     const [getCameras, {isSuccess: cammerasFetched, data: currentCameras}] = useFetchCamerasMutation()
-    const [addNewCamera] = useAddCamMutation()
-    const [updateCamera] = useUpdateCamMutation()
-    const [deleteCamera] = useDeleteCamMutation()
+    const [addNewCamera, {isSuccess: successCreatedCam}] = useAddCamMutation()
+    const [updateCamera, {isSuccess: successUpdatedCam}] = useUpdateCamMutation()
+    const [deleteCamera, {isSuccess: successDeletedCam}] = useDeleteCamMutation()
     const [show, setShow] = useState(false);
     const [selectedEditCamera, setSelectedEditCamera] = useState<camera>();
 
@@ -33,9 +33,14 @@ const CamerasListView: React.FC = () => {
     const handleChangeParameters = (event: React.ChangeEvent<HTMLInputElement>) => setNewParameters(event.target.value); //ToDo: perform validations
 
     const handleEditCamera  = (cameraId: string) => {
+        if (!currentCameras) {
+            return
+        }
         const selCamera = currentCameras?.find((cameraInfo) => cameraInfo.idVideoSource.toString() === cameraId);
         if (selCamera) {
             setSelectedEditCamera(selCamera);
+            setNewName(selCamera.name)
+            setNewParameters(selCamera.sourceParameters)
             handleShow();
         } else {
             setShow(false);
@@ -57,7 +62,7 @@ const CamerasListView: React.FC = () => {
     }
 
     const cleanSelectedCam = () => {
-        setSelectedEditCamera({name: "", username: "", sourceParameters:"", idVideoSource: -1} as camera);
+        setSelectedEditCamera({name: "", username: sessionStorage.getItem("user"), sourceParameters:"", idVideoSource: -1} as camera);
     }
 
     const deleteSelectedCamera = () => {
@@ -68,36 +73,37 @@ const CamerasListView: React.FC = () => {
             deleteCamera({idVideoSource: selectedEditCamera?.idVideoSource});
             setShow(false);
             cleanSelectedCam();
-            fetchCameras()
         }
     }
 
     const fetchCameras = async () => {
         try {
-            const cameras = await getCameras({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT}).unwrap()
-            const newTable = {
-                headers: ['Camera id', 'Name', 'User', 'Source parameters'],
-                rows: cameras.map((camera) => {return [camera.idVideoSource.toString(), camera.name, camera.username, camera.sourceParameters]}),
-                detailBtn: false,
-                deleteBtn: false,
-                editBtn: true,
-                editCallback: (selectedNode) => {
-                    handleEditCamera(selectedNode[0]) 
-                }
-            } as tableInit
-            setCamerasDisplay(newTable)
+            getCameras({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT})
         } catch (error) {
             console.log(error);
         }
     }
 
     useEffect(() => {
-        fetchCameras()
-    },[page])
+        if (!cammerasFetched || !currentCameras?.length) {
+            return
+        }
+        const newTable = {
+            headers: ['Camera id', 'Name', 'User', 'Source parameters'],
+            rows: currentCameras.map((camera) => {return [camera.idVideoSource.toString(), camera.name, camera.username, camera.sourceParameters]}),
+            detailBtn: false,
+            deleteBtn: false,
+            editBtn: true,
+            editCallback: (selectedNode) => {
+                handleEditCamera(selectedNode[0]) 
+            }
+        } as tableInit
+        setCamerasDisplay(newTable)
+    }, [cammerasFetched, currentCameras])
 
     useEffect(() => {
-
-    }, [])
+        fetchCameras()
+    },[page, successCreatedCam, successUpdatedCam, successDeletedCam])
     
     return(
         <>
@@ -128,7 +134,7 @@ const CamerasListView: React.FC = () => {
                             />
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="cameraDetails.name">
-                            <Form.Label>camera name</Form.Label>
+                            <Form.Label>user</Form.Label>
                             <Form.Control
                                 type="text"
                                 placeholder="username ..."
@@ -138,7 +144,7 @@ const CamerasListView: React.FC = () => {
                             />
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="cameraDetails.path">
-                            <Form.Label>User</Form.Label>
+                            <Form.Label>Parameters</Form.Label>
                             <Form.Control
                                 type="text"
                                 placeholder="parameters..."
@@ -169,7 +175,7 @@ const CamerasListView: React.FC = () => {
                         <Button onClick={() => {
                             cleanSelectedCam();
                             setShow(true);
-                        }}>New Node</Button>
+                        }}>New Camera</Button>
                     </Col>
                     <Col xs={5} >
                         <Form className="mr-left ">
@@ -179,10 +185,7 @@ const CamerasListView: React.FC = () => {
                                         <Form.Label>Filter</Form.Label>
                                     </Col>
                                     <Col xs={5}>
-                                        <Form.Control type="text" placeholder="node name..." />
-                                    </Col>
-                                    <Col xs={5}>
-                                        <Form.Control type="text" placeholder="parent node..." />
+                                        <Form.Control type="text" placeholder="cam name..." />
                                     </Col>
                                 </Row>
                             </Form.Group>
