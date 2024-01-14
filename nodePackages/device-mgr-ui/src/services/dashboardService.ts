@@ -2,8 +2,33 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 
 export type requestControlsInfo = {
-    pageCount: number;
-    pageSize: number;
+  pageCount: number;
+  pageSize: number;
+}
+
+export type requestControlByIdInfo = {
+  idControl: number;
+}
+
+// example of control template
+/*
+[{"idControlsTypes":1,"TypeName":"DIGITALOUTPUT","controlTemplate":"{\"idDevice\": \"REFERENCE\", \"onCmdStr\":
+\"FIELD\", \"apperance\": [\"TOGGLESWITCH\", \"BUTTON\"], \"offCmdStr\": \"FIELD\", \"updateCmdStr\":
+\"FIELD\"}"},{"idControlsTypes":2,"TypeName":"SENSORREAD","controlTemplate":"{\"idDevice\": \"REFERENCE\", \"lowLimit\":
+\"NUMBER\", \"apperance\": [\"TEXTVAL\", \"HBAR\", \"YBAR\", \"GAUGE\"], \"highLimit\": \"NUMBER\", \"updateCmdStr\":
+\"FIELD\"}"},{"idControlsTypes":3,"TypeName":"PLAINTEXT","controlTemplate":"{\"idDevice\": \"REFERENCE\", \"apperance\":
+[\"INPUTTEXT\", \"CONSOLE\"], \"updateCmdStr\":
+\"FIELD\"}"},{"idControlsTypes":4,"TypeName":"DIGITALINPUT","controlTemplate":"{\"idDevice\": \"REFERENCE\",
+\"apperance\": [\"LED\"], \"updateCmdStr\": \"FIELD\"}"}]
+*/
+export type controlType = {
+  idControlsTypes: number;
+  TypeName: string;
+  controlTemplate: string; //ToDo: a control template would be something when a control could be rented to display forms, match it as an object
+}
+
+export type getControlTypeRequestInfo = {
+  idControlType: number;
 }
 
 // Example of a control and parameters, some fields may change depending on the control configuration
@@ -11,6 +36,27 @@ export type requestControlsInfo = {
 \"getValue\"}","typename":"PLAINTEXT","idType":3,"username":"menymp","controlTemplate":"{\"idDevice\": \"REFERENCE\",
 \"apperance\": [\"INPUTTEXT\", \"CONSOLE\"], \"updateCmdStr\":
 \"FIELD\"}"}*/
+
+export type deleteControlInfo = {
+  idControl: number;
+}
+
+
+/*
+Example of id control template
+[{"controlTemplate":"{\"idDevice\": \"REFERENCE\", \"lowLimit\": \"NUMBER\", \"apperance\": [\"TEXTVAL\", \"HBAR\",
+\"YBAR\", \"GAUGE\"], \"highLimit\": \"NUMBER\", \"updateCmdStr\": \"FIELD\"}"}]
+*/
+export type controlTemplate = {
+  controlTemplate: string; /* ToDo: convert this string to object */
+}
+
+export type saveControlInfo = {
+  parameters: string;
+  idType: number;
+  Name: string;
+  idControl: number;
+}
 
 export type Control = {
     idControl: number;
@@ -24,21 +70,73 @@ export type Control = {
 
 // Define a service using a base URL and expected endpoints
 export const dashboardService = createApi({
-  reducerPath: 'cameraApi',
+  reducerPath: 'dashboardApi',
   baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:8080/DeviceNodeServer/phpWebApp/' }),
   endpoints: (builder) => ({
     fetchControls: builder.mutation<Array<Control> , requestControlsInfo>({
-      query: (requestCamsInfo) => ({
+      query: (requestControlsArgs) => ({
         url: 'dashboardService.php',
         method: 'POST',
         dataType: 'JSON',
         withcredentials: true,
-        body: {...requestCamsInfo, actionOption:"fetchControls", userId: parseInt(sessionStorage.getItem("userId") as string)}
-      }),
+        body: {...requestControlsArgs, actionOption:"fetchControls", userId: parseInt(sessionStorage.getItem("userId") as string)}
+      })
     }),
+    fetchControlById: builder.mutation<Array<Control> , requestControlByIdInfo>({
+      query: (requestControlByIdArgs) => ({
+        url: 'dashboardService.php',
+        method: 'POST',
+        dataType: 'JSON',
+        withcredentials: true,
+        body: {...requestControlByIdArgs, actionOption:"fetchControlById", userId: parseInt(sessionStorage.getItem("userId") as string)}
+      })
+    }),
+    fetchControlsTypes: builder.mutation<Array<controlType> , void>({
+      query: () => ({
+        url: 'dashboardService.php',
+        method: 'POST',
+        dataType: 'JSON',
+        withcredentials: true,
+        body: {actionOption:"fetchControlsTypes", userId: parseInt(sessionStorage.getItem("userId") as string)}
+      })
+    }),
+    getControlTypeTemplate: builder.mutation<Array<controlTemplate> , getControlTypeRequestInfo>({
+      query: (requestControlType) => ({
+        url: 'dashboardService.php',
+        method: 'POST',
+        dataType: 'JSON',
+        withcredentials: true,
+        body: {...requestControlType, actionOption:"getControlTypeTemplate", userId: parseInt(sessionStorage.getItem("userId") as string)}
+      })
+    }),
+    deleteControlById: builder.mutation<void , deleteControlInfo>({
+      query: (requestDeleteControlsArgs) => ({
+        url: 'dashboardService.php',
+        method: 'POST',
+        dataType: 'JSON',
+        withcredentials: true,
+        body: {...requestDeleteControlsArgs, actionOption:"deleteControlById", userId: parseInt(sessionStorage.getItem("userId") as string)}
+      })
+    }),
+    saveControl: builder.mutation<void , saveControlInfo>({
+      query: (requestSaveControlArgs) => ({
+        url: 'dashboardService.php',
+        method: 'POST',
+        dataType: 'JSON',
+        withcredentials: true,
+        body: {...requestSaveControlArgs, actionOption:"saveControl", userId: parseInt(sessionStorage.getItem("userId") as string)}
+      })
+    })
   })
 })
 
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
-export const { useFetchControlsMutation } = dashboardService
+export const { 
+  useFetchControlsMutation, 
+  useFetchControlByIdMutation, 
+  useFetchControlsTypesMutation, 
+  useGetControlTypeTemplateMutation, 
+  useDeleteControlByIdMutation, 
+  useSaveControlMutation 
+} = dashboardService
