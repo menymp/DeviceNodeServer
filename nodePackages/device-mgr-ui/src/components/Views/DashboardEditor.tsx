@@ -1,8 +1,10 @@
 import React from "react";
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
-import BaseTable from '../Table/Table'
+import BaseTable, { tableInit } from '../Table/Table'
 import { useNavigate } from "react-router-dom"
+import { useFetchControlsMutation } from "../../services/dashboardService";
+import { ITEM_LIST_DISPLAY_CNT } from "../../constants";
 
 
 enum DASHBOARD_EDITOR_VIEW {
@@ -12,20 +14,61 @@ enum DASHBOARD_EDITOR_VIEW {
     SPECIFIC_PARAMETERS
 }
 
+const initialTableState = {
+    headers: ['id', 'name', 'parameters', 'type'],
+    rows: [],
+    detailBtn: false,
+    deleteBtn: false,
+    editBtn: false,
+}
+
 const DashboardEditor: React.FC = () => {
     const [dashEditViewState, setDashEditView] = useState(DASHBOARD_EDITOR_VIEW.HIDE);
+    const [getControls, {isSuccess: controlsLoaded, data: controls}] = useFetchControlsMutation();
+
     const navigate = useNavigate();
+    const [page, setPage] = useState<number>(0);
+    const [displayControls, setDisplayControls] = useState<tableInit>(initialTableState);
+    const [selectedEditControl, setSelectedEditControl] = useState<control>();
 
     const selectDevice = () => {
         // selecting a device
     }
 
-    const tableContentExample = {
-        headers: ["header1", "header2", "header3", "header4"],
-        rows: [["1val1", "1val2", "1val3", "1var4"],["2val1", "2val2", "2val3", "2vr4"],["3val1", "3val2", "3val3","3var5"]],
-        editBtn: true,
-        editCallback: selectDevice
+    useEffect(() => {
+        if (!controlsLoaded || !controls.length) {
+            setDisplayControls(initialTableState);
+            return
+        }
+        //set ui fetched controls
+        const newTable = {
+            headers: ['id', 'name', 'parameters', 'type'],
+            rows: controls.map((control) => {return [control.idControl.toString(), control.name, control.parameters, control.typename]}),
+            detailBtn: false,
+            deleteBtn: false,
+            editBtn: true,
+            editCallback: (selectedNode) => {
+                handleEditNode(selectedNode[0]) 
+            }
+        } as tableInit
+        setDisplayControls(newTable);
+    }, [controlsLoaded, controls])
+
+    const handleEditNode = (idSelectControl: string) => {
+        const selectedEditControl = controls?.find((controlObj) => controlObj.idControl.toString() === idSelectControl)
+        if (selectedEditControl) {
+            setSelectedEditControl(selectedEditControl)
+            // setShow(true)
+        }
+        else
+        {
+            // setShow(false)
+        }
     }
+
+    useEffect(() => {
+        getControls({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT})
+    },[page]);
     // a pagination item already exists
     // ToDo: create a multi view modal for edit the current devices
     //       the following is the process for edition or creation
@@ -131,7 +174,7 @@ const DashboardEditor: React.FC = () => {
                             </Col>
                         </Row>
                         <Row>
-                            <Col><BaseTable {...tableContentExample}></BaseTable></Col>
+                            <Col><BaseTable {...displayControls}></BaseTable></Col>
                         </Row>
                     </Container>
                 </Modal.Body>
@@ -186,7 +229,7 @@ const DashboardEditor: React.FC = () => {
                     </Col>
                 </Row>
                 <Row>
-                    <Col><BaseTable {...tableContentExample}></BaseTable></Col>
+                    <Col><BaseTable {...displayControls}></BaseTable></Col>
                 </Row>
             </Container>
         </>
