@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable, { tableInit } from '../Table/Table'
 import { useNavigate } from "react-router-dom"
-import { useFetchControlsMutation } from "../../services/dashboardService";
+import { useFetchControlsMutation, Control } from "../../services/dashboardService";
 import { ITEM_LIST_DISPLAY_CNT } from "../../constants";
 
 
@@ -29,7 +29,7 @@ const DashboardEditor: React.FC = () => {
     const navigate = useNavigate();
     const [page, setPage] = useState<number>(0);
     const [displayControls, setDisplayControls] = useState<tableInit>(initialTableState);
-    const [selectedEditControl, setSelectedEditControl] = useState<control>();
+    const [selectedEditControl, setSelectedEditControl] = useState<Control>();
 
     const selectDevice = () => {
         // selecting a device
@@ -47,14 +47,14 @@ const DashboardEditor: React.FC = () => {
             detailBtn: false,
             deleteBtn: false,
             editBtn: true,
-            editCallback: (selectedNode) => {
-                handleEditNode(selectedNode[0]) 
+            editCallback: (selectedControl) => {
+                handleEditControl(selectedControl[0]) 
             }
         } as tableInit
         setDisplayControls(newTable);
     }, [controlsLoaded, controls])
 
-    const handleEditNode = (idSelectControl: string) => {
+    const handleEditControl = (idSelectControl: string) => {
         const selectedEditControl = controls?.find((controlObj) => controlObj.idControl.toString() === idSelectControl)
         if (selectedEditControl) {
             setSelectedEditControl(selectedEditControl)
@@ -96,6 +96,7 @@ const DashboardEditor: React.FC = () => {
                             <Form.Control
                                 type="text"
                                 placeholder="control name ..."
+                                defaultValue={selectedEditControl?.name}
                                 autoFocus
                             />
                         </Form.Group>
@@ -125,10 +126,11 @@ const DashboardEditor: React.FC = () => {
                 <Modal.Body>
                     <Form>
                         <Form.Group className="mb-3" controlId="controlDetails.name">
-                            <Form.Label>select a device</Form.Label>
+                            <Form.Label>select a link</Form.Label>
                             <Form.Control
                                 type="text"
-                                placeholder="selected device id ..."
+                                placeholder="selected control ..."
+                                defaultValue={selectedEditControl?.idControl}
                                 autoFocus
                             />
                         </Form.Group>
@@ -192,6 +194,25 @@ const DashboardEditor: React.FC = () => {
                     <Modal.Title>Control - Specific characteristics</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
+                <Form>
+                    <Form.Group className="mb-3" controlId="controlDetails.name">
+                        <Form.Label>control name</Form.Label>
+                            <Form.Control
+                                type="text"
+                                placeholder="control name ..."
+                                defaultValue={selectedEditControl?.idControl}
+                                autoFocus
+                            />
+                        </Form.Group>
+                        <Form.Group className="mb-3" controlId="controlDetails.type">
+                            <Form.Label>device id</Form.Label>
+                            <Form.Select aria-label="select type">
+                                            <option value="1">control1</option>
+                                            <option value="2">control2</option>
+                                            <option value="3">control3</option>
+                            </Form.Select>
+                        </Form.Group>
+                    </Form>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="primary" onClick={submitData}>
