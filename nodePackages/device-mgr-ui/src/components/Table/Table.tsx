@@ -11,12 +11,14 @@ export interface tableInit {
     detailCallback?: (selectedObject: string[]) => void,
     deleteBtn?: boolean,
     deleteCallback?: (selectedObject: string[]) => void,
-    editBtn?: boolean
+    editBtn?: boolean,
     editCallback?: (selectedObject: string[]) => void,
+    selectBtn?: boolean,
+    selectCallback?: (selectedObject: string[]) => void
 }
 
 const BaseTable: React.FC<tableInit> = (props) => {
-    const {headers, rows, detailBtn, deleteBtn, deleteCallback, detailCallback, editBtn, editCallback} = props
+    const {headers, rows, detailBtn, deleteBtn, deleteCallback, detailCallback, editBtn, editCallback, selectCallback, selectBtn} = props
     return (
         <Container>
             <Row className='p-3 mb-2 bg-dark bg-gradient text-white rounded-2'>
@@ -37,6 +39,11 @@ const BaseTable: React.FC<tableInit> = (props) => {
                 }
                 {
                     deleteBtn === true ? 
+                        <Col></Col> : null
+
+                }
+                {
+                    selectBtn === true ? 
                         <Col></Col> : null
 
                 }
@@ -62,6 +69,11 @@ const BaseTable: React.FC<tableInit> = (props) => {
                         {
                             deleteBtn === true ? 
                                 <Col><Button onClick={() => { deleteCallback && deleteCallback(columns)}}>Delete</Button></Col> : null
+
+                        }
+                        {
+                            selectBtn === true ? 
+                                <Col><Button onClick={() => { selectCallback && selectCallback(columns)}}>Select</Button></Col> : null
 
                         }
                     </Row>

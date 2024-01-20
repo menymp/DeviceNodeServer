@@ -4,6 +4,7 @@ import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable, { tableInit } from '../Table/Table'
 import { useNavigate } from "react-router-dom"
 import { useFetchControlsMutation, Control } from "../../services/dashboardService";
+import { useFetchDevicesMutation, useFetchDeviceByIdMutation, device } from '../../services/deviceService'
 import { ITEM_LIST_DISPLAY_CNT } from "../../constants";
 
 
@@ -22,21 +23,53 @@ const initialTableState = {
     editBtn: false,
 }
 
+const intDevicesTable = {
+    headers: ['id', 'name', 'mode', 'type', 'path', 'node name'],
+    rows: [],
+    detailBtn: false,
+    deleteBtn: false,
+    editBtn: false,
+    selectBtn: false,
+}
+
 const DashboardEditor: React.FC = () => {
     const [dashEditViewState, setDashEditView] = useState(DASHBOARD_EDITOR_VIEW.HIDE);
     const [getControls, {isSuccess: controlsLoaded, data: controls}] = useFetchControlsMutation();
 
     const navigate = useNavigate();
     const [page, setPage] = useState<number>(0);
+    const [devicePage, setDevicePage] = useState<number>(0);
     const [displayControls, setDisplayControls] = useState<tableInit>(initialTableState);
     const [selectedEditControl, setSelectedEditControl] = useState<Control>();
+    const [devicesDisplay, setDevicesDisplay] = useState<tableInit>(intDevicesTable)
+    const [getDevices] = useFetchDevicesMutation()
+    const [selectedDeviceId, setSelectedDeviceId] = useState<string>('')
 
-    const selectDevice = () => {
-        // selecting a device
+    const cleanSelectedDevice = () => {
+        setSelectedEditControl({idControl: -1, parameters: '', name: '', typename: '', idType: -1, username: '', controlTemplate: ''})
     }
 
     useEffect(() => {
-        if (!controlsLoaded || !controls.length) {
+        fetchDevices()
+    },[devicePage])
+
+    const fetchDevices = async () => {
+        try {
+            const devices = await getDevices({pageCount: devicePage, pageSize: ITEM_LIST_DISPLAY_CNT}).unwrap()
+            const newTable = {
+                headers: ['Device id', 'Name', 'Mode', 'Type', 'Path', 'Parent node'],
+                rows: devices.map((device) => {return [device.idDevices.toString(), device.name, device.mode, device.type, device.channelPath, device.nodeName]}),
+                selectBtn: true,
+                selectCallback: (devDetails) => { setSelectedDeviceId(devDetails[0]) }
+            } as tableInit
+            setDevicesDisplay(newTable)
+        } catch (error) {
+            console.log(error);
+        }
+    }
+
+    useEffect(() => {
+        if (!controlsLoaded || !controls || !controls.length) {
             setDisplayControls(initialTableState);
             return
         }
@@ -58,11 +91,11 @@ const DashboardEditor: React.FC = () => {
         const selectedEditControl = controls?.find((controlObj) => controlObj.idControl.toString() === idSelectControl)
         if (selectedEditControl) {
             setSelectedEditControl(selectedEditControl)
-            // setShow(true)
+            setDashEditView(DASHBOARD_EDITOR_VIEW.INIT_DATA)
         }
         else
         {
-            // setShow(false)
+            setDashEditView(DASHBOARD_EDITOR_VIEW.HIDE)
         }
     }
 
@@ -85,7 +118,7 @@ const DashboardEditor: React.FC = () => {
     
     return(
         <>
-            <Modal show={dashEditViewState == DASHBOARD_EDITOR_VIEW.INIT_DATA} onHide={hideEditor}>
+            <Modal show={dashEditViewState === DASHBOARD_EDITOR_VIEW.INIT_DATA} onHide={hideEditor}>
                 <Modal.Header closeButton>
                     <Modal.Title>Control - General characteristics</Modal.Title>
                 </Modal.Header>
@@ -119,7 +152,7 @@ const DashboardEditor: React.FC = () => {
                     </Button>
                 </Modal.Footer>
             </Modal>
-            <Modal dialogClassName="width: 70%" show={dashEditViewState == DASHBOARD_EDITOR_VIEW.LINK_DEVICE} onHide={hideEditor}>
+            <Modal dialogClassName="width: 70%" show={dashEditViewState === DASHBOARD_EDITOR_VIEW.LINK_DEVICE} onHide={hideEditor}>
                 <Modal.Header closeButton>
                     <Modal.Title>Control - Link a device</Modal.Title>
                 </Modal.Header>
@@ -130,7 +163,7 @@ const DashboardEditor: React.FC = () => {
                             <Form.Control
                                 type="text"
                                 placeholder="selected control ..."
-                                defaultValue={selectedEditControl?.idControl}
+                                value={selectedDeviceId}
                                 autoFocus
                             />
                         </Form.Group>
@@ -161,14 +194,14 @@ const DashboardEditor: React.FC = () => {
                                 <Form className="mr-left ">
                                     <Form.Group className="mb-3 form-check-inline" controlId="searchFilterField">
                                         <Row xs={12}>
-                                            <Col xs={5}>
-                                                <Button>Next page</Button>
+                                            <Col xs={6}>
+                                                <Button onClick={() =>{devicePage && setDevicePage(devicePage - 1)}}>Previous page</Button>
                                             </Col>
                                             <Col xs={1}>
-                                                <Form.Label> 10 </Form.Label>
+                                                <Form.Label>{devicePage}</Form.Label>
                                             </Col>
-                                            <Col xs={6}>
-                                                <Button>Previous page</Button>
+                                            <Col xs={5}>
+                                                <Button onClick={()=>{setDevicePage(devicePage + 1)}}>Next page</Button>
                                             </Col>
                                         </Row>
                                     </Form.Group>
@@ -176,7 +209,7 @@ const DashboardEditor: React.FC = () => {
                             </Col>
                         </Row>
                         <Row>
-                            <Col><BaseTable {...displayControls}></BaseTable></Col>
+                            <Col><BaseTable {...devicesDisplay}></BaseTable></Col>
                         </Row>
                     </Container>
                 </Modal.Body>
@@ -189,7 +222,7 @@ const DashboardEditor: React.FC = () => {
                     </Button>
                 </Modal.Footer>
             </Modal>
-            <Modal show={dashEditViewState == DASHBOARD_EDITOR_VIEW.SPECIFIC_PARAMETERS} onHide={hideEditor}>
+            <Modal show={dashEditViewState === DASHBOARD_EDITOR_VIEW.SPECIFIC_PARAMETERS} onHide={hideEditor}>
                 <Modal.Header closeButton>
                     <Modal.Title>Control - Specific characteristics</Modal.Title>
                 </Modal.Header>
@@ -226,7 +259,10 @@ const DashboardEditor: React.FC = () => {
             <Container >
                 <Row className="p-3 mb-2 bg-success bg-gradient text-white rounded-3">
                     <Col xs={2}>
-                        <Button onClick={ () => { setDashEditView(DASHBOARD_EDITOR_VIEW.INIT_DATA)}}>New element</Button>
+                        <Button onClick={ () => { 
+                            cleanSelectedDevice()
+                            setDashEditView(DASHBOARD_EDITOR_VIEW.INIT_DATA)
+                            }}>New element</Button>
                     </Col>
                     <Col xs={2}>
                         <Button onClick={() => { navigate('/Dashboard') }}>Dashboard view</Button>
@@ -235,14 +271,14 @@ const DashboardEditor: React.FC = () => {
                         <Form className="mr-left ">
                             <Form.Group className="mb-3 form-check-inline" controlId="searchFilterField">
                                 <Row xs={12}>
-                                    <Col xs={5}>
-                                        <Button>Next page</Button>
+                                    <Col xs={6}>
+                                        <Button onClick={()=>{page && setPage(page - 1)}}>Previous page</Button>
                                     </Col>
                                     <Col xs={1}>
-                                        <Form.Label> 10 </Form.Label>
+                                        <Form.Label>{page}</Form.Label>
                                     </Col>
-                                    <Col xs={6}>
-                                        <Button>Previous page</Button>
+                                    <Col xs={5}>
+                                        <Button onClick={()=>{setPage(page + 1)}}>Next page</Button>
                                     </Col>
                                 </Row>
                             </Form.Group>
