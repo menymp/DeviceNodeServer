@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable, { tableInit } from '../Table/Table'
 import { useNavigate } from "react-router-dom"
-import { useFetchControlsMutation, Control } from "../../services/dashboardService";
+import { useFetchControlsMutation, Control, useFetchControlsTypesMutation, useGetControlTypeTemplateMutation, getControlTypeRequestInfo } from "../../services/dashboardService";
 import { useFetchDevicesMutation, useFetchDeviceByIdMutation, device } from '../../services/deviceService'
 import { ITEM_LIST_DISPLAY_CNT } from "../../constants";
 
@@ -35,6 +35,8 @@ const intDevicesTable = {
 const DashboardEditor: React.FC = () => {
     const [dashEditViewState, setDashEditView] = useState(DASHBOARD_EDITOR_VIEW.HIDE);
     const [getControls, {isSuccess: controlsLoaded, data: controls}] = useFetchControlsMutation();
+    const [getControlTypes, {isSuccess: controlTypesLoaded, data: availableControlTypes}] = useFetchControlsTypesMutation();
+    const [getControlTypeTemplate, {isSuccess: controlTypeTemplateLoaded, data: controlTypeTemplate}] = useGetControlTypeTemplateMutation();
 
     const navigate = useNavigate();
     const [page, setPage] = useState<number>(0);
@@ -45,13 +47,31 @@ const DashboardEditor: React.FC = () => {
     const [getDevices] = useFetchDevicesMutation()
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>('')
 
+    const [controlTypeSelected, setControlTypeSelected] = useState<number>(-1);
+    const handleChangeControlType = (event: React.ChangeEvent<HTMLSelectElement>) => setControlTypeSelected(parseInt(event.target.value)); //ToDo: perform validations
+
     const cleanSelectedDevice = () => {
         setSelectedEditControl({idControl: -1, parameters: '', name: '', typename: '', idType: -1, username: '', controlTemplate: ''})
     }
 
     useEffect(() => {
         fetchDevices()
+        getControlTypes()
     },[devicePage])
+
+    useEffect(() => {
+        if (!controlTypeSelected || controlTypeSelected == -1) {
+            return
+        }
+        getControlTypeTemplate({ idControlType: controlTypeSelected} as getControlTypeRequestInfo)
+    }, [controlTypeSelected])
+
+    useEffect(() => {
+        if (!controlTypeTemplate || !controlTypeTemplateLoaded) {
+            return
+        }
+        // build a control template and display it on the UI
+    }, [controlTypeTemplateLoaded, controlTypeTemplate])
 
     const fetchDevices = async () => {
         try {
@@ -118,7 +138,7 @@ const DashboardEditor: React.FC = () => {
     
     return(
         <>
-            <Modal show={dashEditViewState === DASHBOARD_EDITOR_VIEW.INIT_DATA} onHide={hideEditor}>
+            <Modal className="modal-xl" show={dashEditViewState === DASHBOARD_EDITOR_VIEW.INIT_DATA} onHide={hideEditor}>
                 <Modal.Header closeButton>
                     <Modal.Title>Control - General characteristics</Modal.Title>
                 </Modal.Header>
@@ -135,11 +155,12 @@ const DashboardEditor: React.FC = () => {
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="controlDetails.type">
                             <Form.Label>device id</Form.Label>
-                            <Form.Select aria-label="select type">
-                                            <option value="1">control1</option>
-                                            <option value="2">control2</option>
-                                            <option value="3">control3</option>
-                            </Form.Select>
+                            <Form.Control
+                                type="text"
+                                placeholder="control id..."
+                                defaultValue={selectedEditControl?.idControl}
+                                autoFocus
+                            />
                         </Form.Group>
                     </Form>
                 </Modal.Body>
@@ -152,7 +173,7 @@ const DashboardEditor: React.FC = () => {
                     </Button>
                 </Modal.Footer>
             </Modal>
-            <Modal dialogClassName="width: 70%" show={dashEditViewState === DASHBOARD_EDITOR_VIEW.LINK_DEVICE} onHide={hideEditor}>
+            <Modal className="modal-xl" dialogClassName="width: 70%" show={dashEditViewState === DASHBOARD_EDITOR_VIEW.LINK_DEVICE} onHide={hideEditor}>
                 <Modal.Header closeButton>
                     <Modal.Title>Control - Link a device</Modal.Title>
                 </Modal.Header>
@@ -214,6 +235,9 @@ const DashboardEditor: React.FC = () => {
                     </Container>
                 </Modal.Body>
                 <Modal.Footer>
+                    <Button variant="primary" onClick={() => { setDashEditView(DASHBOARD_EDITOR_VIEW.INIT_DATA) }}>
+                        Previous
+                    </Button>
                     <Button variant="primary" onClick={() => { setDashEditView(DASHBOARD_EDITOR_VIEW.SPECIFIC_PARAMETERS) }}>
                         Next
                     </Button>
@@ -222,32 +246,24 @@ const DashboardEditor: React.FC = () => {
                     </Button>
                 </Modal.Footer>
             </Modal>
-            <Modal show={dashEditViewState === DASHBOARD_EDITOR_VIEW.SPECIFIC_PARAMETERS} onHide={hideEditor}>
+            <Modal className="modal-xl" show={dashEditViewState === DASHBOARD_EDITOR_VIEW.SPECIFIC_PARAMETERS} onHide={hideEditor}>
                 <Modal.Header closeButton>
                     <Modal.Title>Control - Specific characteristics</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                <Form>
-                    <Form.Group className="mb-3" controlId="controlDetails.name">
-                        <Form.Label>control name</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="control name ..."
-                                defaultValue={selectedEditControl?.idControl}
-                                autoFocus
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3" controlId="controlDetails.type">
-                            <Form.Label>device id</Form.Label>
-                            <Form.Select aria-label="select type">
-                                            <option value="1">control1</option>
-                                            <option value="2">control2</option>
-                                            <option value="3">control3</option>
+                    <Form>
+                        <Form.Group className="mb-3" controlId="controltype.protocol">
+                            <Form.Label>Control type</Form.Label>
+                            <Form.Select onChange={handleChangeControlType} id="selectedProtocolItem">
+                                {availableControlTypes?.map((value, index) => { return <option id={`${index}`} value={value.idControlsTypes}>{value.TypeName}</option>})}
                             </Form.Select>
                         </Form.Group>
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>
+                    <Button variant="primary" onClick={() => { setDashEditView(DASHBOARD_EDITOR_VIEW.LINK_DEVICE) }}>
+                        Previous
+                    </Button>
                     <Button variant="primary" onClick={submitData}>
                         Next
                     </Button>
