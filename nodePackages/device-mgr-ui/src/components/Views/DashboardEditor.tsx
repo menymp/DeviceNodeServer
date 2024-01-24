@@ -52,6 +52,7 @@ const DashboardEditor: React.FC = () => {
 
     const cleanSelectedDevice = () => {
         setSelectedEditControl({idControl: -1, parameters: '', name: '', typename: '', idType: -1, username: '', controlTemplate: ''})
+        setSelectedDeviceId('')
     }
 
     useEffect(() => {

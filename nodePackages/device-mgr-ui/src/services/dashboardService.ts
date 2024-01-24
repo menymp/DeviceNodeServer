@@ -21,10 +21,27 @@ export type requestControlByIdInfo = {
 \"FIELD\"}"},{"idControlsTypes":4,"TypeName":"DIGITALINPUT","controlTemplate":"{\"idDevice\": \"REFERENCE\",
 \"apperance\": [\"LED\"], \"updateCmdStr\": \"FIELD\"}"}]
 */
+
+/*
+Example of id control template
+[{"controlTemplate":"{\"idDevice\": \"REFERENCE\", \"lowLimit\": \"NUMBER\", \"apperance\": [\"TEXTVAL\", \"HBAR\",
+\"YBAR\", \"GAUGE\"], \"highLimit\": \"NUMBER\", \"updateCmdStr\": \"FIELD\"}"}]
+*/
+/* ToDo: define each type in extenal file */
+export type controlTemplateType = {
+  idDevice: string; // REFERENCE
+
+
+}
+
+export type controlTemplate = {
+  controlTemplate: controlTemplateType; /* ToDo: convert this string to object */
+}
+
 export type controlType = {
   idControlsTypes: number;
-  TypeName: string;
-  controlTemplate: string; //ToDo: a control template would be something when a control could be rented to display forms, match it as an object
+  TypeName: string;  // DIGITALOUTPUT, DIGITALINPUT, SENSORREAD, PLAINTEXT
+  controlTemplate: controlTemplate
 }
 
 export type getControlTypeRequestInfo = {
@@ -39,16 +56,6 @@ export type getControlTypeRequestInfo = {
 
 export type deleteControlInfo = {
   idControl: number;
-}
-
-
-/*
-Example of id control template
-[{"controlTemplate":"{\"idDevice\": \"REFERENCE\", \"lowLimit\": \"NUMBER\", \"apperance\": [\"TEXTVAL\", \"HBAR\",
-\"YBAR\", \"GAUGE\"], \"highLimit\": \"NUMBER\", \"updateCmdStr\": \"FIELD\"}"}]
-*/
-export type controlTemplate = {
-  controlTemplate: string; /* ToDo: convert this string to object */
 }
 
 export type saveControlInfo = {
