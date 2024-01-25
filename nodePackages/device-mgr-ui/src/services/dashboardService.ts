@@ -28,14 +28,26 @@ Example of id control template
 \"YBAR\", \"GAUGE\"], \"highLimit\": \"NUMBER\", \"updateCmdStr\": \"FIELD\"}"}]
 */
 /* ToDo: define each type in extenal file */
-export type controlTemplateType = {
+export type controlTemplateGenericMembers = {
   idDevice: string; // REFERENCE
+  apperance: Array<string>;
+  updateCmdStr: string; // FIELD
+}
 
+export enum SUPPORTED_TYPENAMES {
+  DIGITALOUTPUT = "DIGITALOUTPUT",
+  DIGITALINPUT = "DIGITALINPUT",
+  SENSORREAD = "SENSORREAD",
+  PLAINTEXT = "PLAINTEXT"
+}
 
+export enum TEMPLATE_FIEL_TYPE {
+  REFERENCE = "REFERENCE",
+  FIELD = "FIELD",
 }
 
 export type controlTemplate = {
-  controlTemplate: controlTemplateType; /* ToDo: convert this string to object */
+  controlTemplate: controlTemplateGenericMembers; /* ToDo: convert this string to object */
 }
 
 export type controlType = {

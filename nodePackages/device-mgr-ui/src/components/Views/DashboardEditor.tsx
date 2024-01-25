@@ -74,6 +74,19 @@ const DashboardEditor: React.FC = () => {
         // build a control template and display it on the UI
     }, [controlTypeTemplateLoaded, controlTypeTemplate])
 
+    const renderControlTypeTemplate = (controlBaseTemplate: string) => {
+        try {
+            const parsedTemplate = JSON.parse(controlBaseTemplate);
+            for (const keyProp in parsedTemplate) {
+                // render a control with keyProp name and contents of key
+                // if its an array, render it as a dropdown menu!!!!
+            }
+            //for each member in
+        } catch {
+            //nothing to be done
+        }
+    }
+
     const fetchDevices = async () => {
         try {
             const devices = await getDevices({pageCount: devicePage, pageSize: ITEM_LIST_DISPLAY_CNT}).unwrap()
