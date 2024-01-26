@@ -47,7 +47,7 @@ export enum TEMPLATE_FIEL_TYPE {
 }
 
 export type controlTemplate = {
-  controlTemplate: controlTemplateGenericMembers; /* ToDo: convert this string to object */
+  controlTemplate: string; /* ToDo: convert this string to object */
 }
 
 export type controlType = {

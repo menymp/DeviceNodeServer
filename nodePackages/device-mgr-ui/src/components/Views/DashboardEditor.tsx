@@ -3,9 +3,10 @@ import { useEffect, useState } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable, { tableInit } from '../Table/Table'
 import { useNavigate } from "react-router-dom"
-import { useFetchControlsMutation, Control, useFetchControlsTypesMutation, useGetControlTypeTemplateMutation, getControlTypeRequestInfo } from "../../services/dashboardService";
+import { useFetchControlsMutation, Control, useFetchControlsTypesMutation, useGetControlTypeTemplateMutation, getControlTypeRequestInfo, useFetchControlByIdMutation } from "../../services/dashboardService";
 import { useFetchDevicesMutation, useFetchDeviceByIdMutation, device } from '../../services/deviceService'
 import { ITEM_LIST_DISPLAY_CNT } from "../../constants";
+import { current } from "@reduxjs/toolkit";
 
 
 enum DASHBOARD_EDITOR_VIEW {
@@ -36,6 +37,7 @@ const DashboardEditor: React.FC = () => {
     const [dashEditViewState, setDashEditView] = useState(DASHBOARD_EDITOR_VIEW.HIDE);
     const [getControls, {isSuccess: controlsLoaded, data: controls}] = useFetchControlsMutation();
     const [getControlTypes, {isSuccess: controlTypesLoaded, data: availableControlTypes}] = useFetchControlsTypesMutation();
+    const [getControlById, {isSuccess: controlByIdLoaded, data: controlById}] = useFetchControlByIdMutation();
     const [getControlTypeTemplate, {isSuccess: controlTypeTemplateLoaded, data: controlTypeTemplate}] = useGetControlTypeTemplateMutation();
 
     const navigate = useNavigate();
@@ -56,7 +58,7 @@ const DashboardEditor: React.FC = () => {
     }
 
     useEffect(() => {
-        fetchDevices()
+        // fetchDevices()
         getControlTypes()
     },[devicePage])
 
@@ -65,21 +67,132 @@ const DashboardEditor: React.FC = () => {
             return
         }
         getControlTypeTemplate({ idControlType: controlTypeSelected} as getControlTypeRequestInfo)
+        if (selectedEditControl && selectedEditControl?.idControl != -1) {
+            getControlById({ idControl: selectedEditControl?.idControl})
+        }
     }, [controlTypeSelected])
 
     useEffect(() => {
         if (!controlTypeTemplate || !controlTypeTemplateLoaded) {
             return
         }
+        renderControlTypeTemplate(controlTypeTemplate[0].controlTemplate, controlById && controlById[0].parameters)
         // build a control template and display it on the UI
-    }, [controlTypeTemplateLoaded, controlTypeTemplate])
+    }, [controlTypeTemplateLoaded, controlTypeTemplate, controlByIdLoaded])
 
-    const renderControlTypeTemplate = (controlBaseTemplate: string) => {
+    const parseJsonInputData = (data: string) => {
+        var decodedData = JSON.parse(data);
+        if("Message" in decodedData)
+        {
+            //alert(decodedData['Message']);
+            $('#outputMessage').text(decodedData['Message']);
+        }
+        return decodedData;
+    }
+
+    const renderControlTypeTemplate = (controlBaseTemplate: string, currentValues: string | undefined) => {
         try {
+            ////BLOCK UNDER PORTING WORK IN PROGRESS////
             const parsedTemplate = JSON.parse(controlBaseTemplate);
-            for (const keyProp in parsedTemplate) {
+            const parsedObjectValues = currentValues && JSON.parse(currentValues);
+            for (const field in parsedTemplate) {
                 // render a control with keyProp name and contents of key
                 // if its an array, render it as a dropdown menu!!!!
+                let fieldType = parsedObject[field];
+                let fieldBaseType = typeof(fieldType);
+
+                switch(parsedTemplate[field]) {
+                    case 'REFERENCE':
+                        var input = document.createElement('input');
+                        input.name = field;
+                        input.id = field;
+                        input.disabled = true;
+                        input.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
+                        input.setAttribute("parameterType", fieldType);//tags the element as part of the parameter object
+                        if(currentValues && (typeof parseJsonInputData(parsedObjectValues["parameters"])[field] != "undefined"))/*init with data if exists*/
+                        {
+                            input.value = parseJsonInputData(parsedObjectValues["parameters"])[field];
+                        }
+                        var b = document.createElement("b");
+                        b.setAttribute("parameterText","true");
+                        b.innerHTML = field + ": "
+                        $("#fieldsForm").append(b);
+                        $("#fieldsForm").append(input);
+                        var br = document.createElement("br");
+                        br.setAttribute("parameterText","true");
+                        $("#fieldsForm").append(br);
+                    break;
+                    case 'FIELD':
+                        var input = document.createElement('input');
+                        input.name = field;
+                        input.id =  field;
+                        input.disabled = false;
+        
+                        input.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
+                        input.setAttribute("parameterType", fieldType);//sets the type of field expected
+                        if(currentValues && (typeof parseJsonInputData(parsedObjectValues["parameters"])[field] != "undefined"))/*init with data if exists*/
+                        {
+                            input.value = parseJsonInputData(parsedObjectValues["parameters"])[field];
+                        }
+                        var b = document.createElement("b");
+                        b.setAttribute("parameterText","true");
+                        b.innerHTML = field + ": "
+                        $("#fieldsForm").append(b);				
+                        $("#fieldsForm").append(input);
+                        var br = document.createElement("br");
+                        br.setAttribute("parameterText","true");
+                        $("#fieldsForm").append(br);
+                    break;
+                    case 'NUMBER':
+                        var input = document.createElement('input');
+                        input.name = field;
+                        input.id = field;
+                        input.disabled = true;/*a check should be performed for numeric valid values*/
+                        input.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
+                        input.setAttribute("parameterType", "SELECTOR");//sets the type of field expected
+                        if(currentValues && (typeof parseJsonInputData(parsedObjectValues["parameters"])[field] != "undefined"))/*init with data if exists*/
+                        {
+                            input.value = parseJsonInputData(parsedObjectValues["parameters"])[field];
+                        }
+                        var b = document.createElement("b");
+                        b.setAttribute("parameterText","true");
+                        b.innerHTML = field + ": "
+                        $("#fieldsForm").append(b);
+                        $("#fieldsForm").append(input);
+                        var br = document.createElement("br");
+                        br.setAttribute("parameterText","true");
+                        $("#fieldsForm").append(br);
+                    break;
+                    default:
+                    /*check if array case*/
+                    if(fieldBaseType == "object"){
+                        var sel = document.createElement('select');
+                        sel.name = field;
+                        sel.id = field;
+                        sel.disabled = false;
+                        sel.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
+                        sel.setAttribute("parameterType", "SELECTOR");//sets the type of field expected
+                        var options_str = "";
+                        fieldType.forEach( function(value) {
+                            options_str += '<option value="' + value + '">' + value + '</option>';
+                        });
+                        sel.innerHTML = options_str;
+                        
+                        if(currentValues && (typeof parseJsonInputData(parsedObjectValues["parameters"])[field] != "undefined"))/*init with data if exists*/
+                        {
+                            sel.value = parseJsonInputData(parsedObjectValues["parameters"])[field];
+                        }
+                        var b = document.createElement("b");
+                        b.setAttribute("parameterText","true");
+                        b.innerHTML = field + ": "
+                        $("#fieldsForm").append(b);
+                        $("#fieldsForm").append(sel);
+                        var br = document.createElement("br");
+                        br.setAttribute("parameterText","true");
+                        br.setAttribute("parameterText","true");
+                        $("#fieldsForm").append(br);
+                    }
+                    break;
             }
             //for each member in
         } catch {
