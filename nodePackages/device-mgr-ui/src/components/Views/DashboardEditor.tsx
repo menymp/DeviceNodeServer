@@ -84,8 +84,9 @@ const DashboardEditor: React.FC = () => {
         var decodedData = JSON.parse(data);
         if("Message" in decodedData)
         {
-            //alert(decodedData['Message']);
-            $('#outputMessage').text(decodedData['Message']);
+            // alert(decodedData['Message']);
+            // ToDo: use a proper log
+            console.log(decodedData['Message']);
         }
         return decodedData;
     }
@@ -93,13 +94,18 @@ const DashboardEditor: React.FC = () => {
     const renderControlTypeTemplate = (controlBaseTemplate: string, currentValues: string | undefined) => {
         try {
             ////BLOCK UNDER PORTING WORK IN PROGRESS////
+            /*builds the current device template*/
+            //name field is generic for every control
             const parsedTemplate = JSON.parse(controlBaseTemplate);
             const parsedObjectValues = currentValues && JSON.parse(currentValues);
-            for (const field in parsedTemplate) {
+            const listElements = Object.keys(parsedTemplate); // get list of keys
+            //map all the keys in the template
+            const uiElements = listElements.map((field) => {
                 // render a control with keyProp name and contents of key
                 // if its an array, render it as a dropdown menu!!!!
-                let fieldType = parsedObject[field];
+                let fieldType = parsedTemplate[field];
                 let fieldBaseType = typeof(fieldType);
+                const containerDiv = document.createElement('div');
 
                 switch(parsedTemplate[field]) {
                     case 'REFERENCE':
@@ -109,18 +115,18 @@ const DashboardEditor: React.FC = () => {
                         input.disabled = true;
                         input.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
                         input.setAttribute("parameterType", fieldType);//tags the element as part of the parameter object
-                        if(currentValues && (typeof parseJsonInputData(parsedObjectValues["parameters"])[field] != "undefined"))/*init with data if exists*/
+                        if(parsedObjectValues[field])/*init with data if exists*/
                         {
-                            input.value = parseJsonInputData(parsedObjectValues["parameters"])[field];
+                            input.value = parsedObjectValues[field];
                         }
                         var b = document.createElement("b");
                         b.setAttribute("parameterText","true");
                         b.innerHTML = field + ": "
-                        $("#fieldsForm").append(b);
-                        $("#fieldsForm").append(input);
+                        containerDiv.append(b);
+                        containerDiv.append(input);
                         var br = document.createElement("br");
                         br.setAttribute("parameterText","true");
-                        $("#fieldsForm").append(br);
+                        containerDiv.append(br);
                     break;
                     case 'FIELD':
                         var input = document.createElement('input');
@@ -130,18 +136,18 @@ const DashboardEditor: React.FC = () => {
         
                         input.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
                         input.setAttribute("parameterType", fieldType);//sets the type of field expected
-                        if(currentValues && (typeof parseJsonInputData(parsedObjectValues["parameters"])[field] != "undefined"))/*init with data if exists*/
+                        if(parsedObjectValues[field])/*init with data if exists*/
                         {
-                            input.value = parseJsonInputData(parsedObjectValues["parameters"])[field];
+                            input.value = parsedObjectValues[field];
                         }
                         var b = document.createElement("b");
                         b.setAttribute("parameterText","true");
                         b.innerHTML = field + ": "
-                        $("#fieldsForm").append(b);				
-                        $("#fieldsForm").append(input);
+                        containerDiv.append(b);				
+                        containerDiv.append(input);
                         var br = document.createElement("br");
                         br.setAttribute("parameterText","true");
-                        $("#fieldsForm").append(br);
+                        containerDiv.append(br);
                     break;
                     case 'NUMBER':
                         var input = document.createElement('input');
@@ -150,18 +156,18 @@ const DashboardEditor: React.FC = () => {
                         input.disabled = true;/*a check should be performed for numeric valid values*/
                         input.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
                         input.setAttribute("parameterType", "SELECTOR");//sets the type of field expected
-                        if(currentValues && (typeof parseJsonInputData(parsedObjectValues["parameters"])[field] != "undefined"))/*init with data if exists*/
+                        if(parsedObjectValues[field])/*init with data if exists*/
                         {
-                            input.value = parseJsonInputData(parsedObjectValues["parameters"])[field];
+                            input.value = parsedObjectValues[field];
                         }
                         var b = document.createElement("b");
                         b.setAttribute("parameterText","true");
                         b.innerHTML = field + ": "
-                        $("#fieldsForm").append(b);
-                        $("#fieldsForm").append(input);
+                        containerDiv.append(b);
+                        containerDiv.append(input);
                         var br = document.createElement("br");
                         br.setAttribute("parameterText","true");
-                        $("#fieldsForm").append(br);
+                        containerDiv.append(br);
                     break;
                     default:
                     /*check if array case*/
@@ -173,28 +179,30 @@ const DashboardEditor: React.FC = () => {
                         sel.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
                         sel.setAttribute("parameterType", "SELECTOR");//sets the type of field expected
                         var options_str = "";
-                        fieldType.forEach( function(value) {
+                        fieldType.forEach( function(value: string) {
                             options_str += '<option value="' + value + '">' + value + '</option>';
                         });
                         sel.innerHTML = options_str;
                         
-                        if(currentValues && (typeof parseJsonInputData(parsedObjectValues["parameters"])[field] != "undefined"))/*init with data if exists*/
+                        if(parsedObjectValues[field])/*init with data if exists*/
                         {
-                            sel.value = parseJsonInputData(parsedObjectValues["parameters"])[field];
+                            sel.value = parsedObjectValues[field];
                         }
                         var b = document.createElement("b");
                         b.setAttribute("parameterText","true");
                         b.innerHTML = field + ": "
-                        $("#fieldsForm").append(b);
-                        $("#fieldsForm").append(sel);
+                        containerDiv.append(b);
+                        containerDiv.append(sel);
                         var br = document.createElement("br");
                         br.setAttribute("parameterText","true");
                         br.setAttribute("parameterText","true");
-                        $("#fieldsForm").append(br);
+                        containerDiv.append(br);
                     }
                     break;
-            }
-            //for each member in
+                }
+                return containerDiv;
+            });
+            return uiElements;
         } catch {
             //nothing to be done
         }
@@ -385,6 +393,10 @@ const DashboardEditor: React.FC = () => {
                                 {availableControlTypes?.map((value, index) => { return <option id={`${index}`} value={value.idControlsTypes}>{value.TypeName}</option>})}
                             </Form.Select>
                         </Form.Group>
+                        {selectedEditControl?.controlTemplate && 
+                            renderControlTypeTemplate(selectedEditControl?.controlTemplate,selectedEditControl?.parameters)?.map((element) => {
+                                return <Container child={ element }/>; // todo, how???
+                        })}
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>
