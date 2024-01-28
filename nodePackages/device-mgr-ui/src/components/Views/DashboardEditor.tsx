@@ -7,6 +7,8 @@ import { useFetchControlsMutation, Control, useFetchControlsTypesMutation, useGe
 import { useFetchDevicesMutation, useFetchDeviceByIdMutation, device } from '../../services/deviceService'
 import { ITEM_LIST_DISPLAY_CNT } from "../../constants";
 import { current } from "@reduxjs/toolkit";
+import ReactDOM from 'react-dom';
+import { renderToStaticMarkup } from "react-dom/server"
 
 
 enum DASHBOARD_EDITOR_VIEW {
@@ -200,6 +202,8 @@ const DashboardEditor: React.FC = () => {
                     }
                     break;
                 }
+                //// Refer to the last answer, it seems that i need to do something like this
+                // https://stackoverflow.com/questions/69185915/how-to-cast-an-htmlelement-to-a-react-element
                 return containerDiv;
             });
             return uiElements;
@@ -393,10 +397,26 @@ const DashboardEditor: React.FC = () => {
                                 {availableControlTypes?.map((value, index) => { return <option id={`${index}`} value={value.idControlsTypes}>{value.TypeName}</option>})}
                             </Form.Select>
                         </Form.Group>
+                        <Form.Group className="mb-3" controlId="controltype.test">
+                            <Form.Label>Test basic html element</Form.Label>
+                            <div>
+                                <h2>This is a small test meny</h2>
+                            </div>
+                        </Form.Group>
                         {selectedEditControl?.controlTemplate && 
                             renderControlTypeTemplate(selectedEditControl?.controlTemplate,selectedEditControl?.parameters)?.map((element) => {
-                                return <Container child={ element }/>; // todo, how???
+                                return (
+                                    <Form.Group className="mb-3" controlId="controltype.protocol">
+                                        {element}
+                                    </Form.Group>
+                                )
                         })}
+                        <Form.Group className="mb-3" controlId="controltype.test">
+                            <Form.Label>Test basic html element 2</Form.Label>
+                            <div>
+                                <h2>This is a small test meny</h2>
+                            </div>
+                        </Form.Group>
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>
