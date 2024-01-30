@@ -107,98 +107,103 @@ const DashboardEditor: React.FC = () => {
                 // if its an array, render it as a dropdown menu!!!!
                 let fieldType = parsedTemplate[field];
                 let fieldBaseType = typeof(fieldType);
-                const containerDiv = document.createElement('div');
+                let containerDiv;
+                let input;
+                let b;
+                let br;
 
                 switch(parsedTemplate[field]) {
                     case 'REFERENCE':
-                        var input = document.createElement('input');
-                        input.name = field;
-                        input.id = field;
-                        input.disabled = true;
-                        input.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
-                        input.setAttribute("parameterType", fieldType);//tags the element as part of the parameter object
-                        if(parsedObjectValues[field])/*init with data if exists*/
-                        {
-                            input.value = parsedObjectValues[field];
-                        }
-                        var b = document.createElement("b");
-                        b.setAttribute("parameterText","true");
-                        b.innerHTML = field + ": "
-                        containerDiv.append(b);
-                        containerDiv.append(input);
-                        var br = document.createElement("br");
-                        br.setAttribute("parameterText","true");
-                        containerDiv.append(br);
+                        input = React.createElement('input', {
+                            name: field,
+                            id: field,
+                            disabled: true,
+                            parameterMember: true, // tags the element as part of the parameter object
+                            parameterType: fieldType, // tags the element as part of the parameter object
+                            value: parsedObjectValues[field] ?? undefined, // init with data if exists
+                          });
+                          
+                          b = React.createElement('b', {
+                            parameterText: true,
+                            children: `${field}: `,
+                          });
+                          
+                          br = React.createElement('br', {
+                            parameterText: true,
+                          });
+                          
+                          containerDiv = React.createElement('div', null, b, input, br);
                     break;
                     case 'FIELD':
-                        var input = document.createElement('input');
-                        input.name = field;
-                        input.id =  field;
-                        input.disabled = false;
-        
-                        input.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
-                        input.setAttribute("parameterType", fieldType);//sets the type of field expected
-                        if(parsedObjectValues[field])/*init with data if exists*/
-                        {
-                            input.value = parsedObjectValues[field];
-                        }
-                        var b = document.createElement("b");
-                        b.setAttribute("parameterText","true");
-                        b.innerHTML = field + ": "
-                        containerDiv.append(b);				
-                        containerDiv.append(input);
-                        var br = document.createElement("br");
-                        br.setAttribute("parameterText","true");
-                        containerDiv.append(br);
+                        input = React.createElement('input', {
+                            name: field,
+                            id: field,
+                            disabled: false,
+                            parameterMember: true, // tags the element as part of the parameter object
+                            parameterType: fieldType, // sets the type of field expected
+                            value: parsedObjectValues[field] ?? undefined, // init with data if exists
+                          });
+                          
+                          b = React.createElement('b', {
+                            parameterText: true,
+                            children: `${field}: `,
+                          });
+                          
+                          br = React.createElement('br', {
+                            parameterText: true,
+                          });
+                          containerDiv = React.createElement('div', null, b, input, br);
                     break;
                     case 'NUMBER':
-                        var input = document.createElement('input');
-                        input.name = field;
-                        input.id = field;
-                        input.disabled = true;/*a check should be performed for numeric valid values*/
-                        input.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
-                        input.setAttribute("parameterType", "SELECTOR");//sets the type of field expected
-                        if(parsedObjectValues[field])/*init with data if exists*/
-                        {
-                            input.value = parsedObjectValues[field];
-                        }
-                        var b = document.createElement("b");
-                        b.setAttribute("parameterText","true");
-                        b.innerHTML = field + ": "
-                        containerDiv.append(b);
-                        containerDiv.append(input);
-                        var br = document.createElement("br");
-                        br.setAttribute("parameterText","true");
-                        containerDiv.append(br);
+                        input = React.createElement('input', {
+                            name: field,
+                            id: field,
+                            disabled: true,
+                            parameterMember: true, // tags the element as part of the parameter object
+                            parameterType: 'SELECTOR', // sets the type of field expected
+                            value: parsedObjectValues[field] ?? undefined, // init with data if exists
+                          });
+                          
+                          b = React.createElement('b', {
+                            parameterText: true,
+                            children: `${field}: `,
+                          });
+                          
+                          br = React.createElement('br', {
+                            parameterText: true,
+                          });
+                          
+                          containerDiv = React.createElement('div', null, b, input, br);
                     break;
                     default:
                     /*check if array case*/
                     if(fieldBaseType == "object"){
-                        var sel = document.createElement('select');
-                        sel.name = field;
-                        sel.id = field;
-                        sel.disabled = false;
-                        sel.setAttribute("parameterMember", "true");//tags the element as part of the parameter object
-                        sel.setAttribute("parameterType", "SELECTOR");//sets the type of field expected
-                        var options_str = "";
-                        fieldType.forEach( function(value: string) {
-                            options_str += '<option value="' + value + '">' + value + '</option>';
+                        const options = fieldType.map((value: string) => {
+                            return React.createElement('option', {
+                                value: value,
+                                key: value
+                            }, value);
                         });
-                        sel.innerHTML = options_str;
+
+                        const sel = React.createElement('select', {
+                            name: field,
+                            id: field,
+                            disabled: false,
+                            parameterMember: true, // tags the element as part of the parameter object
+                            parameterType: 'SELECTOR', // sets the type of field expected
+                            children: options,
+                            defaultValue: parsedObjectValues[field] ?? undefined
+                        });
                         
-                        if(parsedObjectValues[field])/*init with data if exists*/
-                        {
-                            sel.value = parsedObjectValues[field];
-                        }
-                        var b = document.createElement("b");
-                        b.setAttribute("parameterText","true");
-                        b.innerHTML = field + ": "
-                        containerDiv.append(b);
-                        containerDiv.append(sel);
-                        var br = document.createElement("br");
-                        br.setAttribute("parameterText","true");
-                        br.setAttribute("parameterText","true");
-                        containerDiv.append(br);
+                        const b = React.createElement('b', {
+                            parameterText: true
+                        }, field + ': ');
+                        
+                        const br = React.createElement('br', {
+                            parameterText: true
+                        });
+                        
+                        containerDiv = React.createElement('div', null, b, sel, br);
                     }
                     break;
                 }
