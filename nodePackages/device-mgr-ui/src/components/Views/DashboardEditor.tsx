@@ -60,7 +60,7 @@ const DashboardEditor: React.FC = () => {
     }
 
     useEffect(() => {
-        // fetchDevices()
+        fetchDevices()
         getControlTypes()
     },[devicePage])
 
@@ -255,6 +255,8 @@ const DashboardEditor: React.FC = () => {
         const selectedEditControl = controls?.find((controlObj) => controlObj.idControl.toString() === idSelectControl)
         if (selectedEditControl) {
             setSelectedEditControl(selectedEditControl)
+            const devId = JSON.parse(selectedEditControl.parameters).idDevice;
+            setSelectedDeviceId(devId);
             setDashEditView(DASHBOARD_EDITOR_VIEW.INIT_DATA)
         }
         else
@@ -289,7 +291,7 @@ const DashboardEditor: React.FC = () => {
                 <Modal.Body>
                     <Form>
                         <Form.Group className="mb-3" controlId="controlDetails.name">
-                            <Form.Label>control name</Form.Label>
+                            <Form.Label>Control name</Form.Label>
                             <Form.Control
                                 type="text"
                                 placeholder="control name ..."
@@ -298,7 +300,7 @@ const DashboardEditor: React.FC = () => {
                             />
                         </Form.Group>
                         <Form.Group className="mb-3" controlId="controlDetails.type">
-                            <Form.Label>device id</Form.Label>
+                            <Form.Label>Control id</Form.Label>
                             <Form.Control
                                 type="text"
                                 placeholder="control id..."
@@ -324,7 +326,7 @@ const DashboardEditor: React.FC = () => {
                 <Modal.Body>
                     <Form>
                         <Form.Group className="mb-3" controlId="controlDetails.name">
-                            <Form.Label>select a link</Form.Label>
+                            <Form.Label>Selected device id</Form.Label>
                             <Form.Control
                                 type="text"
                                 placeholder="selected control ..."
@@ -402,12 +404,6 @@ const DashboardEditor: React.FC = () => {
                                 {availableControlTypes?.map((value, index) => { return <option id={`${index}`} value={value.idControlsTypes}>{value.TypeName}</option>})}
                             </Form.Select>
                         </Form.Group>
-                        <Form.Group className="mb-3" controlId="controltype.test">
-                            <Form.Label>Test basic html element</Form.Label>
-                            <div>
-                                <h2>This is a small test meny</h2>
-                            </div>
-                        </Form.Group>
                         {selectedEditControl?.controlTemplate && 
                             renderControlTypeTemplate(selectedEditControl?.controlTemplate,selectedEditControl?.parameters)?.map((element) => {
                                 return (
@@ -416,12 +412,6 @@ const DashboardEditor: React.FC = () => {
                                     </Form.Group>
                                 )
                         })}
-                        <Form.Group className="mb-3" controlId="controltype.test">
-                            <Form.Label>Test basic html element 2</Form.Label>
-                            <div>
-                                <h2>This is a small test meny</h2>
-                            </div>
-                        </Form.Group>
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>
