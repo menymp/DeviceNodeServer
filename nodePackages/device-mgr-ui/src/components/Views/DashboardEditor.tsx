@@ -9,6 +9,7 @@ import { ITEM_LIST_DISPLAY_CNT } from "../../constants";
 import { current } from "@reduxjs/toolkit";
 import ReactDOM from 'react-dom';
 import { renderToStaticMarkup } from "react-dom/server"
+import $ from 'jquery'
 
 
 enum DASHBOARD_EDITOR_VIEW {
@@ -53,6 +54,66 @@ const DashboardEditor: React.FC = () => {
 
     const [controlTypeSelected, setControlTypeSelected] = useState<number>(-1);
     const handleChangeControlType = (event: React.ChangeEvent<HTMLSelectElement>) => setControlTypeSelected(parseInt(event.target.value)); //ToDo: perform validations
+    const [newControlName, setNewControlName] = useState<string>('');
+    const handleChangeControlName = (event: React.ChangeEvent<HTMLInputElement>) => setNewControlName(event.target.value); //ToDo: perform validations
+    const [newLinkDeviceId, setNewLinkDeviceId] = useState<string>('');
+    const handleChangeLinkDeviceId = (event: React.ChangeEvent<HTMLInputElement>) => setNewLinkDeviceId(event.target.value); //ToDo: perform validations
+    const [newControlParameters, setNewControlParameters] = useState<string>('');
+
+    const updateControlNewParameters = () => {
+        let tmpParameters: Record<string,any> = {};
+        tmpParameters['idDevice'] = newLinkDeviceId;
+
+        /*get every single field tagged for update*/
+        //////////////////// TODO: build proper query to select
+        var parameterElements = $('#controlparameters.formcontainer > [parameterMember|="true"]');
+        parameterElements.each((index, obj)=>{
+            /*add each element to the list*/
+            let parameterType = $(obj).attr("parameterType");
+            switch(parameterType)
+            {
+                case 'REFERENCE':
+                cmdObj[obj.id] = parseInt($(obj).val());
+                break;
+                case 'FIELD':
+                cmdObj[obj.id] = $(obj).val();
+                break;
+                case 'NUMBER':
+                cmdObj[obj.id] = parseInt($(obj).val());
+                break;
+                case 'SELECTOR':
+                cmdObj[obj.id] = $(obj).val();
+                break;
+            }
+        });
+        // Poll for each element in the list that 
+        // parameterMember === true
+        // validate the object against the template properties
+        // append properties to object
+        //
+        // 
+        const strTmpParameters = JSON.stringify(tmpParameters);
+        setNewControlParameters(strTmpParameters);
+    }
+
+    const saveControlChanges = async () => {
+        try {
+            //build a new tmp control with newControlName, newLinkDeviceId, newControlParameters, controlTypeSelected
+            // perform validations
+            if (!selectedEditControl?.idControl) {
+                return;
+            }
+
+            let newTmpControl = {
+                idControl: selectedEditControl?.idControl,
+                parameters: newControlParameters,
+                name: newControlName,
+
+            };
+        } catch(err) {
+            // present a proper err message
+        }
+    }
 
     const cleanSelectedDevice = () => {
         setSelectedEditControl({idControl: -1, parameters: '', name: '', typename: '', idType: -1, username: '', controlTemplate: ''})
@@ -296,6 +357,7 @@ const DashboardEditor: React.FC = () => {
                                 type="text"
                                 placeholder="control name ..."
                                 defaultValue={selectedEditControl?.name}
+                                onChange={handleChangeControlName}
                                 autoFocus
                             />
                         </Form.Group>
@@ -304,7 +366,7 @@ const DashboardEditor: React.FC = () => {
                             <Form.Control
                                 type="text"
                                 placeholder="control id..."
-                                defaultValue={selectedEditControl?.idControl}
+                                value={selectedEditControl?.idControl}
                                 autoFocus
                             />
                         </Form.Group>
@@ -331,6 +393,7 @@ const DashboardEditor: React.FC = () => {
                                 type="text"
                                 placeholder="selected control ..."
                                 value={selectedDeviceId}
+                                onChange={handleChangeLinkDeviceId}
                                 autoFocus
                             />
                         </Form.Group>
@@ -397,17 +460,17 @@ const DashboardEditor: React.FC = () => {
                     <Modal.Title>Control - Specific characteristics</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <Form>
-                        <Form.Group className="mb-3" controlId="controltype.protocol">
+                    <Form id="controlparameters.formcontainer">
+                        <Form.Group className="mb-3" controlId="controltype.template">
                             <Form.Label>Control type</Form.Label>
                             <Form.Select onChange={handleChangeControlType} id="selectedProtocolItem">
                                 {availableControlTypes?.map((value, index) => { return <option id={`${index}`} value={value.idControlsTypes}>{value.TypeName}</option>})}
                             </Form.Select>
                         </Form.Group>
                         {selectedEditControl?.controlTemplate && 
-                            renderControlTypeTemplate(selectedEditControl?.controlTemplate,selectedEditControl?.parameters)?.map((element) => {
+                            renderControlTypeTemplate(selectedEditControl?.controlTemplate,selectedEditControl?.parameters)?.map((element, index) => {
                                 return (
-                                    <Form.Group className="mb-3" controlId="controltype.protocol">
+                                    <Form.Group className="mb-3" controlId={`controlparameters.field${index}`}>
                                         {element}
                                     </Form.Group>
                                 )
