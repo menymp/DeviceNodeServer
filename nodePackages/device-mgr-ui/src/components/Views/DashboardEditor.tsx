@@ -3,7 +3,16 @@ import { useEffect, useState } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable, { tableInit } from '../Table/Table'
 import { useNavigate } from "react-router-dom"
-import { useFetchControlsMutation, Control, useFetchControlsTypesMutation, useGetControlTypeTemplateMutation, getControlTypeRequestInfo, useFetchControlByIdMutation } from "../../services/dashboardService";
+import { 
+    useFetchControlsMutation, 
+    Control, 
+    useFetchControlsTypesMutation, 
+    useGetControlTypeTemplateMutation, 
+    getControlTypeRequestInfo, 
+    useFetchControlByIdMutation, 
+    useSaveControlMutation,
+    useDeleteControlByIdMutation 
+} from "../../services/dashboardService";
 import { useFetchDevicesMutation, useFetchDeviceByIdMutation, device } from '../../services/deviceService'
 import { ITEM_LIST_DISPLAY_CNT } from "../../constants";
 import { current } from "@reduxjs/toolkit";
@@ -37,11 +46,14 @@ const intDevicesTable = {
 }
 
 const DashboardEditor: React.FC = () => {
+    // ToDo: Perform Proper validations
     const [dashEditViewState, setDashEditView] = useState(DASHBOARD_EDITOR_VIEW.HIDE);
     const [getControls, {isSuccess: controlsLoaded, data: controls}] = useFetchControlsMutation();
     const [getControlTypes, {isSuccess: controlTypesLoaded, data: availableControlTypes}] = useFetchControlsTypesMutation();
     const [getControlById, {isSuccess: controlByIdLoaded, data: controlById}] = useFetchControlByIdMutation();
     const [getControlTypeTemplate, {isSuccess: controlTypeTemplateLoaded, data: controlTypeTemplate}] = useGetControlTypeTemplateMutation();
+    const [saveControl, {isSuccess: controlSaved}] = useSaveControlMutation();
+    const [deleteControlById, {isSuccess: controlDeleted}] = useDeleteControlByIdMutation();
 
     const navigate = useNavigate();
     const [page, setPage] = useState<number>(0);
@@ -62,36 +74,30 @@ const DashboardEditor: React.FC = () => {
 
     const updateControlNewParameters = () => {
         let tmpParameters: Record<string,any> = {};
-        tmpParameters['idDevice'] = newLinkDeviceId;
-
         /*get every single field tagged for update*/
-        //////////////////// TODO: build proper query to select
-        var parameterElements = $('#controlparameters.formcontainer > [parameterMember|="true"]');
-        parameterElements.each((index, obj)=>{
+        var containerElements = document.querySelectorAll('[parameterMember="true"]');
+        containerElements.forEach((obj, index)=>{
             /*add each element to the list*/
             let parameterType = $(obj).attr("parameterType");
-            switch(parameterType)
-            {
-                case 'REFERENCE':
-                cmdObj[obj.id] = parseInt($(obj).val());
-                break;
-                case 'FIELD':
-                cmdObj[obj.id] = $(obj).val();
-                break;
-                case 'NUMBER':
-                cmdObj[obj.id] = parseInt($(obj).val());
-                break;
-                case 'SELECTOR':
-                cmdObj[obj.id] = $(obj).val();
-                break;
+            const value = $(obj).val() as string;
+            if (value) {
+                switch(parameterType)
+                {
+                    case 'REFERENCE':
+                        tmpParameters[obj.id] = value;
+                    break;
+                    case 'FIELD':
+                        tmpParameters[obj.id] = value;
+                    break;
+                    case 'NUMBER':
+                        tmpParameters[obj.id] = parseInt(value);
+                    break;
+                    case 'SELECTOR':
+                        tmpParameters[obj.id] = value;
+                    break;
+                }
             }
         });
-        // Poll for each element in the list that 
-        // parameterMember === true
-        // validate the object against the template properties
-        // append properties to object
-        //
-        // 
         const strTmpParameters = JSON.stringify(tmpParameters);
         setNewControlParameters(strTmpParameters);
     }
@@ -104,15 +110,17 @@ const DashboardEditor: React.FC = () => {
                 return;
             }
 
-            let newTmpControl = {
+            let controlDataToSubmit = {
                 idControl: selectedEditControl?.idControl,
                 parameters: newControlParameters,
-                name: newControlName,
-
+                Name: newControlName,
+                idType: controlTypeSelected
             };
+            saveControl(controlDataToSubmit);
         } catch(err) {
             // present a proper err message
         }
+        cleanSelectedDevice();
     }
 
     const cleanSelectedDevice = () => {
@@ -179,7 +187,7 @@ const DashboardEditor: React.FC = () => {
                             name: field,
                             id: field,
                             disabled: true,
-                            parameterMember: true, // tags the element as part of the parameter object
+                            parameterMember: "true", // tags the element as part of the parameter object
                             parameterType: fieldType, // tags the element as part of the parameter object
                             value: parsedObjectValues[field] ?? undefined, // init with data if exists
                           });
@@ -200,7 +208,7 @@ const DashboardEditor: React.FC = () => {
                             name: field,
                             id: field,
                             disabled: false,
-                            parameterMember: true, // tags the element as part of the parameter object
+                            parameterMember: "true", // tags the element as part of the parameter object
                             parameterType: fieldType, // sets the type of field expected
                             value: parsedObjectValues[field] ?? undefined, // init with data if exists
                           });
@@ -220,7 +228,7 @@ const DashboardEditor: React.FC = () => {
                             name: field,
                             id: field,
                             disabled: true,
-                            parameterMember: true, // tags the element as part of the parameter object
+                            parameterMember: "true", // tags the element as part of the parameter object
                             parameterType: 'SELECTOR', // sets the type of field expected
                             value: parsedObjectValues[field] ?? undefined, // init with data if exists
                           });
@@ -250,7 +258,7 @@ const DashboardEditor: React.FC = () => {
                             name: field,
                             id: field,
                             disabled: false,
-                            parameterMember: true, // tags the element as part of the parameter object
+                            parameterMember: "true", // tags the element as part of the parameter object
                             parameterType: 'SELECTOR', // sets the type of field expected
                             children: options,
                             defaultValue: parsedObjectValues[field] ?? undefined
@@ -268,8 +276,6 @@ const DashboardEditor: React.FC = () => {
                     }
                     break;
                 }
-                //// Refer to the last answer, it seems that i need to do something like this
-                // https://stackoverflow.com/questions/69185915/how-to-cast-an-htmlelement-to-a-react-element
                 return containerDiv;
             });
             return uiElements;
@@ -303,10 +309,13 @@ const DashboardEditor: React.FC = () => {
             headers: ['id', 'name', 'parameters', 'type'],
             rows: controls.map((control) => {return [control.idControl.toString(), control.name, control.parameters, control.typename]}),
             detailBtn: false,
-            deleteBtn: false,
+            deleteBtn: true,
             editBtn: true,
             editCallback: (selectedControl) => {
                 handleEditControl(selectedControl[0]) 
+            },
+            deleteCallback: (selectedControl) => {
+                handleDeleteControl(selectedControl[0]) 
             }
         } as tableInit
         setDisplayControls(newTable);
@@ -318,6 +327,7 @@ const DashboardEditor: React.FC = () => {
             setSelectedEditControl(selectedEditControl)
             const devId = JSON.parse(selectedEditControl.parameters).idDevice;
             setSelectedDeviceId(devId);
+            setNewLinkDeviceId(devId);
             setDashEditView(DASHBOARD_EDITOR_VIEW.INIT_DATA)
         }
         else
@@ -326,20 +336,20 @@ const DashboardEditor: React.FC = () => {
         }
     }
 
+    const handleDeleteControl = (idSelectControl: string) => {
+        deleteControlById({idControl:parseInt(idSelectControl)})
+    }
+
     useEffect(() => {
         getControls({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT})
     },[page]);
-    // a pagination item already exists
-    // ToDo: create a multi view modal for edit the current devices
-    //       the following is the process for edition or creation
-    //       select name/type ----> select asociated device -----> display specific parameters ---> end
-    // ToDo: check modal width
+
     const hideEditor = () => {
         setDashEditView(DASHBOARD_EDITOR_VIEW.HIDE)
     }
 
     const submitData = () => {
-        // add a request here with all the data from the modals
+        saveControlChanges();
         hideEditor()
     }
     
@@ -478,10 +488,17 @@ const DashboardEditor: React.FC = () => {
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>
-                    <Button variant="primary" onClick={() => { setDashEditView(DASHBOARD_EDITOR_VIEW.LINK_DEVICE) }}>
+                    <Button variant="primary" onClick={() => { 
+                        setDashEditView(DASHBOARD_EDITOR_VIEW.LINK_DEVICE);
+                        updateControlNewParameters(); 
+                    }}
+                        >
                         Previous
                     </Button>
-                    <Button variant="primary" onClick={submitData}>
+                    <Button variant="primary" onClick={() => {
+                        updateControlNewParameters(); 
+                        submitData();
+                    }}>
                         Next
                     </Button>
                     <Button variant="secondary" onClick={hideEditor}>
