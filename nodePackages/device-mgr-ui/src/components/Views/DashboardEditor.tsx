@@ -65,7 +65,10 @@ const DashboardEditor: React.FC = () => {
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>('')
 
     const [controlTypeSelected, setControlTypeSelected] = useState<number>(-1);
-    const handleChangeControlType = (event: React.ChangeEvent<HTMLSelectElement>) => setControlTypeSelected(parseInt(event.target.value)); //ToDo: perform validations
+    const handleChangeControlType = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        setControlTypeSelected(parseInt(event.target.value));
+
+    } //ToDo: perform validations
     const [newControlName, setNewControlName] = useState<string>('');
     const handleChangeControlName = (event: React.ChangeEvent<HTMLInputElement>) => setNewControlName(event.target.value); //ToDo: perform validations
     const [newLinkDeviceId, setNewLinkDeviceId] = useState<string>('');
@@ -134,7 +137,7 @@ const DashboardEditor: React.FC = () => {
     },[devicePage])
 
     useEffect(() => {
-        if (!controlTypeSelected || controlTypeSelected == -1) {
+        if (!controlTypeSelected || controlTypeSelected === -1) {
             return
         }
         getControlTypeTemplate({ idControlType: controlTypeSelected} as getControlTypeRequestInfo)
@@ -147,7 +150,11 @@ const DashboardEditor: React.FC = () => {
         if (!controlTypeTemplate || !controlTypeTemplateLoaded) {
             return
         }
-        renderControlTypeTemplate(controlTypeTemplate[0].controlTemplate, controlById && controlById[0].parameters)
+        let newCtrl = {
+            ...selectedEditControl,
+            controlTemplate: controlTypeTemplate[0].controlTemplate
+        } as Control;
+        setSelectedEditControl(newCtrl);
         // build a control template and display it on the UI
     }, [controlTypeTemplateLoaded, controlTypeTemplate, controlByIdLoaded])
 
@@ -189,7 +196,7 @@ const DashboardEditor: React.FC = () => {
                             disabled: true,
                             parameterMember: "true", // tags the element as part of the parameter object
                             parameterType: fieldType, // tags the element as part of the parameter object
-                            value: parsedObjectValues[field] ?? undefined, // init with data if exists
+                            value: parsedObjectValues[field] ?? newLinkDeviceId, // init with data if exists
                           });
                           
                           b = React.createElement('b', {
@@ -337,7 +344,10 @@ const DashboardEditor: React.FC = () => {
     }
 
     const handleDeleteControl = (idSelectControl: string) => {
-        deleteControlById({idControl:parseInt(idSelectControl)})
+        if (window.confirm('Quieres elimiar el nodo: ' + idSelectControl + '?')) {
+            deleteControlById({idControl:parseInt(idSelectControl)});
+            getControls({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT});
+        }
     }
 
     useEffect(() => {
@@ -457,7 +467,13 @@ const DashboardEditor: React.FC = () => {
                     <Button variant="primary" onClick={() => { setDashEditView(DASHBOARD_EDITOR_VIEW.INIT_DATA) }}>
                         Previous
                     </Button>
-                    <Button variant="primary" onClick={() => { setDashEditView(DASHBOARD_EDITOR_VIEW.SPECIFIC_PARAMETERS) }}>
+                    <Button variant="primary" onClick={() => { 
+                        setDashEditView(DASHBOARD_EDITOR_VIEW.SPECIFIC_PARAMETERS);
+                        if (!availableControlTypes) {
+                            return
+                        }
+                        getControlTypeTemplate({ idControlType: controlTypeSelected !== -1 ? controlTypeSelected : availableControlTypes[0].idControlsTypes} as getControlTypeRequestInfo); 
+                        }}>
                         Next
                     </Button>
                     <Button variant="secondary" onClick={hideEditor}>
@@ -477,7 +493,7 @@ const DashboardEditor: React.FC = () => {
                                 {availableControlTypes?.map((value, index) => { return <option id={`${index}`} value={value.idControlsTypes}>{value.TypeName}</option>})}
                             </Form.Select>
                         </Form.Group>
-                        {selectedEditControl?.controlTemplate && 
+                        {selectedEditControl?.controlTemplate &&
                             renderControlTypeTemplate(selectedEditControl?.controlTemplate,selectedEditControl?.parameters)?.map((element, index) => {
                                 return (
                                     <Form.Group className="mb-3" controlId={`controlparameters.field${index}`}>
