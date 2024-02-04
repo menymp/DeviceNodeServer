@@ -1,12 +1,20 @@
 import { Col, Button, Row, Container, Card, Form } from "react-bootstrap";
 import { useLoginUserMutation } from "../../services/userService";
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { SUCCESS_RESULT } from '../../constants'
+import { useNavigate } from "react-router-dom";
 
 export default function Login() {
     const [loginUser] = useLoginUserMutation()
     const [username, setUsername] = useState<string>('')
     const [password, setPassword] = useState<string>('')
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        if (sessionStorage.getItem("userId") || sessionStorage.getItem("user")) {
+            navigate('/')
+          }
+    }, [])
     //ToDo: missing user validation
     const handleLogin = async (event: any) => {
         event.preventDefault(); // 👈️ prevent page refresh
@@ -19,6 +27,7 @@ export default function Login() {
             if (result.result === SUCCESS_RESULT) {
                 sessionStorage.setItem("user", username)
                 sessionStorage.setItem("userId", result.userId.toString())
+                navigate('/')
             } else {
                 alert("Error: failed login!")
             }

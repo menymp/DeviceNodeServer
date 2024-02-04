@@ -8,13 +8,20 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Button from 'react-bootstrap/Button'
 import { useState, useEffect } from 'react';
+import { isSessionActive } from "../../utils/sessionUtils";
+import { useNavigate } from "react-router-dom";
 
 const NavMenu: React.FC<{}> = () => {
+    const navigate = useNavigate();
+
     useEffect(() => {
-      if (!sessionStorage.getItem("user")) {
-        // ToDo:
-      }
     },[sessionStorage])
+
+    const userLogOut  = () => {
+      sessionStorage.setItem("user", "");
+      sessionStorage.setItem("userId", "");
+      navigate('/Login');
+    }
 
     return (
         <Navbar bg="dark" variant="dark">
@@ -42,7 +49,7 @@ const NavMenu: React.FC<{}> = () => {
                 <Form.Group className="mb-3 form-check-inline" controlId="userName">
                   <Row>
                     <Col>
-                      <Button>Log In</Button>
+                      {isSessionActive() && (<Button onClick={userLogOut}>Log Out</Button>)}
                     </Col>
                   </Row>
                 </Form.Group>

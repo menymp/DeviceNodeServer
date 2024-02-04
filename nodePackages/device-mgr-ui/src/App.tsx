@@ -15,8 +15,18 @@ import DashboardView from  './components/Views/DashboardView'
 import DashboardEditor from './components/Views/DashboardEditor';
 import Login from './components/Login/Login'
 import CamerasListView from './components/Views/CamerasListView';
+import { useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
+import { isSessionActive } from './utils/sessionUtils'
 
 function App() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isSessionActive()) {
+      navigate('/Login');
+    }
+  }, [sessionStorage]);
 
   return (
     <>
@@ -28,16 +38,22 @@ function App() {
         </Row>   
         <Row>
           <Col>
+          { isSessionActive() ? (
             <Routes>
-              <Route path="/" element={<About></About>} />
-              <Route path="/Cameras" element={<CamerasListView></CamerasListView>} />
-              <Route path="/Nodes" element={<NodesListView></NodesListView>} />
-              <Route path="/Devices" element={<DevicesListView></DevicesListView>} />
-              <Route path="/Userinfo" element={<UserInfo></UserInfo>} />
-              <Route path="/Dashboard" element={<DashboardView />} />
-              <Route path="/DashboardEditor" element={<DashboardEditor />} />
-              <Route path="/Login" element={<Login></Login>} />
+              
+                <Route path="/" element={<About></About>} />
+                <Route path="/Cameras" element={<CamerasListView></CamerasListView>} />
+                <Route path="/Nodes" element={<NodesListView></NodesListView>} />
+                <Route path="/Devices" element={<DevicesListView></DevicesListView>} />
+                <Route path="/Userinfo" element={<UserInfo></UserInfo>} />
+                <Route path="/Dashboard" element={<DashboardView />} />
+                <Route path="/DashboardEditor" element={<DashboardEditor />} />
             </Routes>
+          ) : (
+            <Routes>
+                <Route path="/Login" element={<Login></Login>} />
+            </Routes>
+          )}
           </Col>
         </Row>
       </Container>
