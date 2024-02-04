@@ -29,10 +29,10 @@ export default function Login() {
                 sessionStorage.setItem("userId", result.userId.toString())
                 navigate('/')
             } else {
-                alert("Error: failed login!")
+                alert("Error: failed login! \n User or Password incorrect!");
             }
         }catch(e) {
-            alert(e)
+            alert("Error: failed login! \n User or Password incorrect!");
         }
     }
 
