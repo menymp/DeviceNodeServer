@@ -67,12 +67,16 @@ const DashboardEditor: React.FC = () => {
     const [controlTypeSelected, setControlTypeSelected] = useState<number>(-1);
     const handleChangeControlType = (event: React.ChangeEvent<HTMLSelectElement>) => {
         setControlTypeSelected(parseInt(event.target.value));
-
     } //ToDo: perform validations
     const [newControlName, setNewControlName] = useState<string>('');
     const handleChangeControlName = (event: React.ChangeEvent<HTMLInputElement>) => setNewControlName(event.target.value); //ToDo: perform validations
     const [newLinkDeviceId, setNewLinkDeviceId] = useState<string>('');
-    const handleChangeLinkDeviceId = (event: React.ChangeEvent<HTMLInputElement>) => setNewLinkDeviceId(event.target.value); //ToDo: perform validations
+    const handleChangeLinkDeviceId = (event: React.ChangeEvent<HTMLInputElement>) => {
+        // TODO: still thinking if i should rewrite all this to make easier to validate
+        setSelectedDeviceId(event.target.value);
+        setNewLinkDeviceId(event.target.value);
+        updateControlNewParameters(); //this should validate all inputs and update edit device
+    } //ToDo: perform validations
     const [newControlParameters, setNewControlParameters] = useState<string>('');
 
     const updateControlNewParameters = () => {
@@ -102,7 +106,9 @@ const DashboardEditor: React.FC = () => {
             }
         });
         const strTmpParameters = JSON.stringify(tmpParameters);
+        //
         setNewControlParameters(strTmpParameters);
+        selectedEditControl && setSelectedEditControl({...selectedEditControl, parameters: strTmpParameters});
     }
 
     const saveControlChanges = async () => {
@@ -117,7 +123,7 @@ const DashboardEditor: React.FC = () => {
                 idControl: selectedEditControl?.idControl,
                 parameters: newControlParameters,
                 Name: newControlName,
-                idType: controlTypeSelected
+                idType: selectedEditControl?.idType
             };
             saveControl(controlDataToSubmit);
         } catch(err) {
@@ -127,7 +133,7 @@ const DashboardEditor: React.FC = () => {
     }
 
     const cleanSelectedDevice = () => {
-        setSelectedEditControl({idControl: -1, parameters: '', name: '', typename: '', idType: -1, username: '', controlTemplate: ''})
+        setSelectedEditControl({idControl: -1, parameters: '', name: '', typename: '', idType: availableControlTypes ? availableControlTypes[0].idControlsTypes : -1 , username: '', controlTemplate: ''})
         setSelectedDeviceId('')
     }
 
@@ -196,7 +202,8 @@ const DashboardEditor: React.FC = () => {
                             disabled: true,
                             parameterMember: "true", // tags the element as part of the parameter object
                             parameterType: fieldType, // tags the element as part of the parameter object
-                            value: parsedObjectValues[field] ?? newLinkDeviceId, // init with data if exists
+                            value: parsedObjectValues[field] ?? selectedDeviceId, // init with data if exists
+                            onChange: updateControlNewParameters
                           });
                           
                           b = React.createElement('b', {
@@ -218,6 +225,7 @@ const DashboardEditor: React.FC = () => {
                             parameterMember: "true", // tags the element as part of the parameter object
                             parameterType: fieldType, // sets the type of field expected
                             value: parsedObjectValues[field] ?? undefined, // init with data if exists
+                            onChange: updateControlNewParameters
                           });
                           
                           b = React.createElement('b', {
@@ -238,6 +246,7 @@ const DashboardEditor: React.FC = () => {
                             parameterMember: "true", // tags the element as part of the parameter object
                             parameterType: 'SELECTOR', // sets the type of field expected
                             value: parsedObjectValues[field] ?? undefined, // init with data if exists
+                            onChange: updateControlNewParameters
                           });
                           
                           b = React.createElement('b', {
@@ -268,7 +277,8 @@ const DashboardEditor: React.FC = () => {
                             parameterMember: "true", // tags the element as part of the parameter object
                             parameterType: 'SELECTOR', // sets the type of field expected
                             children: options,
-                            defaultValue: parsedObjectValues[field] ?? undefined
+                            defaultValue: parsedObjectValues[field] ?? undefined,
+                            onChange: updateControlNewParameters
                         });
                         
                         const b = React.createElement('b', {
