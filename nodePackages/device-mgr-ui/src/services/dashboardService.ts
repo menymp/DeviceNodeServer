@@ -71,7 +71,7 @@ export type deleteControlInfo = {
 }
 
 export type saveControlInfo = {
-  parameters: string;
+  parameters: any;
   idType: number;
   Name: string;
   idControl: number;

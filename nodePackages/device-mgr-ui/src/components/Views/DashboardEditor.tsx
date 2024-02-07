@@ -121,7 +121,7 @@ const DashboardEditor: React.FC = () => {
 
             let controlDataToSubmit = {
                 idControl: selectedEditControl?.idControl,
-                parameters: newControlParameters,
+                parameters: JSON.parse(newControlParameters),
                 Name: newControlName,
                 idType: selectedEditControl?.idType
             };
