@@ -15,6 +15,7 @@ import DashboardView from  './components/Views/DashboardView'
 import DashboardEditor from './components/Views/DashboardEditor';
 import Login from './components/Login/Login'
 import CamerasListView from './components/Views/CamerasListView';
+import CamerasDashboardView from './components/Views/CamerasDashboardView';
 import { useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import { isSessionActive } from './utils/sessionUtils'
@@ -40,7 +41,6 @@ function App() {
           <Col>
           { isSessionActive() ? (
             <Routes>
-              
                 <Route path="/" element={<About></About>} />
                 <Route path="/Cameras" element={<CamerasListView></CamerasListView>} />
                 <Route path="/Nodes" element={<NodesListView></NodesListView>} />
@@ -48,6 +48,7 @@ function App() {
                 <Route path="/Userinfo" element={<UserInfo></UserInfo>} />
                 <Route path="/Dashboard" element={<DashboardView />} />
                 <Route path="/DashboardEditor" element={<DashboardEditor />} />
+                <Route path="/CamerasDashboard" element={<CamerasDashboardView />} />
             </Routes>
           ) : (
             <Routes>
