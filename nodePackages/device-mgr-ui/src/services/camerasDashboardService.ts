@@ -33,8 +33,8 @@ export const camerasDashboardService = createApi({
         dataType: 'JSON',
         withcredentials: true,
         body: {...requestCamsInfo, actionOption:"fetchConfigs", userId: parseInt(sessionStorage.getItem("userId") as string)}
-      }),
-    }),
+      })
+    })
   })
 })
 

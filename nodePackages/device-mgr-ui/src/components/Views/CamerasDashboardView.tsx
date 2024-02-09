@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable from '../Table/Table'
 import { useNavigate } from "react-router-dom";
@@ -21,6 +21,7 @@ const CamerasDashboardView: React.FC = () => {
     const [getConfigsFetch, {isSuccess: configsLoaded, data: dashConfigs}] = useFetchConfigsMutation();
     const [page, setPage] = useState<number>(0);
     const [startVideo, setStartVideo] = useState<boolean>(false);
+    const startVideoRef = useRef(false);
 
     const [selectedConfig, setSelectedConfig] = useState<dashboardCameraConfigs>();
     const handleChangeConfig = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -37,8 +38,20 @@ const CamerasDashboardView: React.FC = () => {
     const handleShow = () => setShow(true);
 
     useEffect(() => {
+        startVideoRef.current = startVideo;
+    }, [startVideo])
+
+    useEffect(() => {
+        setSelectedConfig(undefined);
         getConfigsFetch({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT});
     },[page]);
+
+    useEffect(() => {
+        if (!configsLoaded || !dashConfigs || selectedConfig) {
+            return;
+        }
+        setSelectedConfig(dashConfigs[0]);
+    }, [configsLoaded, dashConfigs])
     
     const handleStartVideo = () => {
         setStartVideo(true);
@@ -60,86 +73,10 @@ const CamerasDashboardView: React.FC = () => {
     const videoLoopStart = () => {
         getFrame();
         setTimeout(() => {
-            startVideo && videoLoopStart();
+            startVideoRef.current && videoLoopStart();
         }, 10);
     }
-    // a pagination item already exists
-/*
-    let initObj;
-
-
-$(document).ready(function () {
-	fetchVideoConfigResponse();
-	hideViewForm();
-});
-
-$("#submitNewView").click(function(){
-	showViewForm();
-});
-
-$("#newConfig").click(function(){
-	showViewForm();
-});
-
-$("#editConfig").click(function(){
-	showViewForm();
-});
-
-$("#deleteConfig").click(function(){
-});
-
-function hideViewForm()
-{
-	$('#newConfigForm').hide();
-	$('#videofield').show();
-}
-
-function showViewForm()
-{
-	$('#newConfigForm').show();
-	$('#videofield').hide();
-}
-	
-function videoLoopStart() {
-	getFrame();
-	setTimeout(() => {
-		if(flagStop == 1)
-		{
-			videoLoopStart();
-		}
-	}, 10);
-}
-
-$("#startVideo").click(
-	function(){
-		flagStop = 1;
-		videoLoopStart();
-})
-
-$("#stopVideo").click(
-	function(){
-		flagStop = 0;
-	}
-)
-
-function fetchVideoConfigResponse()
-{
-	$.ajax({
-		url: "camerasDashboardActions.php",
-		type: "POST",
-		data:({actionOption:"fetchConfigs"}),
-		cache: false,
-		success: function(data)
-		{
-			initObj = JSON.parse(data);
-			if("Message" in initObj)
-			{
-				$('#outputMessage').text(decodedData['Message']);
-			}
-		}
-	});
-}
-*/
+    
     return(
         <>
             <Modal show={show} onHide={handleClose}>
@@ -217,7 +154,7 @@ function fetchVideoConfigResponse()
                     </Col>
                 </Row>
                 <Row>
-                    <img src={require('./styles/images/deadline.png')} id="videofield" />
+                    <img id="videofield" />
                 </Row>
             </Container>
         </>
