@@ -1,65 +1,48 @@
 import React from "react";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable from '../Table/Table'
 import { useNavigate } from "react-router-dom"
-
+import { WEB_SOCK_SERVER_ADDR, SHOW_CONTROL_SIZE } from '../../constants'
+import { 
+    useFetchControlsMutation, 
+    Control
+} from "../../services/dashboardService";
 
 const DashboardView: React.FC = () => {
     const [show, setShow] = useState(false);
+    const [page, setPage] = useState<number>(0);
     const navigate = useNavigate();
+    const [getControls, {isSuccess: controlsLoaded, data: controls}] = useFetchControlsMutation();
 
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
+
+    const ws = new WebSocket(WEB_SOCK_SERVER_ADDR);
+    // const startVideoRef = useRef(false);
     // a pagination item already exists
-    let ws;
-    let showSize = 3;
     let currentCount = 0;
     let intervalsIds = [];
     let flagBussy = false; //flag used to indicate a pending response from wSocket
     let flagStop = 1; //ToDo: use this when the update process should not continue
 
-    let controls = [];
     let controlsCommands = null;//holds the current visible controls
     let userCommands = []; //inmediate user command
 
-    $("#openEditor").click(function(){
-        window.location.href = "dashboardControlsEdit.php";
-    });
+    useEffect(() => {
+        if (!controlsLoaded || !controls.length ) {
+            return;
+        }
 
-    $("#next").click(function(){
-        currentCount = currentCount + 1;
-        FetchControlsResponse();
-    });
+        BuildControlApperance(decodedData); // change for table logic
+        initCommandsUpdate(); 
+        commandScheduler(); //detonates the scheduler for the first time
+                            //ToDo: what happens if a timeout and no response is received??
+    }, [controlsLoaded, controls]);
 
-    $("#previous").click(function(){
-        currentCount = currentCount - 1;
-        if(currentCount < 0) currentCount = 0;
-        FetchControlsResponse();
-    });
-
-    const FetchControlsResponse = () => {
-        $.ajax({
-            url: "dashboardActions.php",
-            type: "POST",
-            data:({actionOption:"fetchControls",pageCount:String(currentCount*showSize),pageSize:String(showSize)}),
-            cache: false,
-            success: function(data)
-            {
-                //alert(data);
-                var decodedData = JSON.parse(data);
-                if("Message" in decodedData)
-                {
-                    //alert(decodedData['Message']);
-                    $('#outputMessage').text(decodedData['Message']);
-                }
-                BuildControlApperance(decodedData);
-                initCommandsUpdate(); 
-                commandScheduler(); //detonates the scheduler for the first time
-                                    //ToDo: what happens if a timeout and no response is received??
-            }
-        });
-    }
+    useEffect(() => {
+        getControls({ pageCount: page, pageSize:  SHOW_CONTROL_SIZE });
+    }, [page]);
 
     const ClearIntervalls = () => {
         for (var i = 0, len = intervalsIds.length; i < len; i++) 
@@ -173,6 +156,7 @@ const DashboardView: React.FC = () => {
             
         }
     }
+    /* ToDo: these clases should instead be implemented as a component with UI and proper logic in it */
     /*single text apperance*/
     class ctrlPlainText
     {
@@ -391,12 +375,6 @@ const DashboardView: React.FC = () => {
         flagBussy = false;
     }
 
-    $(document).ready(function () {
-
-        FetchControlsResponse();
-        open_ws("entwickeln hub system");
-    });
-
     const ws_send = (msg) => {
     // if( websocket == true ){
         // if ws is not open call open_ws, which will call ws_send back
@@ -413,7 +391,7 @@ const DashboardView: React.FC = () => {
     const open_ws = (msg) => {
         if( typeof(ws) == 'undefined' || ws.readyState === undefined || ws.readyState > 1){
             // websocket on same server with address /websocket
-            ws = new WebSocket("ws://localhost:8112/workHandler");
+            
             ws.onopen = function(){
                 // Web Socket is connected, send data using send()
                 console.log("ws open");
@@ -520,14 +498,22 @@ const DashboardView: React.FC = () => {
                         <Form className="mr-left ">
                             <Form.Group className="mb-3 form-check-inline" controlId="searchFilterField">
                                 <Row xs={12}>
-                                    <Col xs={5}>
-                                        <Button>Next page</Button>
+                                    <Col xs={6}>
+                                        <Button onClick={() => {
+                                            if (page == 0) {
+                                                return;
+                                            }
+                                            setPage(page - 1);
+                                        }}>Previous page</Button>
                                     </Col>
                                     <Col xs={1}>
                                         <Form.Label> 10 </Form.Label>
                                     </Col>
-                                    <Col xs={6}>
-                                        <Button>Previous page</Button>
+
+                                    <Col  xs={5}>
+                                        <Button onClick={() => {
+                                            setPage(page + 1);
+                                        }}>Next page</Button>
                                     </Col>
                                 </Row>
                             </Form.Group>
