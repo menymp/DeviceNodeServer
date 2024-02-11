@@ -24,6 +24,13 @@ const DashboardView: React.FC = () => {
 
     // ToDo: should i rearchitecture this moving the update responsability to each component, or should i
     // implement a central queue?
+
+    // path to follow :
+    // implement a component with all its UI and add it to a list, create a queue that will hold the user interaction commands
+    // create an interval in the core component to process the user queued messages
+    // each component will also provide an update command interface that will be send as a list to the backend side with the same
+    // interval and thru the same socket, when the response arrives, the top component will forward to each of the list commponents
+    // its response and each of them will handle the processing details.
     let currentCount = 0;
     let intervalsIds = [];
     let flagBussy = false; //flag used to indicate a pending response from wSocket
