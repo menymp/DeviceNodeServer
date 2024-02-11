@@ -21,6 +21,9 @@ const DashboardView: React.FC = () => {
     const ws = new WebSocket(WEB_SOCK_SERVER_ADDR);
     // const startVideoRef = useRef(false);
     // a pagination item already exists
+
+    // ToDo: should i rearchitecture this moving the update responsability to each component, or should i
+    // implement a central queue?
     let currentCount = 0;
     let intervalsIds = [];
     let flagBussy = false; //flag used to indicate a pending response from wSocket
