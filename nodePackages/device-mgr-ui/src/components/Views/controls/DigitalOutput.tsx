@@ -61,7 +61,7 @@ const DashboardView: React.FC<DigitalOutputParameters> = ({ commandHandler, cont
                /* INDEED THIS IS A BETTER APPROACH, MOVE THIS TO ControlTypes */
         //     getUpdateCommand()
         //     {
-        //         var cmdObj = new Object();
+        //         var cmdObj = new Object();;
         //         cmdObj.idDevice = parseInt(this.idDevice);
         //         cmdObj.command = this.cmdUpdate;
         //         cmdObj.args = ""; /*ToDo: check*/
