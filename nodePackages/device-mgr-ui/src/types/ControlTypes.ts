@@ -17,3 +17,8 @@ export interface DigitalOutputParameters {
     commandHandler: (controlId: number, command: string, args: string) => void,
     control: Control
 }
+
+export interface updateResponse {
+    result: string,
+    state: string
+}
