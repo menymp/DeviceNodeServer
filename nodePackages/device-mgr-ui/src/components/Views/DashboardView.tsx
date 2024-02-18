@@ -291,8 +291,15 @@ const DashboardView: React.FC = () => {
         flagBussy = true;
     }
 
+    const generateUpdateCommand = (parameter: {idDevice: string, cmdUpdate: string, args: string}) => {
+                 const cmdObj: Record<string,string> = {};
+                 cmdObj.idDevice = parseInt(parameter.idDevice);
+                 cmdObj.command = parameter.cmdUpdate;
+                 cmdObj.args = ""; /*ToDo: check*/
+                 return cmdObj;
+    }
 
-    const responseHandler = (evt) => {
+    const responseHandler = (evt: Array<>) => {
         //alert(evt.data);
         //process the response
         var responses = JSON.parse(evt.data);
