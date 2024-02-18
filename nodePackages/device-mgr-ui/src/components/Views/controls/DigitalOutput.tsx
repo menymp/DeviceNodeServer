@@ -11,7 +11,7 @@ type DigitalOutputsControlParameters {
     apperance: string
 }
 
-const DashboardView: React.FC<DigitalOutputParameters> = ({ commandHandler, control }) => {
+const DigitalOutput: React.FC<DigitalOutputParameters> = ({ commandHandler, control }) => {
     const getControlParameters = () => {
         return JSON.parse(control.parameters) as DigitalOutputsControlParameters;
     }
@@ -59,3 +59,5 @@ const DashboardView: React.FC<DigitalOutputParameters> = ({ commandHandler, cont
         </>
     )
 }
+
+export default DigitalOutput;

@@ -6,14 +6,18 @@ import { useNavigate } from "react-router-dom"
 import { WEB_SOCK_SERVER_ADDR, SHOW_CONTROL_SIZE } from '../../constants'
 import { 
     useFetchControlsMutation, 
-    Control
+    Control,
+    controlTemplate
 } from "../../services/dashboardService";
+import { reactUIControlls } from '../../types/ControlTypes'
+import DigitalOutput from './controls/DigitalOutput'
 
 const DashboardView: React.FC = () => {
     const [show, setShow] = useState(false);
     const [page, setPage] = useState<number>(0);
     const navigate = useNavigate();
     const [getControls, {isSuccess: controlsLoaded, data: controls}] = useFetchControlsMutation();
+    const [displayUIControls, setDisplayUIControls] = useState<reactUIControlls>();
 
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
@@ -44,7 +48,7 @@ const DashboardView: React.FC = () => {
             return;
         }
 
-        BuildControlApperance(decodedData); // change for table logic
+        buildControlApperance(controls); // change for table logic
         initCommandsUpdate(); 
         commandScheduler(); //detonates the scheduler for the first time
                             //ToDo: what happens if a timeout and no response is received??
@@ -63,77 +67,22 @@ const DashboardView: React.FC = () => {
     }
 
 
-    const BuildControlApperance = (data) => {
+    const buildControlApperance = (receivedControls: Array<Control>) => {
         ClearIntervalls();
         $("#controlsContainer").empty();
         
-        for (var i = 0, len = data.length; i < len; i++) 
+        for (var i = 0, len = receivedControls.length; i < len; i++) 
         {
             /*this is the proof of concept where each control has an object that defines apperance and behavior*/
             /*ToDo: better to refine this design before more complex controls arrive*/
-            var controlParameters = JSON.parse(data[i]["parameters"]);
-            var ctrlName = data[i]["name"]
             /*ToDo: since the device id is used as identifier, a new local id should be generated to handle
                     the cases where two controls such as switch and plain text share the same idDevice value*/
-            if(data[i]["typename"] === "DIGITALOUTPUT")
+            if(receivedControls[i]["typename"] === "DIGITALOUTPUT")
             {
-                var controlClass = new ctrlDigitalOutput(ctrlName, controlParameters, commandHandler);
-                var ControlElementContainer = controlClass.constructUiApperance()
-                $("#controlsContainer").append(ControlElementContainer);
-                controls.push(controlClass);
-                // var controlParameters = JSON.parse(data[i]["parameters"]);
-                // //alert(controlParameters["idDevice"]);
-                // //alert("button");
-                // //alert(data[i]["parameters"]);
-                // var ControlElementContainer = document.createElement('form');
-                // var ControlElementContainerText = document.createElement('label');
-                // ControlElementContainer.innerHTML = data[i]["name"];
-                // var toggleSw = document.createElement('label');
-                    // toggleSw.setAttribute('class','switch');
-                // var tmpCheckBox = document.createElement('input');
-                    // tmpCheckBox.setAttribute('type','checkbox');
-                    // //alert(controlParameters["onCmdStr"]);
-                    // let tmpid = controlParameters["idDevice"];
-                    // let cmdOn = controlParameters["onCmdStr"];
-                    // let cmdOff = controlParameters["offCmdStr"];
-                    // let cmdRead = controlParameters["updateCmdStr"];/*add in objects template*/
-                    // let cmdArgs = controlParameters["updateArgsStr"];
-                    
-                    // tmpCheckBox.onclick = function() { if(this.checked)
-                                                            // commandHandler(tmpid,cmdOn);
-                                                    // else
-                                                            // commandHandler(tmpid,cmdOff);
-                                                    // };
-                    // tmpCheckBox.setAttribute('deviceId',tmpid);
-                // var tmpSpan = document.createElement('span');
-                    // tmpSpan.setAttribute('class','slider round');
-                
-                // toggleSw.appendChild(tmpCheckBox);
-                // toggleSw.appendChild(tmpSpan);
-                // ControlElementContainer.appendChild(toggleSw);
-                // $("#controlsContainer").append(ControlElementContainer);
-                    // //toggleSw.id = 
-                    // //toggleSw.setAttribute('name', 'college[]');
-                    // //toggleSw.setAttribute('class', 'form-control input-sm');
-                    // //toggleSw.setAttribute('placeholder','Name of College/University');
-                    // //toggleSw.setAttribute('required','required');
-                // /*ToDo: maybe the device id is not needed since the updateCallback should handle the response*/
-                // const update = (control, response) => {
-                    // checkBox = control.control.querySelectorAll('checkbox[deviceId]='+control.idDevice); //selects the checkbox
-                    // let check = false;
-                    // if(response.result === control.controlParameters['onCmdStr'])
-                    // {
-                        // check = true;
-                    // }
-                    // if(response.state === 'SUCCESS')
-                    // {
-                        // checkBox.checked = check
-                    // }
-                    
-                // }
-                // addControlUpdateCmd(toggleSw, tmpid, controlParameters, cmdRead, cmdArgs, updateCallback);
+                const outputControl = <DigitalOutput commandHandler={commandHandler} control={receivedControls[i]}/>;
+                setDisplayUIControls([...displayUIControls!, outputControl]);
             }
-            if(data[i]["typename"] === "PLAINTEXT")
+            if(receivedControls[i]["typename"] === "PLAINTEXT")
             {
                 var controlClass = new ctrlPlainText(ctrlName, controlParameters);
                 var ControlElementContainer = controlClass.constructUiApperance()
@@ -159,7 +108,7 @@ const DashboardView: React.FC = () => {
                 // nIntervId = setInterval(commandHandler,intervall ,iddev, cmdstr);
                 // intervalsIds.push(nIntervId);
             }
-            if(data[i]["typename"] === "SENSORREAD")
+            if(receivedControls[i]["typename"] === "SENSORREAD")
             {
                 
             }
@@ -465,6 +414,9 @@ const DashboardView: React.FC = () => {
                     </Col>
                 </Row>
                 <Row>
+                    <Container id="controlsUIContainer">
+                        {displayUIControls}
+                    </Container>
                 </Row>
             </Container>
         </>
