@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import { DigitalOutputParameters, updateResponse } from '../../../types/ControlTypes'
 
@@ -11,7 +11,10 @@ type DigitalOutputsControlParameters {
     apperance: string
 }
 
-const DigitalOutput: React.FC<DigitalOutputParameters> = ({ commandHandler, control }) => {
+
+
+const DigitalOutput = forwardRef((props: DigitalOutputParameters, ref) => {
+    const { control, commandHandler } = props;
     const getControlParameters = () => {
         return JSON.parse(control.parameters) as DigitalOutputsControlParameters;
     }
@@ -40,10 +43,14 @@ const DigitalOutput: React.FC<DigitalOutputParameters> = ({ commandHandler, cont
         {
             //this.uiRefControl.checked = check
             // perform the expected UI behavior here
-            const uiToggleControl = document.querySelector(`#digital-output${control.idControl}`) as HTMLInputElement
-            uiToggleControl.checked = check
+            const uiToggleControl = document.querySelector(`#digital-output${control.idControl}`) as HTMLInputElement;
+            uiToggleControl.checked = check;
         }
-    };
+    }
+
+    useImperativeHandle(ref, () => ({
+        update
+    }));
     
     return (
         <>
@@ -58,6 +65,6 @@ const DigitalOutput: React.FC<DigitalOutputParameters> = ({ commandHandler, cont
             </Form>
         </>
     )
-}
+})
 
 export default DigitalOutput;

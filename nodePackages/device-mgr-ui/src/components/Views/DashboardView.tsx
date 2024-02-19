@@ -1,5 +1,5 @@
 import React from "react";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable from '../Table/Table'
 import { useNavigate } from "react-router-dom"
@@ -73,14 +73,16 @@ const DashboardView: React.FC = () => {
         
         for (var i = 0, len = receivedControls.length; i < len; i++) 
         {
+            const idLinkedDevice = parseInt((JSON.parse(receivedControls[i].parameters) as { idDevice: string }).idDevice);
             /*this is the proof of concept where each control has an object that defines apperance and behavior*/
             /*ToDo: better to refine this design before more complex controls arrive*/
             /*ToDo: since the device id is used as identifier, a new local id should be generated to handle
                     the cases where two controls such as switch and plain text share the same idDevice value*/
             if(receivedControls[i]["typename"] === "DIGITALOUTPUT")
             {
-                const outputControl = <DigitalOutput commandHandler={commandHandler} control={receivedControls[i]}/>;
-                setDisplayUIControls([...displayUIControls!, outputControl]);
+                const outputRef = useRef();
+                const outputControl = <DigitalOutput ref={outputRef} commandHandler={commandHandler} control={receivedControls[i]}/>;
+                setDisplayUIControls([...displayUIControls!, { idLinkedDevice: idLinkedDevice, component: outputControl, reference: outputRef }]);
             }
             if(receivedControls[i]["typename"] === "PLAINTEXT")
             {
@@ -255,8 +257,11 @@ const DashboardView: React.FC = () => {
         
         responses.forEach((response) => {
             /*get the corresponding class of the response and updates it*/
-            control = controls.filter((control) => control.idDevice == response.idDevice);
-            control[0].update(response);
+            if (!displayUIControls || !displayUIControls.length) {
+                return
+            }
+            const tmpUIcontrol = displayUIControls.filter((uiControl) => uiControl.idLinkedDevice == response.idDevice);
+            tmpUIcontrol[0].reference.current?.update(response);
         });
         
         setTimeout(() => {
@@ -415,7 +420,7 @@ const DashboardView: React.FC = () => {
                 </Row>
                 <Row>
                     <Container id="controlsUIContainer">
-                        {displayUIControls}
+                        {displayUIControls?.map((uiControl) => { return uiControl.component })}
                     </Container>
                 </Row>
             </Container>
