@@ -4,6 +4,12 @@ import { ReactComponentElement } from "react"
 
 // control general and specific types
 
+export type deviceCommand = {
+    idDevice: number,
+    command: string,
+    args: string
+}
+
 export type reactUIControlls =  { 
     idLinkedDevice: number,
     component: React.ReactElement,

@@ -9,7 +9,7 @@ import {
     Control,
     controlTemplate
 } from "../../services/dashboardService";
-import { reactUIControlls } from '../../types/ControlTypes'
+import { reactUIControlls, deviceCommand } from '../../types/ControlTypes'
 import DigitalOutput from './controls/DigitalOutput'
 
 const DashboardView: React.FC = () => {
@@ -23,6 +23,15 @@ const DashboardView: React.FC = () => {
     const handleShow = () => setShow(true);
 
     const ws = new WebSocket(WEB_SOCK_SERVER_ADDR);
+    
+    ws.onopen = () =>{
+        // Web Socket is connected, send data using send()
+        console.log("ws open");
+    };
+    // data from websocket received
+    ws.onmessage = (evt) => {
+            responseHandler(evt);
+    }
     // const startVideoRef = useRef(false);
     // a pagination item already exists
 
@@ -185,36 +194,23 @@ const DashboardView: React.FC = () => {
         controls.append(control);
     }*/
 
-    const commandHandler = (deviceId, cmd, args) => {
-        // var deviceId = caller.event.target.getAttribute('deviceId');
-        //alert("command executed, device: "+deviceId + " cmd: "+ cmd);
-        //var sString = "command executed, device: "+deviceId + " cmd: "+ cmd;
-        var cmdObj = new Object();
-        cmdObj.idDevice = deviceId;
-        cmdObj.command = cmd;
-        cmdObj.args = args; //ToDo: remember what the f*** is this field for
-        // cmdObj.set('idDevice',deviceId);
-        // cmdObj.set('command',cmd);
-        // cmdObj.set('args','');
-        //var jsonCmdStr = JSON.stringify(cmdObj);
-        //alert(jsonCmdStr)
-        
+    const commandHandler = (deviceId: number, cmd: string, args: string) => {
         //loads the collection with a new command
-        userCommands.push(cmdObj);
-        
-        //ws_send(cmdObj);
+        userCommands.push(generateUpdateCommand(deviceId, cmd, args));
     }
 
     const initCommandsUpdate = () => {
-        cmds = []
-        controls.forEach((controlClass)=>{
-            var cmdObj = controlClass.getUpdateCommand();
-            cmds.push(cmdObj);
+        if (!controls?.length) {
+            return;
+        }
+
+        let cmds: Array<deviceCommand> = [];
+        controls.forEach((controlToDisplay)=>{
+            const { updateCmdStr, idDevice, args } = controlToDisplay.parameters
+            cmds.push(generateUpdateCommand(parseInt(idDevice), updateCmdStr, args));
         });
-        var cmdsObj = new Object();
-        cmdsObj.cmds = cmds;
         
-        controlsCommands = JSON.stringify(cmdsObj);
+        controlsCommands = JSON.stringify({ cmds: cmds });
     }
     //ToDo: initialize the array of controls
     //		based on controls array init commands array
@@ -242,25 +238,24 @@ const DashboardView: React.FC = () => {
         flagBussy = true;
     }
 
-    const generateUpdateCommand = (parameter: {idDevice: string, cmdUpdate: string, args: string}) => {
-                 const cmdObj: Record<string,string> = {};
-                 cmdObj.idDevice = parseInt(parameter.idDevice);
-                 cmdObj.command = parameter.cmdUpdate;
-                 cmdObj.args = ""; /*ToDo: check*/
-                 return cmdObj;
+    const generateUpdateCommand = (idDevice: string, cmdUpdate: string, args: string):deviceCommand => {
+        return {
+            idDevice: parseInt(idDevice),
+            command: cmdUpdate,
+            args: args
+        }
     }
 
-    const responseHandler = (evt: Array<>) => {
-        //alert(evt.data);
+    const responseHandler = (evt: any) => {
         //process the response
-        var responses = JSON.parse(evt.data);
+        const responses = JSON.parse(evt.data);
         
-        responses.forEach((response) => {
+        responses.forEach((response: any) => {
             /*get the corresponding class of the response and updates it*/
             if (!displayUIControls || !displayUIControls.length) {
                 return
             }
-            const tmpUIcontrol = displayUIControls.filter((uiControl) => uiControl.idLinkedDevice == response.idDevice);
+            const tmpUIcontrol = displayUIControls.filter((uiControl) => uiControl.idLinkedDevice === response.idDevice);
             tmpUIcontrol[0].reference.current?.update(response);
         });
         
@@ -273,54 +268,11 @@ const DashboardView: React.FC = () => {
         flagBussy = false;
     }
 
-    const ws_send = (msg) => {
-    // if( websocket == true ){
-        // if ws is not open call open_ws, which will call ws_send back
+    const ws_send = (msg: ) => {
         if( typeof(ws) == 'undefined' || ws.readyState === undefined || ws.readyState > 1) {
-            open_ws(msg);
-            }else{
-            ws.send( JSON.stringify(msg) );
-            console.log("ws_send sent");
+            console.error('error websocket is closed');
         }
-    // }
-    }
-
-
-    const open_ws = (msg) => {
-        if( typeof(ws) == 'undefined' || ws.readyState === undefined || ws.readyState > 1){
-            // websocket on same server with address /websocket
-            
-            ws.onopen = function(){
-                // Web Socket is connected, send data using send()
-                console.log("ws open");
-                if( msg.length != 0 ){
-                        //ws_send(msg);
-                    }
-                };
-            ws.onmessage = function(evt) {
-                    responseHandler(evt);
-            }
-            // ws.onmessage = function (evt){
-                // var received_msg = evt.data;
-                // console.log(evt.data);
-                    // msg = JSON.parse(evt.data)
-
-                // if( msg.event == "x" ){
-                // // process message x
-                // }else if( msg.event == 'y' ){
-                // // process message y
-                // }else if( msg.event == 'z' ) {
-                // // process message z
-                // }
-            // };
-
-            // ws.onclose = function(){ 
-                // // websocket is closed, re-open
-                // console.log("Connection is closed... reopen");
-            // var msg = { event: 'register', };
-            // setTimeout( function(){ws_send(msg);}, 1000 );
-            // };
-        }
+        ws.send( JSON.stringify(msg) );
     }
 
     return(
