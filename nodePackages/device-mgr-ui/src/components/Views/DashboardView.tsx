@@ -11,6 +11,7 @@ import {
 } from "../../services/dashboardService";
 import { reactUIControlls, deviceCommand } from '../../types/ControlTypes'
 import DigitalOutput from './controls/DigitalOutput'
+import { POLL_INTERVAL_MS } from '../../constants'
 
 const DashboardView: React.FC = () => {
     const [show, setShow] = useState(false);
@@ -18,6 +19,9 @@ const DashboardView: React.FC = () => {
     const navigate = useNavigate();
     const [getControls, {isSuccess: controlsLoaded, data: controls}] = useFetchControlsMutation();
     const [displayUIControls, setDisplayUIControls] = useState<reactUIControlls>();
+    const [userCommands, setUserCommands] = useState<Array<deviceCommand>>([]);
+    const [controlsCommands, setControlCommands] = useState<string>('');
+    const [flagBussy, setFlagBussy] = useState<boolean>(false);
 
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
@@ -44,13 +48,7 @@ const DashboardView: React.FC = () => {
     // each component will also provide an update command interface that will be send as a list to the backend side with the same
     // interval and thru the same socket, when the response arrives, the top component will forward to each of the list commponents
     // its response and each of them will handle the processing details.
-    let currentCount = 0;
-    let intervalsIds = [];
-    let flagBussy = false; //flag used to indicate a pending response from wSocket
     let flagStop = 1; //ToDo: use this when the update process should not continue
-
-    let controlsCommands = null;//holds the current visible controls
-    let userCommands = []; //inmediate user command
 
     useEffect(() => {
         if (!controlsLoaded || !controls.length ) {
@@ -61,6 +59,7 @@ const DashboardView: React.FC = () => {
         initCommandsUpdate(); 
         commandScheduler(); //detonates the scheduler for the first time
                             //ToDo: what happens if a timeout and no response is received??
+                            //      to prevent this implement a second schedule to act as a watchdog
     }, [controlsLoaded, controls]);
 
     useEffect(() => {
@@ -70,8 +69,8 @@ const DashboardView: React.FC = () => {
     const ClearIntervalls = () => {
         for (var i = 0, len = intervalsIds.length; i < len; i++) 
         {
-            clearInterval(intervalsIds[i]);
-            intervalsIds[i] = null;
+            // clearInterval(intervalsIds[i]);
+            // intervalsIds[i] = null;
         }
     }
 
@@ -174,26 +173,6 @@ const DashboardView: React.FC = () => {
         }
     }
 
-    /*
-    control reference to the control
-    idDevice 		id of the hardware device identifier
-    controlParameters complete parameters
-    updateCommand 	a valid command to get an state update
-    updateArgs 		add args if expected from device
-    updateCallback	a function to perform when a response is received
-    */
-    /*function addControlUpdateCmd(control, idDevice, updateCommand, controlParameters,  updateArgs, updateCallback)
-    {
-        var control = new Object();
-        control.control = control; 
-        control.idDevice = idDevice;
-        control.controlParameters = controlParameters;
-        control.command = updateCommand;
-        control.args = updateArgs;
-        control.updateCallback = updateCallback;
-        controls.append(control);
-    }*/
-
     const commandHandler = (deviceId: number, cmd: string, args: string) => {
         //loads the collection with a new command
         userCommands.push(generateUpdateCommand(deviceId, cmd, args));
@@ -206,11 +185,11 @@ const DashboardView: React.FC = () => {
 
         let cmds: Array<deviceCommand> = [];
         controls.forEach((controlToDisplay)=>{
-            const { updateCmdStr, idDevice, args } = controlToDisplay.parameters
+            const { updateCmdStr, idDevice, args } = JSON.parse(controlToDisplay.parameters) as { updateCmdStr: string, idDevice: string, args: string }
             cmds.push(generateUpdateCommand(parseInt(idDevice), updateCmdStr, args));
         });
         
-        controlsCommands = JSON.stringify({ cmds: cmds });
+        setControlCommands(JSON.stringify({ cmds: cmds }));
     }
     //ToDo: initialize the array of controls
     //		based on controls array init commands array
@@ -221,13 +200,11 @@ const DashboardView: React.FC = () => {
     //the periodic control update status request.
     const commandScheduler = () => {
         //if user data
-        var jsonStr;
+        let jsonStr = "";
         if(userCommands.length > 0)
         {
-            var cmdsObj = new Object();
-            cmdsObj.cmds = userCommands;
-            jsonStr = JSON.stringify(cmdsObj);
-            userCommands = [];
+            jsonStr = JSON.stringify({ cmds: userCommands });
+            setUserCommands([]);
         }
         else
         {
@@ -235,12 +212,12 @@ const DashboardView: React.FC = () => {
             jsonStr = controlsCommands; //already stringified
         }
         ws_send(jsonStr);
-        flagBussy = true;
+        setFlagBussy(true);
     }
 
-    const generateUpdateCommand = (idDevice: string, cmdUpdate: string, args: string):deviceCommand => {
+    const generateUpdateCommand = (idDevice: number, cmdUpdate: string, args: string):deviceCommand => {
         return {
-            idDevice: parseInt(idDevice),
+            idDevice: idDevice,
             command: cmdUpdate,
             args: args
         }
@@ -264,11 +241,11 @@ const DashboardView: React.FC = () => {
             {
                 commandScheduler();
             }
-        }, 1000);	//define this time elsewhere
-        flagBussy = false;
+        }, POLL_INTERVAL_MS);
+        setFlagBussy(false);
     }
 
-    const ws_send = (msg: ) => {
+    const ws_send = (msg: any) => {
         if( typeof(ws) == 'undefined' || ws.readyState === undefined || ws.readyState > 1) {
             console.error('error websocket is closed');
         }

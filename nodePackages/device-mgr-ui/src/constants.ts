@@ -7,3 +7,4 @@ export const WEB_SOCK_SERVER_ADDR = "ws://localhost:8112/workHandler";
 
 // control dashboard constants
 export const SHOW_CONTROL_SIZE = 3;
+export const POLL_INTERVAL_MS = 1000;
