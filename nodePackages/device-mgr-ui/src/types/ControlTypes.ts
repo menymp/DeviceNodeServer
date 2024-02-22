@@ -26,7 +26,7 @@ export interface ControlParameters {
 
 }
 
-export interface DigitalOutputParameters {
+export interface GenericUIControlParameters {
     commandHandler: (controlId: number, command: string, args: string) => void,
     control: Control
 }

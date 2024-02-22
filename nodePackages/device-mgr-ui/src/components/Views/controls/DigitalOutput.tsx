@@ -1,7 +1,7 @@
 import React from "react";
 import { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
-import { DigitalOutputParameters, updateResponse } from '../../../types/ControlTypes'
+import { GenericUIControlParameters, updateResponse } from '../../../types/ControlTypes'
 
 type DigitalOutputsControlParameters {
     idDevice: string, 
@@ -13,7 +13,7 @@ type DigitalOutputsControlParameters {
 
 
 
-const DigitalOutput = forwardRef((props: DigitalOutputParameters, ref) => {
+const DigitalOutput = forwardRef((props: GenericUIControlParameters, ref) => {
     const { control, commandHandler } = props;
     const getControlParameters = () => {
         return JSON.parse(control.parameters) as DigitalOutputsControlParameters;

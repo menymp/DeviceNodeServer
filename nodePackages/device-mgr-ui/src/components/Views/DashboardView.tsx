@@ -13,6 +13,8 @@ import { reactUIControlls, deviceCommand } from '../../types/ControlTypes'
 import DigitalOutput from './controls/DigitalOutput'
 import { POLL_INTERVAL_MS } from '../../constants'
 
+// ToDo: change of approach, each component will send its individual command to the websocket
+//       and receive and decode only the received messages that contain the control id
 const DashboardView: React.FC = () => {
     const [show, setShow] = useState(false);
     const [page, setPage] = useState<number>(0);
@@ -123,53 +125,6 @@ const DashboardView: React.FC = () => {
                 
             }
             
-        }
-    }
-    /* ToDo: these clases should instead be implemented as a component with UI and proper logic in it */
-    /*single text apperance*/
-    class ctrlPlainText
-    {
-        constructor(name, controlParameters)
-        {
-            this.name = name;
-            this.idDevice = controlParameters["idDevice"];
-            this.cmdUpdate = controlParameters["updateCmdStr"];
-            this.cmdUpdateArgs = controlParameters["updateArgsStr"];
-        }
-        
-        constructUiApperance()
-        {
-            var ControlElementContainer = document.createElement('form');
-            var ControlElementContainerText = document.createElement('label');
-            ControlElementContainer.innerHTML = this.name;
-            var textOut = document.createElement('label');
-            textOut.setAttribute('class','text');
-            var tmpText = document.createElement('label');
-            tmpText.setAttribute('type','textlabel');
-            tmpText.id = this.idDevice;
-            textOut.appendChild(tmpText);
-            ControlElementContainer.appendChild(textOut);
-            
-            this.uiRefControl = tmpText;
-            
-            return ControlElementContainer;
-        }
-        
-        update(response)
-        {
-            if(response.state === 'SUCCESS')
-            {
-                this.uiRefControl.innerHTML = ": '"+response.result+"'"
-            }
-        }
-        /*ToDo: review if a best approach is to move this function to a super class*/
-        getUpdateCommand()
-        {
-            var cmdObj = new Object();
-            cmdObj.idDevice = parseInt(this.idDevice);
-            cmdObj.command = this.cmdUpdate;
-            cmdObj.args = ""; /*ToDo: check*/
-            return cmdObj;
         }
     }
 
