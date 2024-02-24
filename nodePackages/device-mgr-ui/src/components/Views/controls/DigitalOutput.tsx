@@ -1,9 +1,17 @@
 import React from "react";
 import { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
-import { GenericUIControlParameters, updateResponse } from '../../../types/ControlTypes'
+import { 
+    GenericUIControlParameters, 
+    updateResponse, 
+    uiControlResponseHandler, 
+    deviceCommand, 
+    generateUpdateCommand, 
+    ws_send 
+} from '../../../types/ControlTypes'
+import { POLL_INTERVAL_MS } from '../../../constants'
 
-type DigitalOutputsControlParameters {
+type DigitalOutputsControlParameters = {
     idDevice: string, 
     cmdOnStr: string, 
     cmdOffStr: string, 
@@ -11,14 +19,41 @@ type DigitalOutputsControlParameters {
     apperance: string
 }
 
+const DigitalOutput = (props: GenericUIControlParameters) => {
+    const { control } = props;
+    const [userCommands, setUserCommands] = useState<Array<deviceCommand>>([]);
 
-
-const DigitalOutput = forwardRef((props: GenericUIControlParameters, ref) => {
-    const { control, commandHandler } = props;
     const getControlParameters = () => {
         return JSON.parse(control.parameters) as DigitalOutputsControlParameters;
     }
-    
+    const parameters = getControlParameters();
+    const updateCommand = JSON.stringify([generateUpdateCommand(parseInt(parameters.idDevice), parameters.updateCmdStr, "")]);
+
+    props.ws.addEventListener('message' , (evt) => {
+        uiControlResponseHandler(evt,  parseInt(parameters.idDevice), update);
+    });
+
+    const commandHandler = (idDevice: number, command: string, args: string) => {
+        //loads the collection with a new command
+        setUserCommands([...userCommands, {idDevice, command, args}])
+    }
+
+    const commandScheduler = () => {
+        //if user data
+        let jsonStr = "";
+        if(userCommands.length > 0)
+        {
+            jsonStr = JSON.stringify({ cmds: userCommands });
+            setUserCommands([]);
+        }
+        else
+        {
+
+            jsonStr = updateCommand; //already stringified
+        }
+        ws_send(props.ws, jsonStr);
+    }
+
     const userClick = (e: React.ChangeEvent<HTMLInputElement>) => {
         //console.log("clickk");
         // ToDo: check if names exists
@@ -46,11 +81,10 @@ const DigitalOutput = forwardRef((props: GenericUIControlParameters, ref) => {
             const uiToggleControl = document.querySelector(`#digital-output${control.idControl}`) as HTMLInputElement;
             uiToggleControl.checked = check;
         }
+        setTimeout(() => {
+            commandScheduler();
+        }, POLL_INTERVAL_MS);
     }
-
-    useImperativeHandle(ref, () => ({
-        update
-    }));
     
     return (
         <>
@@ -65,6 +99,6 @@ const DigitalOutput = forwardRef((props: GenericUIControlParameters, ref) => {
             </Form>
         </>
     )
-})
+}
 
 export default DigitalOutput;

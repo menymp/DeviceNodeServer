@@ -128,11 +128,6 @@ const DashboardView: React.FC = () => {
         }
     }
 
-    const commandHandler = (deviceId: number, cmd: string, args: string) => {
-        //loads the collection with a new command
-        userCommands.push(generateUpdateCommand(deviceId, cmd, args));
-    }
-
     const initCommandsUpdate = () => {
         if (!controls?.length) {
             return;
@@ -170,14 +165,6 @@ const DashboardView: React.FC = () => {
         setFlagBussy(true);
     }
 
-    const generateUpdateCommand = (idDevice: number, cmdUpdate: string, args: string):deviceCommand => {
-        return {
-            idDevice: idDevice,
-            command: cmdUpdate,
-            args: args
-        }
-    }
-
     const responseHandler = (evt: any) => {
         //process the response
         const responses = JSON.parse(evt.data);
@@ -198,13 +185,6 @@ const DashboardView: React.FC = () => {
             }
         }, POLL_INTERVAL_MS);
         setFlagBussy(false);
-    }
-
-    const ws_send = (msg: any) => {
-        if( typeof(ws) == 'undefined' || ws.readyState === undefined || ws.readyState > 1) {
-            console.error('error websocket is closed');
-        }
-        ws.send( JSON.stringify(msg) );
     }
 
     return(
