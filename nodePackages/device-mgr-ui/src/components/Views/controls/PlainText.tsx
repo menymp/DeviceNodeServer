@@ -19,7 +19,7 @@ type PlainTextParameters = {
 
 
 
-const PlainText = forwardRef((props: GenericUIControlParameters, ref) => {
+const PlainText = (props: GenericUIControlParameters) => {
     const { control } = props;
     const [userCommands, setUserCommands] = useState<Array<deviceCommand>>([]);
     const [currentValue, setCurrentValue] = useState<string>('');
@@ -45,10 +45,6 @@ const PlainText = forwardRef((props: GenericUIControlParameters, ref) => {
             setCurrentValue(response.result);
         }
     }
-
-    useImperativeHandle(ref, () => ({
-        update
-    }));
     
     return (
         <>
@@ -62,6 +58,6 @@ const PlainText = forwardRef((props: GenericUIControlParameters, ref) => {
             </Form>
         </>
     )
-})
+}
 
 export default PlainText;
