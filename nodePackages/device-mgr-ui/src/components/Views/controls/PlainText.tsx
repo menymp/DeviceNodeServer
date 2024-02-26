@@ -1,7 +1,15 @@
 import React from "react";
 import { useState, useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
-import { GenericUIControlParameters, updateResponse } from '../../../types/ControlTypes'
+import { 
+    GenericUIControlParameters, 
+    updateResponse, 
+    uiControlResponseHandler, 
+    deviceCommand, 
+    generateUpdateCommand, 
+    ws_send 
+} from '../../../types/ControlTypes'
+import { POLL_INTERVAL_MS } from '../../../constants'
 
 type PlainTextParameters = {
     idDevice: string, 
@@ -12,11 +20,24 @@ type PlainTextParameters = {
 
 
 const PlainText = forwardRef((props: GenericUIControlParameters, ref) => {
-    const { control, commandHandler } = props;
+    const { control } = props;
+    const [userCommands, setUserCommands] = useState<Array<deviceCommand>>([]);
     const [currentValue, setCurrentValue] = useState<string>('');
     const getControlParameters = () => {
         return JSON.parse(control.parameters) as PlainTextParameters;
     }
+    const parameters = getControlParameters();
+    const updateCommand = JSON.stringify([generateUpdateCommand(parseInt(parameters.idDevice), parameters.updateCmdStr, "")]);
+
+    props.ws.addEventListener('message' , (evt) => {
+        uiControlResponseHandler(evt,  parseInt(parameters.idDevice), update);
+    });
+
+    const commandHandler = (idDevice: number, command: string, args: string) => {
+        //loads the collection with a new command
+        setUserCommands([...userCommands, {idDevice, command, args}])
+    }
+
 
     const update = (response: updateResponse) => {
         if(response.state === 'SUCCESS')
