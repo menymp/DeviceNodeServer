@@ -1,17 +1,19 @@
 import React from "react";
 import { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
-import BaseTable from '../Table/Table'
-import { useNavigate } from "react-router-dom"
-import { WEB_SOCK_SERVER_ADDR, SHOW_CONTROL_SIZE } from '../../constants'
+import BaseTable from '../Table/Table';
+import { useNavigate } from "react-router-dom";
+import { WEB_SOCK_SERVER_ADDR, SHOW_CONTROL_SIZE } from '../../constants';
 import { 
     useFetchControlsMutation, 
     Control,
     controlTemplate
 } from "../../services/dashboardService";
-import { reactUIControlls, deviceCommand } from '../../types/ControlTypes'
-import DigitalOutput from './controls/DigitalOutput'
-import { POLL_INTERVAL_MS } from '../../constants'
+import { reactUIControlls, deviceCommand } from '../../types/ControlTypes';
+import DigitalOutput from './controls/DigitalOutput';
+import PlainText from "./controls/PlainText";
+import { POLL_INTERVAL_MS } from '../../constants';
+
 
 // ToDo: change of approach, each component will send its individual command to the websocket
 //       and receive and decode only the received messages that contain the control id
@@ -36,7 +38,7 @@ const DashboardView: React.FC = () => {
     };
     // data from websocket received
     ws.onmessage = (evt) => {
-            responseHandler(evt);
+        responseHandler(evt);
     }
     // const startVideoRef = useRef(false);
     // a pagination item already exists
@@ -57,9 +59,8 @@ const DashboardView: React.FC = () => {
             return;
         }
 
-        buildControlApperance(controls); // change for table logic
-        initCommandsUpdate(); 
-        commandScheduler(); //detonates the scheduler for the first time
+        // buildControlApperance(controls); // change for table logic
+        // commandScheduler(); //detonates the scheduler for the first time
                             //ToDo: what happens if a timeout and no response is received??
                             //      to prevent this implement a second schedule to act as a watchdog
     }, [controlsLoaded, controls]);
@@ -68,18 +69,9 @@ const DashboardView: React.FC = () => {
         getControls({ pageCount: page, pageSize:  SHOW_CONTROL_SIZE });
     }, [page]);
 
-    const ClearIntervalls = () => {
-        for (var i = 0, len = intervalsIds.length; i < len; i++) 
-        {
-            // clearInterval(intervalsIds[i]);
-            // intervalsIds[i] = null;
-        }
-    }
-
 
     const buildControlApperance = (receivedControls: Array<Control>) => {
-        ClearIntervalls();
-        $("#controlsContainer").empty();
+        setDisplayUIControls([]);
         
         for (var i = 0, len = receivedControls.length; i < len; i++) 
         {
@@ -90,16 +82,13 @@ const DashboardView: React.FC = () => {
                     the cases where two controls such as switch and plain text share the same idDevice value*/
             if(receivedControls[i]["typename"] === "DIGITALOUTPUT")
             {
-                const outputRef = useRef();
-                const outputControl = <DigitalOutput ref={outputRef} commandHandler={commandHandler} control={receivedControls[i]}/>;
-                setDisplayUIControls([...displayUIControls!, { idLinkedDevice: idLinkedDevice, component: outputControl, reference: outputRef }]);
+                const outputControl = <DigitalOutput ws={ws} control={receivedControls[i]}/>;
+                setDisplayUIControls([...displayUIControls!, { idLinkedDevice: idLinkedDevice, component: outputControl }]);
             }
             if(receivedControls[i]["typename"] === "PLAINTEXT")
             {
-                var controlClass = new ctrlPlainText(ctrlName, controlParameters);
-                var ControlElementContainer = controlClass.constructUiApperance()
-                $("#controlsContainer").append(ControlElementContainer);
-                controls.push(controlClass);
+                const plainControl = <PlainText ws={ws} control={receivedControls[i]}/>;
+                setDisplayUIControls([...displayUIControls!, { idLinkedDevice: idLinkedDevice, component: plainControl }]);
                 // var controlParameters = JSON.parse(data[i]["parameters"]);
 
                 // var ControlElementContainer = document.createElement('form');
@@ -128,19 +117,6 @@ const DashboardView: React.FC = () => {
         }
     }
 
-    const initCommandsUpdate = () => {
-        if (!controls?.length) {
-            return;
-        }
-
-        let cmds: Array<deviceCommand> = [];
-        controls.forEach((controlToDisplay)=>{
-            const { updateCmdStr, idDevice, args } = JSON.parse(controlToDisplay.parameters) as { updateCmdStr: string, idDevice: string, args: string }
-            cmds.push(generateUpdateCommand(parseInt(idDevice), updateCmdStr, args));
-        });
-        
-        setControlCommands(JSON.stringify({ cmds: cmds }));
-    }
     //ToDo: initialize the array of controls
     //		based on controls array init commands array
 
@@ -161,7 +137,7 @@ const DashboardView: React.FC = () => {
 
             jsonStr = controlsCommands; //already stringified
         }
-        ws_send(jsonStr);
+        // ws_send(jsonStr);
         setFlagBussy(true);
     }
 
@@ -175,7 +151,7 @@ const DashboardView: React.FC = () => {
                 return
             }
             const tmpUIcontrol = displayUIControls.filter((uiControl) => uiControl.idLinkedDevice === response.idDevice);
-            tmpUIcontrol[0].reference.current?.update(response);
+            // tmpUIcontrol[0].reference.current?.update(response);
         });
         
         setTimeout(() => {

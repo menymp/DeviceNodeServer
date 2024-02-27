@@ -38,6 +38,11 @@ const DigitalOutput = (props: GenericUIControlParameters) => {
         setUserCommands([...userCommands, {idDevice, command, args}])
     }
 
+    useEffect(() => {
+        // run command scheduler for the first time
+        commandScheduler();
+    }, []);
+    
     const commandScheduler = () => {
         //if user data
         let jsonStr = "";

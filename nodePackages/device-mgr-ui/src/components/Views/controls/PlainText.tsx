@@ -33,17 +33,35 @@ const PlainText = (props: GenericUIControlParameters) => {
         uiControlResponseHandler(evt,  parseInt(parameters.idDevice), update);
     });
 
-    const commandHandler = (idDevice: number, command: string, args: string) => {
-        //loads the collection with a new command
-        setUserCommands([...userCommands, {idDevice, command, args}])
-    }
+    useEffect(() => {
+        // run command scheduler for the first time
+        commandScheduler();
+    }, []);
 
+    const commandScheduler = () => {
+        //if user data
+        let jsonStr = "";
+        if(userCommands.length > 0)
+        {
+            jsonStr = JSON.stringify({ cmds: userCommands });
+            setUserCommands([]);
+        }
+        else
+        {
+
+            jsonStr = updateCommand; //already stringified
+        }
+        ws_send(props.ws, jsonStr);
+    }
 
     const update = (response: updateResponse) => {
         if(response.state === 'SUCCESS')
         {
             setCurrentValue(response.result);
         }
+        setTimeout(() => {
+            commandScheduler();
+        }, POLL_INTERVAL_MS);
     }
     
     return (

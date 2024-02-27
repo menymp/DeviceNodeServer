@@ -13,7 +13,6 @@ export type deviceCommand = {
 export type reactUIControlls =  { 
     idLinkedDevice: number,
     component: React.ReactElement,
-    reference: React.MutableRefObject<any> 
 }[];
 
 export enum CONTROL_TYPE {
