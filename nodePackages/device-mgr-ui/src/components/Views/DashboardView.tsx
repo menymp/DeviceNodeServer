@@ -9,7 +9,7 @@ import {
     Control,
     controlTemplate
 } from "../../services/dashboardService";
-import { reactUIControlls, deviceCommand } from '../../types/ControlTypes';
+import { reactUIControll, deviceCommand } from '../../types/ControlTypes';
 import DigitalOutput from './controls/DigitalOutput';
 import PlainText from "./controls/PlainText";
 import { POLL_INTERVAL_MS } from '../../constants';
@@ -22,7 +22,7 @@ const DashboardView: React.FC = () => {
     const [page, setPage] = useState<number>(0);
     const navigate = useNavigate();
     const [getControls, {isSuccess: controlsLoaded, data: controls}] = useFetchControlsMutation();
-    const [displayUIControls, setDisplayUIControls] = useState<reactUIControlls>();
+    const [displayUIControls, setDisplayUIControls] = useState<Array<reactUIControll>>([]);
     const [userCommands, setUserCommands] = useState<Array<deviceCommand>>([]);
     const [controlsCommands, setControlCommands] = useState<string>('');
     const [flagBussy, setFlagBussy] = useState<boolean>(false);
@@ -55,11 +55,11 @@ const DashboardView: React.FC = () => {
     let flagStop = 1; //ToDo: use this when the update process should not continue
 
     useEffect(() => {
-        if (!controlsLoaded || !controls.length ) {
+        if (!controlsLoaded || !controls || !controls.length ) {
             return;
         }
 
-        // buildControlApperance(controls); // change for table logic
+        buildControlApperance(controls); // change for table logic
         // commandScheduler(); //detonates the scheduler for the first time
                             //ToDo: what happens if a timeout and no response is received??
                             //      to prevent this implement a second schedule to act as a watchdog

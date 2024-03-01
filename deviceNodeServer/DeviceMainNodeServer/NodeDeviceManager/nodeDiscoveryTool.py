@@ -26,7 +26,8 @@ class nodeDeviceDiscoveryTool():
             self.listener.init(self.path, self.discoveryArgs, self.addDiscoveredChildDevice, self.discoveryListenerDone)
             self.listener.start()
         else:
-            raise Exception("Protocol "+args[4]+"not supported")
+            #raise Exception("Protocol "+args[4]+"not supported")
+            print("Protocol "+args[4]+" not supported")
         pass
 
     def stop(self):

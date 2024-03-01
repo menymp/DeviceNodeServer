@@ -106,10 +106,10 @@ if __name__ == "__main__":
     #signal.signal(signal.SIGQUIT, sigterm_handler)
 
     while not stopEvent.is_set(): # ToDo: Add a stop signal
-        message = mqServerObj.recv()
+        message = mqServerObj.recv().decode()
         result = processIncommingMessage(deviceMgr, message)
         #  Send reply back to client
-        mqServerObj.send(result)
+        mqServerObj.send(result.encode())
         pass
     stopLoadDevices(stopEvent)
     

@@ -38,8 +38,8 @@ class handleOnCmd():
             "arg":"{json command obj ...}"
         }
         '''
-        self.socket.send(cmdObj)
-        return self.socket.recv()
+        self.socket.send(cmdObj.encode())
+        return self.socket.recv().decode()
     
     def disconnect(self):
         self.socket.close()

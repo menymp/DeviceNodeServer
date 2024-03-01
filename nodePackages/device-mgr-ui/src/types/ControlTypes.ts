@@ -10,10 +10,10 @@ export type deviceCommand = {
     args: string
 }
 
-export type reactUIControlls =  { 
+export type reactUIControll =  { 
     idLinkedDevice: number,
     component: React.ReactElement,
-}[];
+};
 
 export enum CONTROL_TYPE {
     DIGITALOUTPUT = 'DIGITALOUTPUT',

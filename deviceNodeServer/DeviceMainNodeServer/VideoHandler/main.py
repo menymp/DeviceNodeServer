@@ -26,9 +26,9 @@ def initMQServer():
 
 def taskHandleIncomingMsgs(videoHandler, mqServer, stopEvent):
     while not stopEvent.is_set():
-        msg = mqServer.recv()
+        msg = mqServer.recv().decode() ###### test plis
         result = processIncommingMessage(videoHandler, msg)
-        mqServer.send(result)
+        mqServer.send(result.encode()) ##### test plis
     pass
 
 def startHandleIncomingMsgs(videoHandler, mqServer):
