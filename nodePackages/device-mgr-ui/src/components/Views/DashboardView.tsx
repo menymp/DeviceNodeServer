@@ -30,7 +30,7 @@ const DashboardView: React.FC = () => {
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
 
-    const ws = useRef();
+    let ws = useRef<WebSocket|null>();
 
     useEffect(() => {
         ws.current = new WebSocket(WEB_SOCK_SERVER_ADDR);
@@ -43,15 +43,6 @@ const DashboardView: React.FC = () => {
             wsCurrent.close();
         };
     }, []);
-    
-    ws.onopen = () =>{
-        // Web Socket is connected, send data using send()
-        console.log("ws open");
-    };
-    // data from websocket received
-    ws.onmessage = (evt) => {
-        responseHandler(evt);
-    }
     // const startVideoRef = useRef(false);
     // a pagination item already exists
 
@@ -67,7 +58,7 @@ const DashboardView: React.FC = () => {
     let flagStop = 1; //ToDo: use this when the update process should not continue
 
     useEffect(() => {
-        if (!controlsLoaded || !controls || !controls.length ) {
+        if (!controlsLoaded || !controls || !controls.length || !ws ) {
             return;
         }
 
@@ -75,7 +66,7 @@ const DashboardView: React.FC = () => {
         // commandScheduler(); //detonates the scheduler for the first time
                             //ToDo: what happens if a timeout and no response is received??
                             //      to prevent this implement a second schedule to act as a watchdog
-    }, [controlsLoaded, controls]);
+    }, [controlsLoaded, controls, ws]);
 
     useEffect(() => {
         getControls({ pageCount: page, pageSize:  SHOW_CONTROL_SIZE });
@@ -83,6 +74,9 @@ const DashboardView: React.FC = () => {
 
 
     const buildControlApperance = (receivedControls: Array<Control>) => {
+        if (!ws.current) {
+            return;
+        }
         setDisplayUIControls([]);
         
         for (var i = 0, len = receivedControls.length; i < len; i++) 
@@ -94,12 +88,12 @@ const DashboardView: React.FC = () => {
                     the cases where two controls such as switch and plain text share the same idDevice value*/
             if(receivedControls[i]["typename"] === "DIGITALOUTPUT")
             {
-                const outputControl = <DigitalOutput ws={ws} control={receivedControls[i]}/>;
+                const outputControl = <DigitalOutput ws={ws.current} control={receivedControls[i]}/>;
                 setDisplayUIControls([...displayUIControls!, { idLinkedDevice: idLinkedDevice, component: outputControl }]);
             }
             if(receivedControls[i]["typename"] === "PLAINTEXT")
             {
-                const plainControl = <PlainText ws={ws} control={receivedControls[i]}/>;
+                const plainControl = <PlainText ws={ws.current} control={receivedControls[i]}/>;
                 setDisplayUIControls([...displayUIControls!, { idLinkedDevice: idLinkedDevice, component: plainControl }]);
                 // var controlParameters = JSON.parse(data[i]["parameters"]);
 
