@@ -43,9 +43,9 @@ def processIncommingMessage(deviceManager, message):
     #ToDo: write expected logic and cases for this data
     commandObj = json.loads(message)
 
-    if(commandObj["method"] == "execCommand"):
+    if(commandObj["method"] == "executeCMDJson"):
         result = deviceManager.executeCMDJson(commandObj["args"])
-    elif(commandObj["method"] == "executeCMDJson"):
+    elif(commandObj["method"] == "executeCommand"):
         result = deviceManager.execCommand(commandObj["args"])
     else:
         error = {

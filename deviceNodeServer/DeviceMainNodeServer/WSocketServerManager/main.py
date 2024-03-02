@@ -37,7 +37,12 @@ class handleOnMessage():
             "arg":"{json command obj ...}"
         }
         '''
-        self.socket.send(cmdObj.encode())
+        cmd = {
+            "method":"executeCMDJson",
+            "args":cmdObj
+        }
+        print("encoded command " + str(cmd))
+        self.socket.send(json.dumps(cmd).encode())
         return self.socket.recv().decode()
     
     def disconnect(self):

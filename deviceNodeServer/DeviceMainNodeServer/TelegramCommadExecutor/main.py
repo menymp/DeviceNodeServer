@@ -32,13 +32,13 @@ class handleOnCmd():
     def execCommand(self, cmdObj):
         #deviceManager.executeCMDJson
         #command form:
-        '''
+        
         cmd = {
             "method":"executeCMDJson",
-            "arg":"{json command obj ...}"
+            "args":cmdObj
         }
-        '''
-        self.socket.send(cmdObj.encode())
+        
+        self.socket.send(json.dumps(cmd).encode())
         return self.socket.recv().decode()
     
     def disconnect(self):

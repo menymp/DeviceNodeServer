@@ -30,7 +30,19 @@ const DashboardView: React.FC = () => {
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
 
-    const ws = new WebSocket(WEB_SOCK_SERVER_ADDR);
+    const ws = useRef();
+
+    useEffect(() => {
+        ws.current = new WebSocket(WEB_SOCK_SERVER_ADDR);
+        ws.current.onopen = () => console.log("ws opened");
+        ws.current.onclose = () => console.log("ws closed");
+
+        const wsCurrent = ws.current;
+
+        return () => {
+            wsCurrent.close();
+        };
+    }, []);
     
     ws.onopen = () =>{
         // Web Socket is connected, send data using send()
