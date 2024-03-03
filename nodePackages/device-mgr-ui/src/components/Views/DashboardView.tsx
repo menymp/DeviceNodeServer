@@ -58,7 +58,8 @@ const DashboardView: React.FC = () => {
     let flagStop = 1; //ToDo: use this when the update process should not continue
 
     useEffect(() => {
-        if (!controlsLoaded || !controls || !controls.length || !ws ) {
+        // ToDo: check for possible deadlock in devices communication
+        if (!controlsLoaded || !controls || !controls.length || !ws || ws.current?.readyState !== WebSocket.OPEN) {
             return;
         }
 

@@ -57,11 +57,12 @@ class deviceManager():
 	'''
     def executeCMDJson(self, jsonArgs):
         flagUpdate = False
-        cmdArrayObj1 = json.loads(jsonArgs)
+        cmdArrayObj1 = json.loads(jsonArgs["args"])
         cmdArrayObj = json.loads(cmdArrayObj1)#ToDo: fix, for some weird reason, objects are stringified with dual quotes
         results = []
+        #print(cmdArrayObj)
         
-        for cmd in cmdArrayObj["cmds"]:
+        for cmd in cmdArrayObj:
             state = "SUCCESS"
             try:
                 result, flagUpdate = self.executeCMDraw(cmd['idDevice'], cmd['command'], cmd['args'])

@@ -44,9 +44,9 @@ def processIncommingMessage(deviceManager, message):
     commandObj = json.loads(message)
 
     if(commandObj["method"] == "executeCMDJson"):
-        result = deviceManager.executeCMDJson(commandObj["args"])
+        result = deviceManager.executeCMDJson(commandObj)
     elif(commandObj["method"] == "executeCommand"):
-        result = deviceManager.execCommand(commandObj["args"])
+        result = deviceManager.execCommand(commandObj)
     else:
         error = {
             "type":"unknown method"
