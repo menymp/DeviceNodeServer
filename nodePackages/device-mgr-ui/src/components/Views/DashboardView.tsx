@@ -67,7 +67,7 @@ const DashboardView: React.FC = () => {
         // commandScheduler(); //detonates the scheduler for the first time
                             //ToDo: what happens if a timeout and no response is received??
                             //      to prevent this implement a second schedule to act as a watchdog
-    }, [controlsLoaded, controls, ws]);
+    }, [controlsLoaded, controls, ws.current?.readyState]);
 
     useEffect(() => {
         getControls({ pageCount: page, pageSize:  SHOW_CONTROL_SIZE });
@@ -78,6 +78,7 @@ const DashboardView: React.FC = () => {
         if (!ws.current) {
             return;
         }
+        let tmpControls = [] as Array<any>;
         setDisplayUIControls([]);
         
         for (var i = 0, len = receivedControls.length; i < len; i++) 
@@ -90,12 +91,14 @@ const DashboardView: React.FC = () => {
             if(receivedControls[i]["typename"] === "DIGITALOUTPUT")
             {
                 const outputControl = <DigitalOutput ws={ws.current} control={receivedControls[i]}/>;
-                setDisplayUIControls([...displayUIControls!, { idLinkedDevice: idLinkedDevice, component: outputControl }]);
+                tmpControls.push({ idLinkedDevice: idLinkedDevice, component: outputControl });
+                // setDisplayUIControls([...displayUIControls!, { idLinkedDevice: idLinkedDevice, component: outputControl }]);
             }
             if(receivedControls[i]["typename"] === "PLAINTEXT")
             {
                 const plainControl = <PlainText ws={ws.current} control={receivedControls[i]}/>;
-                setDisplayUIControls([...displayUIControls!, { idLinkedDevice: idLinkedDevice, component: plainControl }]);
+                tmpControls.push({ idLinkedDevice: idLinkedDevice, component: plainControl });
+                // setDisplayUIControls([...displayUIControls!, { idLinkedDevice: idLinkedDevice, component: plainControl }]);
                 // var controlParameters = JSON.parse(data[i]["parameters"]);
 
                 // var ControlElementContainer = document.createElement('form');
@@ -120,10 +123,9 @@ const DashboardView: React.FC = () => {
             {
                 
             }
-            
         }
+        setDisplayUIControls(tmpControls);
     }
-
     //ToDo: initialize the array of controls
     //		based on controls array init commands array
 
