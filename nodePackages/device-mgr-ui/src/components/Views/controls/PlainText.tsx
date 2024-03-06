@@ -29,12 +29,12 @@ const PlainText = (props: GenericUIControlParameters) => {
     const parameters = getControlParameters();
     const updateCommand = JSON.stringify([generateUpdateCommand(parseInt(parameters.idDevice), parameters.updateCmdStr, "")]);
 
-    props.ws.addEventListener('message' , (evt) => {
-        uiControlResponseHandler(evt,  parseInt(parameters.idDevice), update);
-    });
-
     useEffect(() => {
         // run command scheduler for the first time
+        props.ws.addEventListener('message' , (evt) => {
+            uiControlResponseHandler(evt,  parseInt(parameters.idDevice), update);
+        });
+    
         commandScheduler();
     }, []);
 

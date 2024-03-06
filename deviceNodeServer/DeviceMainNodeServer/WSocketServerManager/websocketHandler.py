@@ -63,7 +63,10 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         #ToDo: What would happen if many messages arrives at the same time
         #      should it have a queue for message handling?
         #
-        self.write_message(self.on_messageHandler(message))
+        try:
+            self.write_message(self.on_messageHandler(message))
+        except:
+            print('socket error')
         pass
 
 ##MAIN
