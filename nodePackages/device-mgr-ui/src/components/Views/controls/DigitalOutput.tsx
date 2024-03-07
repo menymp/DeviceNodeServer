@@ -22,6 +22,8 @@ type DigitalOutputsControlParameters = {
 const DigitalOutput = (props: GenericUIControlParameters) => {
     const { control } = props;
     const [userCommands, setUserCommands] = useState<Array<deviceCommand>>([]);
+    const [currentTimeout, setCurrentTimeout] = useState<NodeJS.Timeout>();
+    const [responseTimeout, setResponseTimeout] = useState<NodeJS.Timeout>();
 
     const getControlParameters = () => {
         return JSON.parse(control.parameters) as DigitalOutputsControlParameters;
@@ -56,6 +58,9 @@ const DigitalOutput = (props: GenericUIControlParameters) => {
             jsonStr = updateCommand; //already stringified
         }
         ws_send(props.ws, jsonStr);
+        setCurrentTimeout(setTimeout(() => {
+            commandScheduler();
+        }, 3*POLL_INTERVAL_MS));
     }
 
     const userClick = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -71,6 +76,12 @@ const DigitalOutput = (props: GenericUIControlParameters) => {
     // this function should be triggered from parent, research how are the approaches for this:
     // https://stackoverflow.com/questions/68642060/trigger-child-function-from-parent-component-using-react-hooks
     const update = (response: updateResponse) => {
+        if (currentTimeout) {
+            clearTimeout(currentTimeout);
+        }
+        if (responseTimeout) {
+            clearTimeout(responseTimeout);
+        }
         //checkBox = this.control.querySelectorAll('checkbox[deviceId]='+this.idDevice); //selects the checkbox
         const { cmdOnStr } = getControlParameters()
         let check = false;
@@ -85,9 +96,9 @@ const DigitalOutput = (props: GenericUIControlParameters) => {
             const uiToggleControl = document.querySelector(`#digital-output${control.idControl}`) as HTMLInputElement;
             uiToggleControl.checked = check;
         }
-        setTimeout(() => {
+        setCurrentTimeout(setTimeout(() => {
             commandScheduler();
-        }, POLL_INTERVAL_MS);
+        }, POLL_INTERVAL_MS));
     }
     
     return (
