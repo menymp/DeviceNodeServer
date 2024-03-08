@@ -13,17 +13,17 @@ import { POLL_INTERVAL_MS } from '../../../constants'
 
 type DigitalOutputsControlParameters = {
     idDevice: string, 
-    cmdOnStr: string, 
-    cmdOffStr: string, 
+    onCmdStr: string, 
+    offCmdStr: string, 
     updateCmdStr: string, 
     apperance: string
 }
 
 const DigitalOutput = (props: GenericUIControlParameters) => {
     const { control } = props;
-    const [userCommands, setUserCommands] = useState<Array<deviceCommand>>([]);
-    const [currentTimeout, setCurrentTimeout] = useState<NodeJS.Timeout>();
-    const [responseTimeout, setResponseTimeout] = useState<NodeJS.Timeout>();
+    const userCommands = useRef<deviceCommand | null>(null);
+    const currentTimeout = useRef<NodeJS.Timeout>();
+    const responseTimeout = useRef<NodeJS.Timeout>();
 
     const getControlParameters = () => {
         return JSON.parse(control.parameters) as DigitalOutputsControlParameters;
@@ -33,7 +33,7 @@ const DigitalOutput = (props: GenericUIControlParameters) => {
 
     const commandHandler = (idDevice: number, command: string, args: string) => {
         //loads the collection with a new command
-        setUserCommands([...userCommands, {idDevice, command, args}])
+        userCommands.current = {idDevice, command, args};
     }
 
     useEffect(() => {
@@ -47,10 +47,10 @@ const DigitalOutput = (props: GenericUIControlParameters) => {
     const commandScheduler = () => {
         //if user data
         let jsonStr = "";
-        if(userCommands.length > 0)
+        if(userCommands.current)
         {
-            jsonStr = JSON.stringify({ cmds: userCommands });
-            setUserCommands([]);
+            jsonStr = JSON.stringify( [userCommands] );
+            userCommands.current = null;
         }
         else
         {
@@ -58,34 +58,36 @@ const DigitalOutput = (props: GenericUIControlParameters) => {
             jsonStr = updateCommand; //already stringified
         }
         ws_send(props.ws, jsonStr);
-        setCurrentTimeout(setTimeout(() => {
+        responseTimeout.current = setTimeout(() => {
             commandScheduler();
-        }, 3*POLL_INTERVAL_MS));
+        }, 3*POLL_INTERVAL_MS);
     }
 
     const userClick = (e: React.ChangeEvent<HTMLInputElement>) => {
         //console.log("clickk");
         // ToDo: check if names exists
-        const { idDevice, cmdOnStr, cmdOffStr } = getControlParameters()
+        const { idDevice, onCmdStr, offCmdStr } = getControlParameters()
         if(e.target.checked)
-            commandHandler(parseInt(idDevice),cmdOnStr, "");
+            commandHandler(parseInt(idDevice),onCmdStr, "");
         else
-            commandHandler(parseInt(idDevice),cmdOffStr, "");
+            commandHandler(parseInt(idDevice),offCmdStr, "");
     }
 
     // this function should be triggered from parent, research how are the approaches for this:
     // https://stackoverflow.com/questions/68642060/trigger-child-function-from-parent-component-using-react-hooks
     const update = (response: updateResponse) => {
-        if (currentTimeout) {
-            clearTimeout(currentTimeout);
+        if (currentTimeout.current) {
+            clearTimeout(currentTimeout.current);
         }
-        if (responseTimeout) {
-            clearTimeout(responseTimeout);
+        if (responseTimeout.current) {
+            clearTimeout(responseTimeout.current);
         }
+        ///////////////////////////////////////
+        /** begins user specific code * */
         //checkBox = this.control.querySelectorAll('checkbox[deviceId]='+this.idDevice); //selects the checkbox
-        const { cmdOnStr } = getControlParameters()
+        const { onCmdStr } = getControlParameters()
         let check = false;
-        if(response.result === cmdOnStr)
+        if(response.result === onCmdStr)
         {
             check = true;
         }
@@ -96,9 +98,11 @@ const DigitalOutput = (props: GenericUIControlParameters) => {
             const uiToggleControl = document.querySelector(`#digital-output${control.idControl}`) as HTMLInputElement;
             uiToggleControl.checked = check;
         }
-        setCurrentTimeout(setTimeout(() => {
+        /* ends user specific code */
+        //////////////////////////////////////////////////
+        currentTimeout.current = setTimeout(() => {
             commandScheduler();
-        }, POLL_INTERVAL_MS));
+        }, POLL_INTERVAL_MS);
     }
     
     return (

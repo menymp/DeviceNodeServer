@@ -23,8 +23,8 @@ const PlainText = (props: GenericUIControlParameters) => {
     const { control } = props;
     const [userCommands, setUserCommands] = useState<Array<deviceCommand>>([]);
     const [currentValue, setCurrentValue] = useState<string>('');
-    const [currentTimeout, setCurrentTimeout] = useState<NodeJS.Timeout>();
-    const [responseTimeout, setResponseTimeout] = useState<NodeJS.Timeout>();
+    const currentTimeout = useRef<NodeJS.Timeout>();
+    const responseTimeout = useRef<NodeJS.Timeout>();
 
     const getControlParameters = () => {
         return JSON.parse(control.parameters) as PlainTextParameters;
@@ -55,26 +55,26 @@ const PlainText = (props: GenericUIControlParameters) => {
             jsonStr = updateCommand; //already stringified
         }
         ws_send(props.ws, jsonStr);
-        setCurrentTimeout(setTimeout(() => {
+        responseTimeout.current = setTimeout(() => {
             commandScheduler();
-        }, 3*POLL_INTERVAL_MS));
+        }, 3*POLL_INTERVAL_MS);
     }
 
     const update = (response: updateResponse) => {
-        if (currentTimeout) {
-            clearTimeout(currentTimeout);
+        if (currentTimeout.current) {
+            clearTimeout(currentTimeout.current);
         }
-        if (responseTimeout) {
-            clearTimeout(responseTimeout);
+        if (responseTimeout.current) {
+            clearTimeout(responseTimeout.current);
         }
 
         if(response.state === 'SUCCESS')
         {
             setCurrentValue(response.result);
         }
-        setCurrentTimeout(setTimeout(() => {
+        currentTimeout.current = setTimeout(() => {
             commandScheduler();
-        }, POLL_INTERVAL_MS));
+        }, POLL_INTERVAL_MS);
     }
     
     return (

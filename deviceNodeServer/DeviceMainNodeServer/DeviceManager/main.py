@@ -42,14 +42,20 @@ def processIncommingMessage(deviceManager, message):
     #Process Incomming message request from different processes
     #ToDo: write expected logic and cases for this data
     commandObj = json.loads(message)
-
-    if(commandObj["method"] == "executeCMDJson"):
-        result = deviceManager.executeCMDJson(commandObj)
-    elif(commandObj["method"] == "executeCommand"):
-        result = deviceManager.execCommand(commandObj)
-    else:
+    try:
+        if(commandObj["method"] == "executeCMDJson"):
+            result = deviceManager.executeCMDJson(commandObj)
+        elif(commandObj["method"] == "executeCommand"):
+            result = deviceManager.execCommand(commandObj)
+        else:
+            error = {
+                "type":"unknown method"
+            }
+            result = json.dumps(error)
+    except:
+        print("command error!" + str(message))
         error = {
-            "type":"unknown method"
+            "type":"command error!"
         }
         result = json.dumps(error)
     return result
