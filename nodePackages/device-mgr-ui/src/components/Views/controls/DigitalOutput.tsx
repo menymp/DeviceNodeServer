@@ -49,7 +49,7 @@ const DigitalOutput = (props: GenericUIControlParameters) => {
         let jsonStr = "";
         if(userCommands.current)
         {
-            jsonStr = JSON.stringify( [userCommands] );
+            jsonStr = JSON.stringify( [userCommands.current] );
             userCommands.current = null;
         }
         else
