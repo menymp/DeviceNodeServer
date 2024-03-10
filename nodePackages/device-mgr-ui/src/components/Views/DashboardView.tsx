@@ -13,6 +13,7 @@ import { reactUIControll, deviceCommand } from '../../types/ControlTypes';
 import DigitalOutput from './controls/DigitalOutput';
 import PlainText from "./controls/PlainText";
 import { POLL_INTERVAL_MS } from '../../constants';
+import { create } from "domain";
 
 
 // ToDo: change of approach, each component will send its individual command to the websocket
@@ -23,12 +24,9 @@ const DashboardView: React.FC = () => {
     const navigate = useNavigate();
     const [getControls, {isSuccess: controlsLoaded, data: controls}] = useFetchControlsMutation();
     const [displayUIControls, setDisplayUIControls] = useState<Array<reactUIControll>>([]);
-    const [userCommands, setUserCommands] = useState<Array<deviceCommand>>([]);
-    const [controlsCommands, setControlCommands] = useState<string>('');
-    const [flagBussy, setFlagBussy] = useState<boolean>(false);
+    const [controlsGrid, setControlsGrid] = useState<Array<React.ReactElement>>([]);
 
     const handleClose = () => setShow(false);
-    const handleShow = () => setShow(true);
 
     let ws = useRef<WebSocket|null>();
 
@@ -43,19 +41,6 @@ const DashboardView: React.FC = () => {
             wsCurrent.close();
         };
     }, []);
-    // const startVideoRef = useRef(false);
-    // a pagination item already exists
-
-    // ToDo: should i rearchitecture this moving the update responsability to each component, or should i
-    // implement a central queue?
-
-    // path to follow :
-    // implement a component with all its UI and add it to a list, create a queue that will hold the user interaction commands
-    // create an interval in the core component to process the user queued messages
-    // each component will also provide an update command interface that will be send as a list to the backend side with the same
-    // interval and thru the same socket, when the response arrives, the top component will forward to each of the list commponents
-    // its response and each of them will handle the processing details.
-    let flagStop = 1; //ToDo: use this when the update process should not continue
 
     useEffect(() => {
         // ToDo: check for possible deadlock in devices communication
@@ -72,6 +57,37 @@ const DashboardView: React.FC = () => {
     useEffect(() => {
         getControls({ pageCount: page, pageSize:  SHOW_CONTROL_SIZE });
     }, [page]);
+
+    useEffect(() => {
+        if (!displayUIControls?.length) {
+            return;
+        }
+        createComponentsGrid();
+    }, [displayUIControls]);
+
+    const createComponentsGrid = () => {
+        /* ToDo: this will be calculated with the screen length */
+        const numColumns = 2;
+        const rows = [] as Array<React.ReactElement>;
+        for (let i = 0; i < numColumns; i++) {
+          const cols = [];
+          for (let j = 0; j < numColumns; j++) {
+            const index = i * numColumns + j;
+            if (index >= displayUIControls?.length) {
+                rows.push(<Row key={i}>{cols}</Row>);
+                setControlsGrid(rows)
+                return;
+            }
+            const controlUi = displayUIControls[index].component
+            cols.push(
+              <Col key={index} xs={12} md={6} lg={4}>
+                {controlUi}
+              </Col>
+            );
+          }
+          rows.push(<Row key={i}>{cols}</Row>);
+        }
+    }
 
 
     const buildControlApperance = (receivedControls: Array<Control>) => {
@@ -92,32 +108,11 @@ const DashboardView: React.FC = () => {
             {
                 const outputControl = <DigitalOutput ws={ws.current} control={receivedControls[i]}/>;
                 tmpControls.push({ idLinkedDevice: idLinkedDevice, component: outputControl });
-                // setDisplayUIControls([...displayUIControls!, { idLinkedDevice: idLinkedDevice, component: outputControl }]);
             }
             if(receivedControls[i]["typename"] === "PLAINTEXT")
             {
                 const plainControl = <PlainText ws={ws.current} control={receivedControls[i]}/>;
                 tmpControls.push({ idLinkedDevice: idLinkedDevice, component: plainControl });
-                // setDisplayUIControls([...displayUIControls!, { idLinkedDevice: idLinkedDevice, component: plainControl }]);
-                // var controlParameters = JSON.parse(data[i]["parameters"]);
-
-                // var ControlElementContainer = document.createElement('form');
-                // var ControlElementContainerText = document.createElement('label');
-                // ControlElementContainer.innerHTML = data[i]["name"];
-                // var textOut = document.createElement('label');
-                    // textOut.setAttribute('class','text');
-                // var tmpText = document.createElement('label');
-                    // tmpText.setAttribute('type','textlabel');
-                // tmpText.id = controlParameters["idDevice"];
-                // textOut.appendChild(tmpText);
-                // ControlElementContainer.appendChild(textOut);
-                // $("#controlsContainer").append(ControlElementContainer);
-
-                // let intervall = controlParameters["intervall"];
-                // let iddev = controlParameters["idDevice"];
-                // let cmdstr = controlParameters["readCmdStr"];
-                // nIntervId = setInterval(commandHandler,intervall ,iddev, cmdstr);
-                // intervalsIds.push(nIntervId);
             }
             if(receivedControls[i]["typename"] === "SENSORREAD")
             {
@@ -125,51 +120,6 @@ const DashboardView: React.FC = () => {
             }
         }
         setDisplayUIControls(tmpControls);
-    }
-    //ToDo: initialize the array of controls
-    //		based on controls array init commands array
-
-    //this function is called continuously to update the UI
-    //sends the current user input first to the wSocket and
-    //cleans the interface, if no user input exists, sends 
-    //the periodic control update status request.
-    const commandScheduler = () => {
-        //if user data
-        let jsonStr = "";
-        if(userCommands.length > 0)
-        {
-            jsonStr = JSON.stringify({ cmds: userCommands });
-            setUserCommands([]);
-        }
-        else
-        {
-
-            jsonStr = controlsCommands; //already stringified
-        }
-        // ws_send(jsonStr);
-        setFlagBussy(true);
-    }
-
-    const responseHandler = (evt: any) => {
-        //process the response
-        const responses = JSON.parse(evt.data);
-        
-        responses.forEach((response: any) => {
-            /*get the corresponding class of the response and updates it*/
-            if (!displayUIControls || !displayUIControls.length) {
-                return
-            }
-            const tmpUIcontrol = displayUIControls.filter((uiControl) => uiControl.idLinkedDevice === response.idDevice);
-            // tmpUIcontrol[0].reference.current?.update(response);
-        });
-        
-        setTimeout(() => {
-            if(flagStop == 1)//ToDo: define flag stop
-            {
-                commandScheduler();
-            }
-        }, POLL_INTERVAL_MS);
-        setFlagBussy(false);
     }
 
     return(
@@ -269,7 +219,7 @@ const DashboardView: React.FC = () => {
                 </Row>
                 <Row>
                     <Container id="controlsUIContainer">
-                        {displayUIControls?.map((uiControl) => { return uiControl.component })}
+                        {controlsGrid}
                     </Container>
                 </Row>
             </Container>
