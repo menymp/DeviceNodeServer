@@ -1,6 +1,6 @@
 import React from "react";
 import { useState, useEffect, useRef } from 'react';
-import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
+import { Container, Row, Col, Button, Form, Modal, Card, Figure } from 'react-bootstrap';
 import BaseTable from '../Table/Table';
 import { useNavigate } from "react-router-dom";
 import { WEB_SOCK_SERVER_ADDR, SHOW_CONTROL_SIZE } from '../../constants';
@@ -14,7 +14,6 @@ import DigitalOutput from './controls/DigitalOutput';
 import PlainText from "./controls/PlainText";
 import { POLL_INTERVAL_MS } from '../../constants';
 import { create } from "domain";
-
 
 // ToDo: change of approach, each component will send its individual command to the websocket
 //       and receive and decode only the received messages that contain the control id
@@ -74,7 +73,8 @@ const DashboardView: React.FC = () => {
           for (let j = 0; j < numColumns; j++) {
             const index = i * numColumns + j;
             if (index >= displayUIControls?.length) {
-                rows.push(<Row key={i}>{cols}</Row>);
+                rows.push(<Row key={i}><div key={i} className="square-container"
+                style={{ backgroundColor: 'gray', width: '200px', height: '200px' }}>{cols}</div></Row>);
                 setControlsGrid(rows)
                 return;
             }
