@@ -73,16 +73,27 @@ const DashboardView: React.FC = () => {
           for (let j = 0; j < numColumns; j++) {
             const index = i * numColumns + j;
             if (index >= displayUIControls?.length) {
-                rows.push(<Row key={i}><div key={i} className="square-container"
-                style={{ backgroundColor: 'gray', width: '200px', height: '200px' }}>{cols}</div></Row>);
+                rows.push(<Row key={i}>{cols}</Row>);
                 setControlsGrid(rows)
                 return;
             }
             const controlUi = displayUIControls[index].component
             cols.push(
-              <Col key={index} xs={12} md={6} lg={4}>
+                <div key={i} className="square-container" style={{ 
+                    margin: '5px', 
+                    padding: '10px', 
+                    borderRadius:'25px', 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center',
+                    border: '2px solid transparent', 
+                    backgroundColor: 'gray', 
+                    width: '200px', 
+                    height: '200px' 
+                    }}><Col key={index} xs={12} md={6} lg={4}>
                 {controlUi}
               </Col>
+              </div>
             );
           }
           rows.push(<Row key={i}>{cols}</Row>);
