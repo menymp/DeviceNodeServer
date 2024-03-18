@@ -66,7 +66,7 @@ class mqttNodeListener():
         client.on_message = on_message
         client.connect(mqttBrokerPath, port, keepalive)
         
-        taskListen = threading.Thread(target=self.clientlisten, args=(client,))
+        taskListen = threading.Thread(target=self.clientlisten, args=(client,)) #ToDo: instead of thread, think to use the loop() function and do a pool, also handle the reconnect
         taskListen.start()
         return client, taskListen
 

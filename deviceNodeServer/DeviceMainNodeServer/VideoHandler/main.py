@@ -16,7 +16,8 @@ sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "ConfigsUtils
 from configsCreate import configsParser
 from videoHttpController import videoHandler
 
-
+#ToDo:  for now we are creating a thread to read for each vide source, is there a way to optimize this to
+#       instead use a pool or load everithing on demand?
 
 def initMQServer():
     context = zmq.Context()

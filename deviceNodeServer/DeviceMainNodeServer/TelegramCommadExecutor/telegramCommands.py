@@ -19,6 +19,9 @@ from dbActions import dbUserActions
 #
 #ToDo: expect to refract each existing component and isolate as a single external process
 #      to allow scalability and multiple external servers working together
+# ToDo: also the refractoring expect that a if a good amount of users is loaded, it will try to load all the users
+#		in the future this should be done on demand when a new user connects to the system, something like a full engine loaded
+#		on demand
 class TelegramCommandExecutor():
 	def __init__(self, initArgs, objInstances):
 		self.dbHost = initArgs[0]
@@ -53,6 +56,8 @@ class TelegramCommandExecutor():
 	def initNewUserApi(self, token):
 		#call for init a new user token
 		# should a better approach other than the use of a thread for each new user be expected?
+		# yes, ToDo: attempt to do a pool
+		# check https://stackoverflow.com/questions/74484933/how-can-i-break-out-of-telegram-bot-loop-application-run-polling
 		userProcessHandler = TelegramBotUtil(token)
 		#for handler in self.definedHandlers:
 		#	userProcessHandler.addHandler(handler[1],handler[0],handler[2])
