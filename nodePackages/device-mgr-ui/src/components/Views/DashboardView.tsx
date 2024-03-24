@@ -12,6 +12,7 @@ import {
 import { reactUIControll, deviceCommand } from '../../types/ControlTypes';
 import DigitalOutput from './controls/DigitalOutput';
 import PlainText from "./controls/PlainText";
+import SensorRead from "./controls/SensorRead";
 import { POLL_INTERVAL_MS } from '../../constants';
 import { create } from "domain";
 
@@ -127,7 +128,8 @@ const DashboardView: React.FC = () => {
             }
             if(receivedControls[i]["typename"] === "SENSORREAD")
             {
-                
+                const sensorRead = <SensorRead ws={ws.current} control={receivedControls[i]}/>;
+                tmpControls.push({ idLinkedDevice: idLinkedDevice, component: sensorRead });
             }
         }
         setDisplayUIControls(tmpControls);

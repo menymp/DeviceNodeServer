@@ -11,11 +11,14 @@ import {
 } from '../../../types/ControlTypes'
 import GaugeChart from 'react-gauge-chart'
 import { POLL_INTERVAL_MS } from '../../../constants'
+import { param } from "jquery";
 
-type PlainTextParameters = {
+type SensorReadParameters = {
     idDevice: string, 
     updateCmdStr: string, 
-    apperance: string
+    apperance: string,
+    lowLimit: string | number,
+    highLimit: string | number
 }
 
 
@@ -28,7 +31,7 @@ const SensorRead = (props: GenericUIControlParameters) => {
     const responseTimeout = useRef<NodeJS.Timeout>();
 
     const getControlParameters = () => {
-        return JSON.parse(control.parameters) as PlainTextParameters;
+        return JSON.parse(control.parameters) as SensorReadParameters;
     }
     const parameters = getControlParameters();
     const updateCommand = JSON.stringify([generateUpdateCommand(parseInt(parameters.idDevice), parameters.updateCmdStr, "")]);
@@ -82,15 +85,15 @@ const SensorRead = (props: GenericUIControlParameters) => {
         <>
             <Form>
                 <Form.Label>{control.name}</Form.Label>
-                <GaugeChart id="gauge-chart3" 
+                <GaugeChart id={`gauge-chart${parameters.idDevice}${parameters.apperance}`} 
                     nrOfLevels={30} 
                     colors={["#FF5F6D", "#FFC371"]} 
                     arcWidth={0.3} 
-                    percent={0.37} 
+                    percent={parseInt(currentValue) / (typeof parameters.highLimit === 'string' ? parseInt(parameters.highLimit) : parameters.highLimit)} 
                 />
                 <Form.Control // prettier-ignore
                     type="switch"
-                    id={`plain-text${control.idControl}`}
+                    id={`plain-text${control.idControl}${parameters.apperance}`}
                     value={currentValue}
                 />
             </Form>
