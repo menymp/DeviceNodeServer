@@ -24,6 +24,7 @@ const DigitalOutput = (props: GenericUIControlParameters) => {
     const userCommands = useRef<deviceCommand | null>(null);
     const currentTimeout = useRef<NodeJS.Timeout>();
     const responseTimeout = useRef<NodeJS.Timeout>();
+    // for analog output use https://www.npmjs.com/package/react-dial-knob
 
     const getControlParameters = () => {
         return JSON.parse(control.parameters) as DigitalOutputsControlParameters;
