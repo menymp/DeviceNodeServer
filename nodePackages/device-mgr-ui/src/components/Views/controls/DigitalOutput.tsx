@@ -25,6 +25,7 @@ const DigitalOutput = (props: GenericUIControlParameters) => {
     const currentTimeout = useRef<NodeJS.Timeout>();
     const responseTimeout = useRef<NodeJS.Timeout>();
     // for analog output use https://www.npmjs.com/package/react-dial-knob
+    // depending on the output type, the component would have many apperances
 
     const getControlParameters = () => {
         return JSON.parse(control.parameters) as DigitalOutputsControlParameters;
