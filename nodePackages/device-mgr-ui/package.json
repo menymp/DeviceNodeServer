@@ -15,6 +15,7 @@
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
     "bootstrap": "^5.3.1",
+    "colored-led": "^0.0.4",
     "jquery": "^3.7.1",
     "react": "^18.2.0",
     "react-bootstrap": "^2.8.0",
