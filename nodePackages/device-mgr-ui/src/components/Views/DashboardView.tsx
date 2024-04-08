@@ -14,7 +14,7 @@ import DigitalOutput from './controls/DigitalOutput';
 import PlainText from "./controls/PlainText";
 import SensorRead from "./controls/SensorRead";
 import DigitalInput from "./controls/DigitalInput";
-import { POLL_INTERVAL_MS } from '../../constants';
+import { CONTROLS_COLUMN_NUM, DISPLAY_CONTROLS_NUM } from '../../constants';
 import { create } from "domain";
 
 // ToDo: change of approach, each component will send its individual command to the websocket
@@ -56,7 +56,7 @@ const DashboardView: React.FC = () => {
     }, [controlsLoaded, controls, ws.current?.readyState]);
 
     useEffect(() => {
-        getControls({ pageCount: page, pageSize:  SHOW_CONTROL_SIZE });
+        getControls({ pageCount: page, pageSize:  DISPLAY_CONTROLS_NUM });
     }, [page]);
 
     useEffect(() => {
@@ -68,7 +68,7 @@ const DashboardView: React.FC = () => {
 
     const createComponentsGrid = () => {
         /* ToDo: this will be calculated with the screen length */
-        const numColumns = 2;
+        const numColumns = CONTROLS_COLUMN_NUM;
         const rows = [] as Array<React.ReactElement>;
         for (let i = 0; i < numColumns; i++) {
           const cols = [];
