@@ -8,7 +8,7 @@
 import asyncio
 import websockets
 import cv2
-#ToDo: at this level different types of cameras are expected to be handled
+
 from Esp32VideoService import Esp32VideoService
 
 import time

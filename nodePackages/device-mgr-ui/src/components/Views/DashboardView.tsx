@@ -17,8 +17,6 @@ import DigitalInput from "./controls/DigitalInput";
 import { CONTROLS_COLUMN_NUM, DISPLAY_CONTROLS_NUM } from '../../constants';
 import { create } from "domain";
 
-// ToDo: change of approach, each component will send its individual command to the websocket
-//       and receive and decode only the received messages that contain the control id
 const DashboardView: React.FC = () => {
     const [show, setShow] = useState(false);
     const [page, setPage] = useState<number>(0);
@@ -50,9 +48,6 @@ const DashboardView: React.FC = () => {
         }
 
         buildControlApperance(controls); // change for table logic
-        // commandScheduler(); //detonates the scheduler for the first time
-                            //ToDo: what happens if a timeout and no response is received??
-                            //      to prevent this implement a second schedule to act as a watchdog
     }, [controlsLoaded, controls, ws.current?.readyState]);
 
     useEffect(() => {

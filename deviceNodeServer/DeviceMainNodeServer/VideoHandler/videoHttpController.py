@@ -59,14 +59,12 @@ class videoHandler():
 		pass
 	
 	def _initVideoSources(self):
-		#ToDo:  this list should be loaded from database
 		self.dbActions = dbVideoActions()
 		self.dbActions.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
 		self.videoSources = self.dbActions.getVideoSources()
 		
 		self.frameObjConstructor = FrameConstructor()
 		
-		#ToDo: create db schemma, parse data and init object
 		for deviceInfo in self.videoSources:
 			connArgs=json.loads(deviceInfo[3])
 			connArgs["name"]=deviceInfo[1]
@@ -74,8 +72,6 @@ class videoHandler():
 			connArgs["idCreator"]=deviceInfo[2]
 			self.frameObjConstructor.initNewCamera(connArgs)
 			pass
-		#connArgs should be fetch from database
-		#frameObjConstructor.initNewCamera(connArgs3)
 		self.startTimerFetch()
 		pass
 	
@@ -98,7 +94,6 @@ class videoHandler():
 		}
 		
 		inTks = inputArgs
-		#ToDo: implement full command set
 		if inTks[0] == 'ls':
 			return str(self.frameObjConstructor.getDeviceIds())
 		elif inTks[0] == "get":

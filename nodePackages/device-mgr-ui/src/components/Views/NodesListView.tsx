@@ -44,6 +44,9 @@ const NodesListView: React.FC = () => {
         if (selectedEditNode) {
             setSelectedEditNode(selectedEditNode)
             setNewName(selectedEditNode?.nodeName)
+            setNewPath(selectedEditNode?.nodePath)
+            setNewParameters(selectedEditNode?.connectionParameters)
+            setNewProtocol(selectedEditNode?.idDeviceProtocol)
             setShow(true)
         }
         else
@@ -55,8 +58,9 @@ const NodesListView: React.FC = () => {
     const saveElement = () => {
         let selectedProtocol = "";
         let tmp = getCurrentProtocolSelection();
-        if (!getCurrentProtocolSelection()) {
-            selectedProtocol = getCurrentProtocolSelection() // ToDo check this!!!!
+
+        if (tmp) {
+            selectedProtocol = tmp // ToDo check this!!!!
         } else {
             selectedProtocol = newProtocol?.toString()!
         }
@@ -130,7 +134,11 @@ const NodesListView: React.FC = () => {
         setNodesDisplay(newTable);
     }, [nodesLoaded, nodesData])
     //ToDo: we can not change the node name once created, should it be selected instead by id??????
-    const getCurrentProtocolSelection = () => (document.getElementById('selectedProtocolItem') as HTMLSelectElement).value;
+    const getCurrentProtocolSelection = () => {
+        const value = (document.getElementById('selectedProtocolItem') as HTMLSelectElement).value;
+        return value;
+    }
+
     // a pagination item already exists
     
     return(

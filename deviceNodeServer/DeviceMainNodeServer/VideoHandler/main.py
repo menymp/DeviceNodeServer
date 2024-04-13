@@ -44,7 +44,6 @@ def stopHandleIncomingMsgs(stopEvent):
 
 def processIncommingMessage(videoHandler, message):
     #Process Incomming message request from different processes
-    #ToDo: write expected logic and cases for this data
     commandObj = json.loads(message)
 
     if(commandObj["method"] == "execCommand"):

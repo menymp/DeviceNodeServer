@@ -40,7 +40,6 @@ def stopLoadDevices(stopEvent):
 
 def processIncommingMessage(deviceManager, message):
     #Process Incomming message request from different processes
-    #ToDo: write expected logic and cases for this data
     commandObj = json.loads(message)
     try:
         if(commandObj["method"] == "executeCMDJson"):
@@ -59,28 +58,6 @@ def processIncommingMessage(deviceManager, message):
         }
         result = json.dumps(error)
     return result
-
-'''
-ToDo: implement proper signal termination process
-sample for stop process
-
-class MyThread(threading.Thread):
-    def __init__(self):
-        super().__init__()
-        self.lock = threading.Lock()
-        self.do_run = True
-
-    def run(self):
-        while True:
-            with self.lock:
-                if not self.do_run:
-                    break
-            print("working")
-
-    def stop(self):
-        with self.lock:
-            self.do_run = False
-'''
 
 
 if __name__ == "__main__":

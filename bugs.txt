@@ -1,5 +1,0 @@
-UI
-control type not being saved after a new control creation or update   FIXED
-protocol in nodes not selected by default, needs to manualy change it
-when navigating to next page it shows the same control twice
-list of nodes or devices not being updated after a save or update click for a new button

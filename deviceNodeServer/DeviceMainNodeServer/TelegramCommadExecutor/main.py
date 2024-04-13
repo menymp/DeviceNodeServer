@@ -80,6 +80,5 @@ if __name__ == "__main__":
     #   UPDATE: a better approach was adopted to split in different processes and couple
     #   with a lose communication system, in this case zmq
     
-    #ToDo: add proper signal killers to every process in order for the server to stop execution
     while not eventStop.is_set():
         pass

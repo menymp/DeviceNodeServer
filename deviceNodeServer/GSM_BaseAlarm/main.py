@@ -15,8 +15,6 @@ from NodeMqttClient import NodeMqttClient
 SEND_SMS_CMD = "SENDSMS"
 
 SIM900SerialPort = None
-#ToDo: Expect to retrive main configs such as:
-# Broker host
 '''
 globalConfigs = {
 	"name":"simDevice1",
@@ -28,10 +26,6 @@ def readGlobalConfigs():
 	return jsonConfigs
 
 
-#ToDo: Expect to read local configs such as:
-# Expected serial port info
-# Expected names for publisher
-# Expected names for subscribers
 '''
 localConfigs = {
 	"portPath":"COMXXX",

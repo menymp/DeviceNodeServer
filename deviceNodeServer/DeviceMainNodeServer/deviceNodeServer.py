@@ -27,7 +27,6 @@ class serverManager():
 		time.sleep(10)
 		#self.taskWSocketServer = threading.Thread(target=self.startWebSocketServer, args=(args, self.deviceManager.executeCMDJson))
 		#self.taskWSocketServer.start()
-		#ToDo: review exception, deviceManager is not being created
 		self.taskTelegramServer = threading.Thread(target=self.startTelegramServer, args=(args, ))
 		self.taskTelegramServer.start()
 		self.startWebSocketServer(args, self.deviceManager.executeCMDJson)
@@ -40,7 +39,7 @@ class serverManager():
 		while(True):
 			devMgr.getNodes(args)
 			devMgr.discoverNodeDevices()
-			
+
 			while devMgr.getState() != 'DONE':
 				pass
 			devMgr.registerNodes()

@@ -1,0 +1,188 @@
+Pending to fix:
+    UI
+        control type not being saved after a new control creation or update   FIXED
+        protocol in nodes not selected by default, needs to manualy change it FIXED
+        when navigating to next page it shows the same control twice
+        list of nodes or devices not being updated after a save or update click for a new button
+    server
+        a case for when we enter a node that does not responds, what happens to discovery
+        a deletion of a node needs to follow the deletion of all of its child devices
+
+Redesign and thinking
+think in a better approach creating engine instances for each user in the future, or maybe not
+/*have a ToDo: register there to address later*/
+
+cameraServiceController
+		#ToDo: camera type should be part of a parameter, there can be defined the proper driver
+		#ToDo: wire connArgs as the container for the parameters, for example, for esp32 cam the ip and port
+pythonServer
+    # todo: safety?
+serverStart
+            #ToDo: set an ack flag from each process to the output to determie if
+            #      the process started correctly
+deviceManager
+    #ToDo: fix, for some weird reason, objects are stringified with dual quotes
+    #toDo: still in proof of concept expect for a better approach
+    ToDo:	now that i saw again this implementation, this is not a suitable approach
+nodeDiscoveryTool
+    #ToDo: instead of thread, think to use the loop() function and do a pool, also handle the reconnect
+nodeManager
+    #ToDo: implement a timeout routine to avoid stay in this loop forever if something is not working
+telegramCommands
+    #
+    #objInstances expect to hold the main instances, for now just
+    # video and device commands
+    #
+    #ToDo: expect to refract each existing component and isolate as a single external process
+    #      to allow scalability and multiple external servers working together
+    # ToDo: also the refractoring expect that a if a good amount of users is loaded, it will try to load all the users
+    #		in the future this should be done on demand when a new user connects to the system, something like a full engine loaded
+    #		on demand
+Esp32VideoService
+		#ToDo: review for better approach than connect and disconect.
+		#	   in the near future maybe never, check for a better approach for this case
+FrameConstructor
+	#ToDo: deep test of every case of failure
+	#create the no image from cam driver
+LocalVideoService
+	#ToDo: h and w are shared by the thread, so a threadsafe approach should be 
+	#      implemented in the future
+main.py VideoHandler
+    #ToDo:  for now we are creating a thread to read for each vide source, is there a way to optimize this to
+    #       instead use a pool or load everithing on demand?
+videoHttpController
+		#ToDo: make this object pass as a parameter from get
+		#ToDo: the following lines are ugly, i will fix it later, or never...
+	#ToDo: implement time as a parameter
+	#ToDo: need to implement a char update method to restart the camera obj when a change
+	#		is detected, for now leave this as it is
+    #ToDo: DRY principle
+    #ToDo: use this in the item destructor
+    #ToDo: bad practice, merge the tornado video logic with the socket server maybe?
+websocketHandler
+        #ToDo: What would happen if many messages arrives at the same time
+        #      should it have a queue for message handling?
+GSM_BaseAlarm
+    #ToDo: Expect to retrive main configs such as:
+    # Broker host
+deviceNodeServer
+    #ToDo: Expect to retrive main configs such as:
+    # Broker host
+ARDUINO_SIM900_FW
+    /*ToDo: check if there is a way to read the sim state and return error*/
+NodeMqttClient
+    #ToDo: a value check should be performed
+    #ToDo: validate the publish procedure
+XbeeNetMqttCoordinator
+    ToDo: Since the discovery process would take place it will interrupt the process for a while, a better approach in the future could be split the process
+    into two devices for search and for message relay
+    ToDo: Devices seems to interfer with each other, a sync operation with an expected return data should be implemented for each device
+    or maybe seek for the root cause
+main.py xbeeNodeNetwork
+    #ToDo: a new logic is needed, instead of the client devices to always transmit state, do a continuous
+    device scanning by the coordinator AND each time a new message arrives, use a queue to store every transaction
+    and process them in order.
+    # TODO: Replace with the serial port where your local module is connected to.
+    PORT = "COM1"
+    # TODO: Replace with the baud rate of your local module.
+README.md xbee
+    ToDo: Write detailed documentation
+ESP32_GAS_SPECTROMETER
+    #ToDo: if a conversion is needed, this is the place
+    # ToDo: add sync for the wifi shared UI   OK
+    #       flags for safe before reset       PENDING
+    #ToDo: implement a watchdog
+ESP32_REFLOW_OVEN
+    #ToDo: add this as part of the reconfiguration ini file
+remoteinterface
+        # ToDo: properly terminate current connection if any
+        #       save configs once ready
+        #ToDo: add proper configs calls if no parameter are provided
+        #ToDo: in the future use this command to teleoperate the oven
+        #ToDo: get if connected mqtt and wifi
+uNodeMqttClient
+    #ToDo: a value check should be performed
+main RPI_PICOW_GARDEN
+    #ToDo: For now use this, if in the future is expected to work in midnight shifts add proper handling
+    #ToDo: if a conversion is needed, this is the place
+    # ToDo: add sync for the wifi shared UI   OK
+#       flags for safe before reset       PENDING
+Login.tsx
+    //ToDo: missing user validation
+CamerasListView
+    //ToDo: perform validations
+DashboardEditor
+    // ToDo: Perform Proper validations
+    // TODO: still thinking if i should rewrite all this to make easier to validate
+    // ToDo: use a proper log
+DashboardView
+    // ToDo: check for possible deadlock in devices communication
+    //ToDo: what happens if a timeout and no response is received??
+    /* ToDo: this will be calculated with the screen length */
+            /*ToDo: better to refine this design before more complex controls arrive*/
+            /*ToDo: since the device id is used as identifier, a new local id should be generated to handle
+                    the cases where two controls such as switch and plain text share the same idDevice value*/
+DevicesListView
+    //ToDo: perform validations
+NodeListView
+    //ToDo: perform validations
+    //ToDo: we can not change the node name once created, should it be selected instead by id??????
+UserInfo
+    // ToDo: need proper data validation here!!!!
+DigitalOutput
+    // ToDo: check if names exists
+dashboardService.ts
+    /* ToDo: define each type in extenal file */
+    /* ToDo: convert this string to object */
+README.md OTA
+    ToDo: add procedures to handle the write for multiple file
+    ToDo: add update version and file lists
+cameraDashboardActions
+	//ToDo: in the future, a user may have multiple configs for different purposes of view
+	//      for example view Name livingroom may have cam 1 cam 2 and backyard view only cam 3
+camerasDashboardService
+    /* ToDo: Not Working as expected, test, dont send the user as a parameter
+//ToDo: in the future, a user may have multiple configs for different purposes of view
+//      for example view Name livingroom may have cam 1 cam 2 and backyard view only cam 3
+camerasService
+    /* ToDo: Not Working as expected, test, dont send the user as a parameter
+dashboardService
+    ToDo: Not Working as expected, test, dont send the user as a parameter
+deviceService
+    /* ToDo: Not Working as expected, test, dont send the user as a parameter
+nodeService
+    /* ToDo: Not Working as expected, test, dont send the user as a parameter
+userInfoService
+    /* ToDo: Not Working as expected, test, dont send the user as a parameter
+usrLogin
+	/*ToDo:
+		Usuarios para base de datos y loginsystem
+	*/
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+New features to integrate
+    UI
+        add a restriction for publishers and subscribers and the control UI type

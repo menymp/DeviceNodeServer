@@ -83,7 +83,6 @@ class XbeeNetworkController():
 
     def _sync_devices_mqtt(self, devices):
         for xbeeDevice in devices:
-            #ToDo: map this to nodeProxy with the id
             publishExists, _ = self.nodeProxy.deviceExists(name=(xbeeDevice + "_OUT"))
             subscribeExists, _ = self.nodeProxy.deviceExists(name=(xbeeDevice + "_IN"))
             if not publishExists:
@@ -113,7 +112,6 @@ xbee.add_data_received_callback(my_data_received_callback)
 '''
 #when message is received from 
 
-#ToDo: add mqtt manifest callback for compliance with devices
 #each device will create a channel under mqtt standard broker
 
 

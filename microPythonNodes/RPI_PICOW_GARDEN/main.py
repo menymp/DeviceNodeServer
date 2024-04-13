@@ -296,7 +296,6 @@ def initSubscribers(client):
 
 def baseMQTTCallback(topic, msg):
     #this callback is to be called when message arrived to subscribed topics
-    #ToDo: a p
     configsS = jsonfile("./configs.json")
     configsS.get_data()
     #a proper data validation should be performed here
@@ -522,7 +521,6 @@ def printStates(lcdObj, wlan, gpiosObj, bmpSensorObj, analogSensors, data, dsClo
     pass
 
 #this task checks for available updates
-# ToDo: add sync for the wifi shared UI   OK
 #       flags for safe before reset       PENDING
 def update_task(configs, networkLock):
     while(True):
