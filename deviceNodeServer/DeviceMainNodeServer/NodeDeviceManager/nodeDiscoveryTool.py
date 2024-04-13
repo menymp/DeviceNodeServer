@@ -143,7 +143,6 @@ class mqttNodeListener():
             if not any(device in x for x in self.FoundDevices):
                 flagfound = False
         return flagfound
-        pass
 
     def deviceAlreadyFound(self, device):
         flagfound = False

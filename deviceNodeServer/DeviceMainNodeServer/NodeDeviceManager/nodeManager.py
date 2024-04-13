@@ -31,22 +31,21 @@ class nodeDeviceManager():
             nodeDiscoverObj.initNodeParameters(node, self.nodeDeviceManagerArgs[4])
             self.nodesDiscoveryObjs.append(nodeDiscoverObj)
             pass
-        
         self.stop_event = Event()
         taskListen = threading.Thread(target=self.taskWaitForDiscovery, args=())
         taskListen.start()
         
     
     def taskWaitForDiscovery(self):
+        #ToDo: implement a timeout routine to avoid stay in this loop forever if something is not working
         flagDone = 1
-        while flagDone == 1 or not self.stop_event.is_set():
+        while flagDone == 1 and not self.stop_event.is_set():
             flagDone = 0
             for nodeDObj in self.nodesDiscoveryObjs:
                 if nodeDObj.getState() == 'WAIT':
                     flagDone = 1
                 pass
             pass
-        
         self.state = "DONE"
     
     def stop(self):

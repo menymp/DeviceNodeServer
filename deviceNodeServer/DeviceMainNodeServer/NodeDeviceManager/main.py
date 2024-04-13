@@ -39,7 +39,6 @@ if __name__ == "__main__":
     while not eventStop.is_set():
         devMgr.getNodes(args)
         devMgr.discoverNodeDevices()
-
         while devMgr.getState() != 'DONE':
             pass
         devMgr.registerNodes()
