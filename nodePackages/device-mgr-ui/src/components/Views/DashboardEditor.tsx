@@ -123,7 +123,7 @@ const DashboardEditor: React.FC = () => {
                 idControl: selectedEditControl?.idControl,
                 parameters: JSON.parse(newControlParameters),
                 Name: newControlName,
-                idType: selectedEditControl?.idType
+                idType: controlTypeSelected == -1 ? selectedEditControl?.idType : controlTypeSelected
             };
             saveControl(controlDataToSubmit);
         } catch(err) {
