@@ -1,6 +1,6 @@
 // board constants
 export const SUCCESS_RESULT = 'success';
-export const ITEM_LIST_DISPLAY_CNT = 2;
+export const ITEM_LIST_DISPLAY_CNT = 7;
 
 // websocket constants
 export const WEB_SOCK_SERVER_ADDR = "ws://localhost:8112/workHandler";
