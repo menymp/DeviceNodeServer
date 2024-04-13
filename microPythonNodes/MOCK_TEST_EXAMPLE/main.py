@@ -5,22 +5,14 @@ import json
 import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
 
+broker = ""
+
 manifest = {
         "Name":"MockNode1",
         "RootName":"/MockNode1/",
         "Devices":["digitalSensor","analogSensor","digitalOutput","message"] #
 }
 jsonManifest = json.dumps(manifest)
-
-def publish(client, topic, value):
-    client.publish(topic, value)
-
-def subscribe(client, topic):
-    client.subscribe(topic)
-
-def baseMQTTCallback(topic, msg):
-    #this callback is to be called when message arrived to subscribed topics
-    pass 
 
 def buildMessages(Name, Channel, value, type, mode):
     mqx_tmp =  {
@@ -34,7 +26,7 @@ def buildMessages(Name, Channel, value, type, mode):
     return jsonMsg
 
 def publishData(client, state, digitalOutState, message):
-    publish.single(manifest["RootName"] + "manifest", jsonManifest, "broker")
+    client.publish(manifest["RootName"] + "manifest", jsonManifest)
     sensorState = "false"
     analogValue = 0
 
@@ -44,22 +36,27 @@ def publishData(client, state, digitalOutState, message):
     else:
         sensorState = "false"
         analogValue = 55
+    
+    if digitalOutState:
+        digitalOutString = "on"
+    else:
+        digitalOutString = "off"
 
     baseChanel = manifest["RootName"] + "digitalSensor"
     jsonObj = buildMessages("digitalSensor", manifest["RootName"] + "digitalSensor", sensorState, "STRING", "PUBLISHER")
-    publish.single(baseChanel, jsonObj, "broker")
+    client.publish(baseChanel, jsonObj)
 
     baseChanel = manifest["RootName"] + "analogSensor"
     jsonObj = buildMessages("analogSensor", manifest["RootName"] + "analogSensor", analogValue, "STRING", "PUBLISHER")
-    publish.single(baseChanel, jsonObj, "broker")
+    client.publish(baseChanel, jsonObj)
 
     baseChanel = manifest["RootName"] + "digitalOutput"
-    jsonObj = buildMessages("digitalOutput", manifest["RootName"] + "digitalOutput", digitalOutState, "STRING", "SUBSCRIBER")
-    publish.single(baseChanel, jsonObj, "broker")
+    jsonObj = buildMessages("digitalOutput", manifest["RootName"] + "digitalOutput/value", digitalOutString, "STRING", "SUBSCRIBER")
+    client.publish(baseChanel, jsonObj)
 
     baseChanel = manifest["RootName"] + "message"
-    jsonObj = buildMessages("message", manifest["RootName"] + "message", message, "STRING", "SUBSCRIBER")
-    publish.single(baseChanel, jsonObj, "broker")
+    jsonObj = buildMessages("message", manifest["RootName"] + "message/value", message, "STRING", "SUBSCRIBER")
+    client.publish(baseChanel, jsonObj)
     pass
         
 
@@ -90,7 +87,7 @@ if __name__ == "__main__":
     client = mqtt.Client()
     client.on_message = on_message
     client.on_connect = on_connect
-    client.connect("broker", "port","keepalive")
+    client.connect(broker, 1883,60)
     
     while True:
         tmpState = not tmpState
