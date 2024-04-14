@@ -1,5 +1,5 @@
 import React from "react";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable, { tableInit } from '../Table/Table'
 import { useNavigate } from "react-router-dom"
@@ -69,7 +69,9 @@ const DashboardEditor: React.FC = () => {
         setControlTypeSelected(parseInt(event.target.value));
     } //ToDo: perform validations
     const [newControlName, setNewControlName] = useState<string>('');
-    const handleChangeControlName = (event: React.ChangeEvent<HTMLInputElement>) => setNewControlName(event.target.value); //ToDo: perform validations
+    const handleChangeControlName = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setNewControlName(event.target.value); //ToDo: perform validations
+    }
     const [newLinkDeviceId, setNewLinkDeviceId] = useState<string>('');
     const handleChangeLinkDeviceId = (event: React.ChangeEvent<HTMLInputElement>) => {
         // TODO: still thinking if i should rewrite all this to make easier to validate
@@ -77,7 +79,7 @@ const DashboardEditor: React.FC = () => {
         setNewLinkDeviceId(event.target.value);
         updateControlNewParameters(); //this should validate all inputs and update edit device
     } //ToDo: perform validations
-    const [newControlParameters, setNewControlParameters] = useState<string>('');
+    const newControlParameters = useRef<string>('');
 
     const updateControlNewParameters = () => {
         let tmpParameters: Record<string,any> = {};
@@ -107,7 +109,7 @@ const DashboardEditor: React.FC = () => {
         });
         const strTmpParameters = JSON.stringify(tmpParameters);
         //
-        setNewControlParameters(strTmpParameters);
+        newControlParameters.current = strTmpParameters;
         selectedEditControl && setSelectedEditControl({...selectedEditControl, parameters: strTmpParameters});
     }
 
@@ -121,7 +123,7 @@ const DashboardEditor: React.FC = () => {
 
             let controlDataToSubmit = {
                 idControl: selectedEditControl?.idControl,
-                parameters: JSON.parse(newControlParameters),
+                parameters: JSON.parse(newControlParameters.current),
                 Name: newControlName,
                 idType: controlTypeSelected == -1 ? selectedEditControl?.idType : controlTypeSelected
             };
@@ -202,7 +204,7 @@ const DashboardEditor: React.FC = () => {
                             disabled: true,
                             parameterMember: "true", // tags the element as part of the parameter object
                             parameterType: fieldType, // tags the element as part of the parameter object
-                            value: parsedObjectValues[field] ?? selectedDeviceId, // init with data if exists
+                            value: selectedDeviceId, // init with data if exists
                             onChange: updateControlNewParameters
                           });
                           
@@ -308,7 +310,9 @@ const DashboardEditor: React.FC = () => {
                 headers: ['Device id', 'Name', 'Mode', 'Type', 'Path', 'Parent node'],
                 rows: devices.map((device) => {return [device.idDevices.toString(), device.name, device.mode, device.type, device.channelPath, device.nodeName]}),
                 selectBtn: true,
-                selectCallback: (devDetails) => { setSelectedDeviceId(devDetails[0]) }
+                selectCallback: (devDetails) => { 
+                    setSelectedDeviceId(devDetails[0]) 
+                }
             } as tableInit
             setDevicesDisplay(newTable)
         } catch (error) {

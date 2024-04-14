@@ -11,7 +11,6 @@ Pending to fix:
 
 Redesign and thinking
 think in a better approach creating engine instances for each user in the future, or maybe not
-/*have a ToDo: register there to address later*/
 
 cameraServiceController
 		#ToDo: camera type should be part of a parameter, there can be defined the proper driver
