@@ -46,15 +46,16 @@ class deviceManager():
         return flagExists
     
     def cleanOldDevices(self):
-        
+        print("cleaning old devices")
         for index, deviceObj in enumerate(self.Devices):
             flagExists = False
             for availableDevice in self.availableDevices:
                 if (deviceObj.name == availableDevice[1] and deviceObj.idParentNode == availableDevice[5]):
                     flagExists = True
-            if flagExists:
-                print("device: '"+availableDevice[1]+"' from parent node id: '"+availableDevice[5]+ "' removed")
-                del self.Devices.pop(index)
+            if not flagExists:
+                print("device: '"+str(availableDevice[1])+"' from parent node id: '"+str(availableDevice[5])+ "' removed")
+                deviceToDel = self.Devices.pop(index)
+                del deviceToDel
         return flagExists
 	#handle command object as an array in order to process an object
 	#this approach is better since a fast processing is posible by large
@@ -153,7 +154,7 @@ class device():
 
     def __del__(self):
         if self.Driver:
-            self.driver.stop()
+            self.Driver.stop()
         pass
 
     def getValue(self):
