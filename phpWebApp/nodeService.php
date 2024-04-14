@@ -196,6 +196,9 @@ if($operationOption == "deleteNode")
 	//validate that node creation was a success
 	if($result->num_rows == 1)
 	{
+		$nodeRow = $result->fetch_assoc();
+		$sqlCleanDevices = "DELETE FROM devices WHERE idParentNode = ?;";
+		$result = $dbObj1->dbQuery($sqlCleanDevices, "i", [$nodeRow['idNodesTable']]);
 		$sql = "DELETE FROM NodesTable WHERE nodeName = ? AND idOwnerUser = ?";
 		$result = $dbObj1->dbQuery($sql, "i", [$nodeName,$userId]);
 			

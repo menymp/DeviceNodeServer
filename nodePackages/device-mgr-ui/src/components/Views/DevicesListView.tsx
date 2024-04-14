@@ -38,7 +38,8 @@ const DevicesListView: React.FC = () => {
 
     const fetchDevices = async () => {
         try {
-            const devices = await getDevices({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT, nodeName: filterNodeName, deviceName: filterName}).unwrap()
+            setDevicesDisplay(initialTableState);
+            const devices = await getDevices({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT, nodeName: filterNodeName, deviceName: filterName}).unwrap()
             const newTable = {
                 headers: ['Device id', 'Name', 'Mode', 'Type', 'Path', 'Parent node'],
                 rows: devices.map((device) => {return [device.idDevices.toString(), device.name, device.mode, device.type, device.channelPath, device.nodeName]}),

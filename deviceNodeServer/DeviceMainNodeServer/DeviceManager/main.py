@@ -88,7 +88,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, sigterm_handler)
     #signal.signal(signal.SIGQUIT, sigterm_handler)
 
-    while not stopEvent.is_set(): # ToDo: Add a stop signal
+    while not stopEvent.is_set():
         message = mqServerObj.recv().decode()
         result = processIncommingMessage(deviceMgr, message)
         #  Send reply back to client

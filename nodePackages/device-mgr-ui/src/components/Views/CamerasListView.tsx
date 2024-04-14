@@ -78,7 +78,8 @@ const CamerasListView: React.FC = () => {
 
     const fetchCameras = async () => {
         try {
-            getCameras({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT})
+            setCamerasDisplay(initialCamerasState);
+            getCameras({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT})
         } catch (error) {
             console.log(error);
         }

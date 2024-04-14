@@ -43,7 +43,7 @@ const CamerasDashboardView: React.FC = () => {
 
     useEffect(() => {
         setSelectedConfig(undefined);
-        getConfigsFetch({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT});
+        getConfigsFetch({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT});
     },[page]);
 
     useEffect(() => {

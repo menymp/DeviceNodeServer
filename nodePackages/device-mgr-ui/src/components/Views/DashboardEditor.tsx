@@ -52,8 +52,8 @@ const DashboardEditor: React.FC = () => {
     const [getControlTypes, {isSuccess: controlTypesLoaded, data: availableControlTypes}] = useFetchControlsTypesMutation();
     const [getControlById, {isSuccess: controlByIdLoaded, data: controlById}] = useFetchControlByIdMutation();
     const [getControlTypeTemplate, {isSuccess: controlTypeTemplateLoaded, data: controlTypeTemplate}] = useGetControlTypeTemplateMutation();
-    const [saveControl, {isSuccess: controlSaved}] = useSaveControlMutation();
-    const [deleteControlById, {isSuccess: controlDeleted}] = useDeleteControlByIdMutation();
+    const [saveControl, {isSuccess: controlSaved, isLoading: controlSaving}] = useSaveControlMutation();
+    const [deleteControlById, {isSuccess: controlDeleted, isLoading: controlDeleting}] = useDeleteControlByIdMutation();
 
     const navigate = useNavigate();
     const [page, setPage] = useState<number>(0);
@@ -303,7 +303,7 @@ const DashboardEditor: React.FC = () => {
 
     const fetchDevices = async () => {
         try {
-            const devices = await getDevices({pageCount: devicePage, pageSize: ITEM_LIST_DISPLAY_CNT}).unwrap()
+            const devices = await getDevices({pageCount: devicePage*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT}).unwrap()
             const newTable = {
                 headers: ['Device id', 'Name', 'Mode', 'Type', 'Path', 'Parent node'],
                 rows: devices.map((device) => {return [device.idDevices.toString(), device.name, device.mode, device.type, device.channelPath, device.nodeName]}),
@@ -356,13 +356,13 @@ const DashboardEditor: React.FC = () => {
     const handleDeleteControl = (idSelectControl: string) => {
         if (window.confirm('Quieres elimiar el nodo: ' + idSelectControl + '?')) {
             deleteControlById({idControl:parseInt(idSelectControl)});
-            getControls({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT});
+            getControls({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT});
         }
     }
 
     useEffect(() => {
-        getControls({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT})
-    },[page]);
+        getControls({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT})
+    },[page, controlSaving, controlDeleting]);
 
     const hideEditor = () => {
         setDashEditView(DASHBOARD_EDITOR_VIEW.HIDE)

@@ -17,9 +17,9 @@ const NodesListView: React.FC = () => {
     
     const [getNodes, {isSuccess: nodesLoaded, data: nodesData}] = useFetchNodesMutation();
     const [getProtocols, {isSuccess: protocolsLoaded, data: protocolData}] = useFetchProtocolsMutation();
-    const [updateNodeInfo, {isSuccess: updatedNodeInfo}] = useSaveNodeMutation();
-    const [deleteNode, {isSuccess: deletedNode}] = useDeleteNodeMutation();
-    const [createNode, {isSuccess: createNodeSuccess}] = useCreateNodeMutation();
+    const [updateNodeInfo, {isSuccess: updatedNodeInfo, isLoading: updatingNode}] = useSaveNodeMutation();
+    const [deleteNode, {isSuccess: deletedNode, isLoading: deletingNode}] = useDeleteNodeMutation();
+    const [createNode, {isSuccess: createNodeSuccess, isLoading: creatingNode}] = useCreateNodeMutation();
     const [protocols, setProtocols] = useState<Array<protocolInfo>>([]);
     const [selectedEditNode, setSelectedEditNode] = useState<node>();
     const [show, setShow] = useState(false);
@@ -38,6 +38,9 @@ const NodesListView: React.FC = () => {
     const handleClose = () => {
         setShow(false)
     };
+
+    useEffect(() => {
+    }, [deletingNode, creatingNode, updatingNode]);
 
     const handleEditNode = (nodeId: string) => {
         const selectedEditNode = nodesData?.find((nodeObj) => nodeObj.idNodesTable.toString() === nodeId)
@@ -82,7 +85,7 @@ const NodesListView: React.FC = () => {
         }
         setShow(false);
         cleanSelectedNode();
-        getNodes({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT})
+        getNodes({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT})
         getProtocols();
     }
 
@@ -94,7 +97,7 @@ const NodesListView: React.FC = () => {
             deleteNode({nodeName: selectedEditNode?.nodeName});
             setShow(false);
             cleanSelectedNode();
-            getNodes({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT})
+            getNodes({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT})
             getProtocols();
         }
 
@@ -105,9 +108,9 @@ const NodesListView: React.FC = () => {
     }
 
     useEffect(() => {
-        getNodes({pageCount: page, pageSize: ITEM_LIST_DISPLAY_CNT})
+        getNodes({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT})
         getProtocols();
-    },[page]);
+    },[page, deletingNode, creatingNode, updatingNode]);
 
     useEffect(() => {
         if (!protocolsLoaded || !protocolData || !protocolData?.length) {

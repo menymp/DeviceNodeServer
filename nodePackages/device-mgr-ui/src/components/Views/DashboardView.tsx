@@ -51,7 +51,7 @@ const DashboardView: React.FC = () => {
     }, [controlsLoaded, controls, ws.current?.readyState]);
 
     useEffect(() => {
-        getControls({ pageCount: page, pageSize:  DISPLAY_CONTROLS_NUM });
+        getControls({ pageCount: page*DISPLAY_CONTROLS_NUM, pageSize:  DISPLAY_CONTROLS_NUM });
     }, [page]);
 
     useEffect(() => {
