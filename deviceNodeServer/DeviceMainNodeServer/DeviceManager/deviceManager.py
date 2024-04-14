@@ -35,6 +35,7 @@ class deviceManager():
                 tmpDevice.init(deviceInfo)
                 self.Devices.append(tmpDevice)
             pass
+        self.cleanOldDevices()
         pass
 
     def deviceAlreadyInit(self, deviceName, parentNodeId):
@@ -44,6 +45,17 @@ class deviceManager():
                 flagExists = True
         return flagExists
     
+    def cleanOldDevices(self):
+        
+        for index, deviceObj in enumerate(self.Devices):
+            flagExists = False
+            for availableDevice in self.availableDevices:
+                if (deviceObj.name == availableDevice[1] and deviceObj.idParentNode == availableDevice[5]):
+                    flagExists = True
+            if flagExists:
+                print("device: '"+availableDevice[1]+"' from parent node id: '"+availableDevice[5]+ "' removed")
+                del self.Devices.pop(index)
+        return flagExists
 	#handle command object as an array in order to process an object
 	#this approach is better since a fast processing is posible by large
 	#objects in the backend, also one request allow the system to 
@@ -139,6 +151,11 @@ class device():
         self.initDriver(self.ParentNodeProtocol)
         pass
 
+    def __del__(self):
+        if self.Driver:
+            self.driver.stop()
+        pass
+
     def getValue(self):
         return self.value
 
@@ -190,6 +207,11 @@ class mqttDriver():
         self.lastSentCmd = ""
         self.lockUpdateFlag = False
         #self.initDriver()
+        pass
+
+    def stop(self):
+        self.client.disconnect()
+        self.client.loop_stop()
         pass
     #locks the result until a new response is sent
     #since the backend is designed in this way this should

@@ -59,7 +59,6 @@ def processIncommingMessage(deviceManager, message):
         result = json.dumps(error)
     return result
 
-
 if __name__ == "__main__":
     
     # Get the absolute path of the parent directory
