@@ -46,14 +46,13 @@ class deviceManager():
         return flagExists
     
     def cleanOldDevices(self):
-        print("cleaning old devices")
         for index, deviceObj in enumerate(self.Devices):
             flagExists = False
             for availableDevice in self.availableDevices:
                 if (deviceObj.name == availableDevice[1] and deviceObj.idParentNode == availableDevice[5]):
                     flagExists = True
             if not flagExists:
-                print("device: '"+str(availableDevice[1])+"' from parent node id: '"+str(availableDevice[5])+ "' removed")
+                print("device: '"+str(deviceObj.name)+"' from parent node id: '"+str(deviceObj.idParentNode)+ "' removed")
                 deviceToDel = self.Devices.pop(index)
                 del deviceToDel
         return flagExists

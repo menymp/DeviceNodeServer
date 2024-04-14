@@ -24,7 +24,6 @@ class nodeDeviceManager():
         return self.state
     
     def discoverNodeDevices(self):
-        print(len(self.CurrentNodes))
         self.nodesDiscoveryObjs = []
         for node in self.CurrentNodes:
             nodeDiscoverObj = nodeDeviceDiscoveryTool()
@@ -61,11 +60,17 @@ class nodeDeviceManager():
         for nodeDObj in self.nodesDiscoveryObjs:
             for device in nodeDObj.devicesFound:
                 if self.dbDevicesAct.deviceExists(device["Name"],nodeDObj.idNode):
-                    result = self.dbDevicesAct.deviceChanged(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeDObj.idNode)
-                    if result[1]:
-                        self.dbDevicesAct.updateDevice(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeDObj.idNode)
+                    try:
+                        result = self.dbDevicesAct.deviceChanged(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeDObj.idNode)
+                        if result[1]:
+                            self.dbDevicesAct.updateDevice(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeDObj.idNode)
+                    except:
+                        print("device could not be updated: '" + str(device["Name"])+"'")
                 else:
-                    self.dbDevicesAct.addNewDevice(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeDObj.idNode)
+                    try:
+                        self.dbDevicesAct.addNewDevice(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeDObj.idNode)
+                    except:
+                        print("device could not be registered: '" + str(device["Name"])+"'")
         self.dbDevicesAct.deinitConnector()
         pass
         

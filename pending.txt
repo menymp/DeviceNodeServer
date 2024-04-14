@@ -7,7 +7,7 @@ Pending to fix:
     server
         a case for when we enter a node that does not responds, what happens to discovery
         a deletion of a node needs to follow the deletion of all of its child devices             FIXED
-        add a periodic routine in the discovery functionality to clean old non existent devices   TESTING
+        add a periodic routine in the discovery functionality to clean old non existent devices   FIXED
 
 Redesign and thinking
 think in a better approach creating engine instances for each user in the future, or maybe not
