@@ -12,6 +12,8 @@ import {
 import GaugeChart from 'react-gauge-chart'
 import { POLL_INTERVAL_MS } from '../../../constants'
 import { param } from "jquery";
+import { Gauge } from 'react-circular-gauge';
+import chroma from 'chroma-js';
 
 type SensorReadParameters = {
     idDevice: string, 
@@ -21,7 +23,8 @@ type SensorReadParameters = {
     highLimit: string | number
 }
 
-
+// a better gauge https://stackblitz.com/edit/react-ts-jutcmi?file=index.tsx
+// yet even better https://github.com/arcturus3/react-circular-gauge
 
 const SensorRead = (props: GenericUIControlParameters) => {
     const { control } = props;
@@ -80,16 +83,25 @@ const SensorRead = (props: GenericUIControlParameters) => {
             commandScheduler();
         }, POLL_INTERVAL_MS);
     }
-    
-    return (
-        <>
-            <Form>
-                <Form.Label>{control.name}</Form.Label>
-                <GaugeChart id={`gauge-chart${parameters.idDevice}${parameters.apperance}`} 
+    /*
+                    <GaugeChart id= 
                     nrOfLevels={30} 
                     colors={["#FF5F6D", "#FFC371"]} 
                     arcWidth={0.3} 
                     percent={parseInt(currentValue) / (typeof parameters.highLimit === 'string' ? parseInt(parameters.highLimit) : parameters.highLimit)} 
+                />
+    */
+    return (
+        <>
+            <Form>
+                <Form.Label>{control.name}</Form.Label>
+                <Gauge
+                    id={`gauge-chart${parameters.idDevice}${parameters.apperance}`}
+                    value={parseInt(currentValue)}
+                    minValue={0}
+                    maxValue={100}
+                    renderBottomLabel="value"
+                    arcColor={({ normValue }) => chroma.scale(['green', 'red'])(normValue).css()}
                 />
                 <Form.Control // prettier-ignore
                     type="switch"
