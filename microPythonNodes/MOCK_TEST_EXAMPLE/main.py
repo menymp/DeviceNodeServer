@@ -5,7 +5,7 @@ import json
 import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
 
-broker = ""
+broker = "192.168.1.137"
 
 manifest = {
         "Name":"MockNode1",
@@ -69,6 +69,7 @@ if __name__ == "__main__":
         global digitalOutState
         global message
         m_decode=str(msg.payload.decode("utf-8","ignore"))
+        print("received " + m_decode)
         if (msg.topic == ( manifest["RootName"] + "digitalOutput" + "/value")):
             digitalOutState = m_decode == "on"
             print("current digital output state: " + str(digitalOutState))
@@ -88,9 +89,11 @@ if __name__ == "__main__":
     client.on_message = on_message
     client.on_connect = on_connect
     client.connect(broker, 1883,60)
+    client.loop_start()
     
     while True:
         tmpState = not tmpState
         publishData(client, tmpState, digitalOutState, message)
         time.sleep(4)
+    client.loop_stop()
     pass
