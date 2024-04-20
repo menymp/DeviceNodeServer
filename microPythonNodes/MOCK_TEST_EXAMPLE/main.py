@@ -5,7 +5,7 @@ import json
 import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
 
-broker = "192.168.1.137"
+broker = ""
 
 manifest = {
         "Name":"MockNode1",

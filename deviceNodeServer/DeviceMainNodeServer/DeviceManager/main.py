@@ -51,8 +51,8 @@ def processIncommingMessage(deviceManager, message):
                 "type":"unknown method"
             }
             result = json.dumps(error)
-    except:
-        print("command error!" + str(message))
+    except Exception as e:
+        print("command error!" + str(e))
         error = {
             "type":"command error!"
         }
