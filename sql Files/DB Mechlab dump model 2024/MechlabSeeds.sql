@@ -21,7 +21,7 @@
 
 LOCK TABLES `controlstypes` WRITE;
 /*!40000 ALTER TABLE `controlstypes` DISABLE KEYS */;
-INSERT INTO `controlstypes` VALUES (1,'DIGITALOUTPUT','{\"idDevice\": \"REFERENCE\", \"onCmdStr\": \"FIELD\", \"apperance\": [\"TOGGLESWITCH\", \"BUTTON\"], \"offCmdStr\": \"FIELD\", \"updateCmdStr\": \"FIELD\"}'),(2,'SENSORREAD','{\"idDevice\": \"REFERENCE\", \"lowLimit\": \"NUMBER\", \"apperance\": [\"TEXTVAL\", \"HBAR\", \"YBAR\", \"GAUGE\"], \"highLimit\": \"NUMBER\", \"updateCmdStr\": \"FIELD\"}'),(3,'PLAINTEXT','{\"idDevice\": \"REFERENCE\", \"apperance\": [\"INPUTTEXT\", \"CONSOLE\"], \"updateCmdStr\": \"FIELD\"}'),(4,'DIGITALINPUT','{\"idDevice\": \"REFERENCE\", \"apperance\": [\"LED\"], \"onValue\": \"FIELD\", \"updateCmdStr\": \"FIELD\"}');
+INSERT INTO `controlstypes` VALUES (1,'DIGITALOUTPUT','{\"idDevice\": \"REFERENCE\", \"onCmdStr\": \"FIELD\", \"apperance\": [\"TOGGLESWITCH\", \"BUTTON\"], \"offCmdStr\": \"FIELD\", \"updateCmdStr\": \"FIELD\"}'),(2,'SENSORREAD','{\"idDevice\": \"REFERENCE\", \"lowLimit\": \"NUMBER\", \"apperance\": [\"TEXTVAL\", \"HBAR\", \"YBAR\", \"GAUGE\"], \"highLimit\": \"NUMBER\", \"updateCmdStr\": \"FIELD\"}'),(3,'PLAINTEXT','{\"idDevice\": \"REFERENCE\", \"apperance\": [\"INPUTTEXT\", \"CONSOLE\"], \"updateCmdStr\": \"FIELD\"}'),(4,'DIGITALINPUT','{\"idDevice\": \"REFERENCE\", \"apperance\": [\"LED\"], \"onValue\": \"FIELD\", \"updateCmdStr\": \"FIELD\"}'),(5,'TEXTSENDER','{\"idDevice\": \"REFERENCE\", \"apperance\": [\"INPUTTEXT\", \"CONSOLE\"], \"updateCmdStr\": \"FIELD\"}');
 /*!40000 ALTER TABLE `controlstypes` ENABLE KEYS */;
 UNLOCK TABLES;
 

@@ -41,7 +41,6 @@ class handleOnMessage():
             "method":"executeCMDJson",
             "args":cmdObj
         }
-        #print("encoded command " + str(cmd))
         self.socket.send(json.dumps(cmd).encode())
         return self.socket.recv().decode()
     

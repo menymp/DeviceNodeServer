@@ -14,6 +14,7 @@ import DigitalOutput from './controls/DigitalOutput';
 import PlainText from "./controls/PlainText";
 import SensorRead from "./controls/SensorRead";
 import DigitalInput from "./controls/DigitalInput";
+import TextSender from "./controls/TextSender"
 import { CONTROLS_COLUMN_NUM, DISPLAY_CONTROLS_NUM } from '../../constants';
 import { create } from "domain";
 
@@ -130,6 +131,11 @@ const DashboardView: React.FC = () => {
             if(receivedControls[i]["typename"] === "DIGITALINPUT")
             {
                 const sensorRead = <DigitalInput ws={ws.current} control={receivedControls[i]}/>;
+                tmpControls.push({ idLinkedDevice: idLinkedDevice, component: sensorRead });
+            }
+            if(receivedControls[i]["typename"] === "TEXTSENDER")
+            {
+                const sensorRead = <TextSender ws={ws.current} control={receivedControls[i]}/>;
                 tmpControls.push({ idLinkedDevice: idLinkedDevice, component: sensorRead });
             }
         }

@@ -4,3 +4,4 @@ DIGITALOUTPUT {"idDevice": "REFERENCE", "onCmdStr": "FIELD", "apperance": ["TOGG
 SENSORREAD    {"idDevice": "REFERENCE", "lowLimit": "NUMBER", "apperance": ["TEXTVAL", "HBAR", "YBAR", "GAUGE"], "highLimit": "NUMBER", "updateCmdStr": "FIELD"}
 PLAINTEXT     {"idDevice": "REFERENCE", "apperance": ["INPUTTEXT", "CONSOLE"], "updateCmdStr": "FIELD"}
 DIGITALINPUT  {"idDevice": "REFERENCE", "updateCmdStr": "FIELD", "apperance": ["LED"]}
+TEXTSENDER    {"idDevice": "REFERENCE", "apperance": ["INPUTTEXT", "CONSOLE"], "updateCmdStr": "FIELD"}

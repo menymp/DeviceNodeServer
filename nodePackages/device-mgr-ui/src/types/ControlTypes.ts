@@ -14,11 +14,13 @@ export type reactUIControll =  {
     idLinkedDevice: number,
     component: React.ReactElement,
 };
-
+// ToDo: why there are two of this
 export enum CONTROL_TYPE {
-    DIGITALOUTPUT = 'DIGITALOUTPUT',
-    PLAINTEXT = 'PLAINTEXT',
-    SENSORREAD = 'SENSORREAD'
+    DIGITALOUTPUT = "DIGITALOUTPUT",
+    DIGITALINPUT = "DIGITALINPUT",
+    SENSORREAD = "SENSORREAD",
+    PLAINTEXT = "PLAINTEXT",
+    TEXTSENDER = "TEXTSENDER"
 }
 
 export interface ControlParameters {
