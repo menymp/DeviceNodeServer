@@ -5,7 +5,7 @@ Pending to fix:
         when navigating to next page it shows the same control twice                              FIXED
         list of nodes or devices not being updated after a save or update click for a new button  FIXED
     server
-        a case for when we enter a node that does not responds, what happens to discovery
+        a case for when we enter a node that does not responds, what happens to discovery         TESTING
         a deletion of a node needs to follow the deletion of all of its child devices             FIXED
         add a periodic routine in the discovery functionality to clean old non existent devices   FIXED
 
@@ -32,8 +32,6 @@ deviceManager
     ToDo:	now that i saw again this implementation, this is not a suitable approach
 nodeDiscoveryTool
     #ToDo: instead of thread, think to use the loop() function and do a pool, also handle the reconnect
-nodeManager
-    #ToDo: implement a timeout routine to avoid stay in this loop forever if something is not working
 telegramCommands
     #
     #objInstances expect to hold the main instances, for now just

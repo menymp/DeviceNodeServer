@@ -1,5 +1,6 @@
 import threading
 from threading import Event
+from threading import Timer
 import sys
 from os.path import dirname, realpath, sep, pardir
 # Get current main.py directory
@@ -11,9 +12,9 @@ from dbActions import dbDevicesActions
 from nodeDiscoveryTool import nodeDeviceDiscoveryTool
 
 class nodeDeviceManager():
-    def getNodes(self,nodeDeviceManagerArgs):
-        #
+    def getNodes(self,nodeDeviceManagerArgs, timeoutInterval = 15):
         self.nodeDeviceManagerArgs = nodeDeviceManagerArgs
+        self.timeoutInterval = timeoutInterval
         self.dbAct = dbNodesActions()
         self.state = "BUSY"
         self.dbAct.initConnector(user = nodeDeviceManagerArgs[2], password = nodeDeviceManagerArgs[3], host = nodeDeviceManagerArgs[0], database = nodeDeviceManagerArgs[1])
@@ -36,7 +37,8 @@ class nodeDeviceManager():
         
     
     def taskWaitForDiscovery(self):
-        #ToDo: implement a timeout routine to avoid stay in this loop forever if something is not working
+        self.timeoutTimer = Timer(self.timeoutInterval, self.stop)
+        self.timeoutTimer.start()
         flagDone = 1
         while flagDone == 1 and not self.stop_event.is_set():
             flagDone = 0
@@ -45,6 +47,7 @@ class nodeDeviceManager():
                     flagDone = 1
                 pass
             pass
+        self.timeoutTimer.cancel()
         self.state = "DONE"
     
     def stop(self):
