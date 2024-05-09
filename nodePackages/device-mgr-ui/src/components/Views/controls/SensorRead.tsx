@@ -34,7 +34,7 @@ const SensorRead = (props: GenericUIControlParameters) => {
             setCurrentValue(response.result);
         }
     }
-    const commandHandler = useControlUtils({ getControlParameters, ws: props.ws, update});
+    const { commandHandler } = useControlUtils({ getControlParameters, ws: props.ws, update});
     /*
                     <GaugeChart id= 
                     nrOfLevels={30} 

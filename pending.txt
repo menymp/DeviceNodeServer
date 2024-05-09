@@ -12,9 +12,6 @@ Pending to fix:
 Redesign and thinking
 think in a better approach creating engine instances for each user in the future, or maybe not
 
-TextSender.tsx
-    //ToDo: since we already have too many components with shared logic, think of a way to
-    //      refractor this so this all will be a common toolbox for future controls
 ControlTypes.tsx
     // ToDo: why there are two of this
 

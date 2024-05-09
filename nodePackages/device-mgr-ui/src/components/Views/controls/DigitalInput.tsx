@@ -33,7 +33,7 @@ const DigitalInput = (props: GenericUIControlParameters) => {
         }
     }
 
-    const commandHandler = useControlUtils({ getControlParameters, ws: props.ws, update});
+    const { commandHandler } = useControlUtils({ getControlParameters, ws: props.ws, update});
     
     return (
         <>
