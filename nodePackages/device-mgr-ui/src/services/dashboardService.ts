@@ -34,14 +34,6 @@ export type controlTemplateGenericMembers = {
   updateCmdStr: string; // FIELD
 }
 
-export enum SUPPORTED_TYPENAMES {
-  DIGITALOUTPUT = "DIGITALOUTPUT",
-  DIGITALINPUT = "DIGITALINPUT",
-  SENSORREAD = "SENSORREAD",
-  PLAINTEXT = "PLAINTEXT",
-  TEXTSENDER = "TEXTSENDER"
-}
-
 export enum TEMPLATE_FIEL_TYPE {
   REFERENCE = "REFERENCE",
   FIELD = "FIELD",

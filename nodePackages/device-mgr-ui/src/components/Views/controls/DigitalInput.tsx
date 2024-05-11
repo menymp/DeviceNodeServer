@@ -17,7 +17,7 @@ type DigitalInputParameters = {
 
 
 const DigitalInput = (props: GenericUIControlParameters) => {
-    const { control } = props;
+    const { control, id } = props;
     const [currentValue, setCurrentValue] = useState<string>('');
 
     const getControlParameters = () => {
@@ -37,7 +37,7 @@ const DigitalInput = (props: GenericUIControlParameters) => {
     
     return (
         <>
-            <Form>
+            <Form id={id}>
                 <Form.Label>{control.name}</Form.Label>
                 <ColoredLed color={ledState ? 'red':'black'}></ColoredLed>
                 <Form.Label>{currentValue}</Form.Label>

@@ -15,7 +15,7 @@ type DigitalOutputsControlParameters = {
 }
 
 const DigitalOutput = (props: GenericUIControlParameters) => {
-    const { control } = props;
+    const { control, id } = props;
     // for analog output use https://www.npmjs.com/package/react-dial-knob
     // depending on the output type, the component would have many apperances
 
@@ -65,7 +65,7 @@ const DigitalOutput = (props: GenericUIControlParameters) => {
                 <Form.Label>{control.name}</Form.Label>
                 <Form.Check // prettier-ignore
                     type="switch"
-                    id={`digital-output${control.idControl}`}
+                    id={`digital-output${control.idControl}${id}`}
                     label="Check this switch"
                     onChange={userClick}
                 />

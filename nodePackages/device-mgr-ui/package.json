@@ -14,6 +14,7 @@
     "@types/node": "^16.7.13",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
+    "@types/uuid": "^9.0.8",
     "bootstrap": "^5.3.1",
     "chroma-js": "^2.4.2",
     "colored-led": "^0.0.4",

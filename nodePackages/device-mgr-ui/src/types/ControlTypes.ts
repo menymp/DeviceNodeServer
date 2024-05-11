@@ -14,7 +14,7 @@ export type reactUIControll =  {
     idLinkedDevice: number,
     component: React.ReactElement,
 };
-// ToDo: why there are two of this
+
 export enum CONTROL_TYPE {
     DIGITALOUTPUT = "DIGITALOUTPUT",
     DIGITALINPUT = "DIGITALINPUT",
@@ -29,7 +29,8 @@ export interface ControlParameters {
 
 export interface GenericUIControlParameters {
     control: Control,
-    ws: WebSocket
+    ws: WebSocket,
+    id: string
 }
 
 export interface updateResponse {

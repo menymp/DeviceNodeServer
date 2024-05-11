@@ -13,7 +13,7 @@ type TextSenderParameters = {
 }
 
 const TextSender = (props: GenericUIControlParameters) => {
-    const { control } = props;
+    const { control, id } = props;
     const [currentValue, setCurrentValue] = useState<string>('');
     const [inputText, setInputText] = useState<string>('');
 
@@ -45,7 +45,7 @@ const TextSender = (props: GenericUIControlParameters) => {
                 <Form.Label>{currentValue}</Form.Label>
                 <Form.Control // prettier-ignore
                     type="switch"
-                    id={`text-sender${control.idControl}`}
+                    id={`text-sender${control.idControl}${id}`}
                     onChange={(e) => {
                         setInputText(e.target.value)
                     }}

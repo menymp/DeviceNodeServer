@@ -20,7 +20,7 @@ type SensorReadParameters = {
 // yet even better https://github.com/arcturus3/react-circular-gauge
 
 const SensorRead = (props: GenericUIControlParameters) => {
-    const { control } = props;
+    const { control, id } = props;
     const [currentValue, setCurrentValue] = useState<string>('');
 
     const getControlParameters = () => {
@@ -57,7 +57,7 @@ const SensorRead = (props: GenericUIControlParameters) => {
                 />
                 <Form.Control // prettier-ignore
                     type="switch"
-                    id={`plain-text${control.idControl}${parameters.apperance}`}
+                    id={`plain-text${control.idControl}${parameters.apperance}${id}`}
                     value={currentValue}
                 />
             </Form>

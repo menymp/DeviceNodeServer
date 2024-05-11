@@ -9,7 +9,7 @@ import {
     Control,
     controlTemplate
 } from "../../services/dashboardService";
-import { reactUIControll, deviceCommand } from '../../types/ControlTypes';
+import { reactUIControll, deviceCommand, CONTROL_TYPE} from '../../types/ControlTypes';
 import DigitalOutput from './controls/DigitalOutput';
 import PlainText from "./controls/PlainText";
 import SensorRead from "./controls/SensorRead";
@@ -17,6 +17,7 @@ import DigitalInput from "./controls/DigitalInput";
 import TextSender from "./controls/TextSender"
 import { CONTROLS_COLUMN_NUM, DISPLAY_CONTROLS_NUM } from '../../constants';
 import { create } from "domain";
+import { v4 as uuid } from 'uuid';
 
 const DashboardView: React.FC = () => {
     const [show, setShow] = useState(false);
@@ -43,7 +44,6 @@ const DashboardView: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        // ToDo: check for possible deadlock in devices communication
         if (!controlsLoaded || !controls || !controls.length || !ws || ws.current?.readyState !== WebSocket.OPEN) {
             return;
         }
@@ -109,35 +109,30 @@ const DashboardView: React.FC = () => {
         for (var i = 0, len = receivedControls.length; i < len; i++) 
         {
             const idLinkedDevice = parseInt((JSON.parse(receivedControls[i].parameters) as { idDevice: string }).idDevice);
-            /*this is the proof of concept where each control has an object that defines apperance and behavior*/
-            /*ToDo: better to refine this design before more complex controls arrive*/
-            /*ToDo: since the device id is used as identifier, a new local id should be generated to handle
-                    the cases where two controls such as switch and plain text share the same idDevice value*/
-            if(receivedControls[i]["typename"] === "DIGITALOUTPUT")
+            let outputControl;
+            var id: string = uuid();
+            const controlTypeName = receivedControls[i]["typename"]
+            if(controlTypeName === CONTROL_TYPE.DIGITALOUTPUT)
             {
-                const outputControl = <DigitalOutput ws={ws.current} control={receivedControls[i]}/>;
-                tmpControls.push({ idLinkedDevice: idLinkedDevice, component: outputControl });
+                outputControl = <DigitalOutput ws={ws.current} control={receivedControls[i]} id={id}/>;
             }
-            if(receivedControls[i]["typename"] === "PLAINTEXT")
+            if(controlTypeName === CONTROL_TYPE.PLAINTEXT)
             {
-                const plainControl = <PlainText ws={ws.current} control={receivedControls[i]}/>;
-                tmpControls.push({ idLinkedDevice: idLinkedDevice, component: plainControl });
+                outputControl = <PlainText ws={ws.current} control={receivedControls[i]} id={id}/>;
             }
-            if(receivedControls[i]["typename"] === "SENSORREAD")
+            if(controlTypeName === CONTROL_TYPE.SENSORREAD)
             {
-                const sensorRead = <SensorRead ws={ws.current} control={receivedControls[i]}/>;
-                tmpControls.push({ idLinkedDevice: idLinkedDevice, component: sensorRead });
+                outputControl = <SensorRead ws={ws.current} control={receivedControls[i]} id={id}/>;
             }
-            if(receivedControls[i]["typename"] === "DIGITALINPUT")
+            if(controlTypeName === CONTROL_TYPE.DIGITALINPUT)
             {
-                const sensorRead = <DigitalInput ws={ws.current} control={receivedControls[i]}/>;
-                tmpControls.push({ idLinkedDevice: idLinkedDevice, component: sensorRead });
+                outputControl = <DigitalInput ws={ws.current} control={receivedControls[i]} id={id}/>;
             }
-            if(receivedControls[i]["typename"] === "TEXTSENDER")
+            if(controlTypeName === CONTROL_TYPE.TEXTSENDER)
             {
-                const sensorRead = <TextSender ws={ws.current} control={receivedControls[i]}/>;
-                tmpControls.push({ idLinkedDevice: idLinkedDevice, component: sensorRead });
+                outputControl = <TextSender ws={ws.current} control={receivedControls[i]} id={id}/>;
             }
+            outputControl && tmpControls.push({ idLinkedDevice: idLinkedDevice, component: outputControl });
         }
         setDisplayUIControls(tmpControls);
     }

@@ -15,7 +15,7 @@ type PlainTextParameters = {
 
 
 const PlainText = (props: GenericUIControlParameters) => {
-    const { control } = props;
+    const { control, id } = props;
     const [currentValue, setCurrentValue] = useState<string>('');
 
     const getControlParameters = () => {
@@ -37,7 +37,7 @@ const PlainText = (props: GenericUIControlParameters) => {
                 <Form.Label>{control.name}</Form.Label>
                 <Form.Control // prettier-ignore
                     type="switch"
-                    id={`plain-text${control.idControl}`}
+                    id={`plain-text${control.idControl}${id}`}
                     value={currentValue}
                 />
             </Form>

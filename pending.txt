@@ -12,9 +12,6 @@ Pending to fix:
 Redesign and thinking
 think in a better approach creating engine instances for each user in the future, or maybe not
 
-ControlTypes.tsx
-    // ToDo: why there are two of this
-
 cameraServiceController
 		#ToDo: camera type should be part of a parameter, there can be defined the proper driver
 		#ToDo: wire connArgs as the container for the parameters, for example, for esp32 cam the ip and port
@@ -117,12 +114,7 @@ DashboardEditor
     // TODO: still thinking if i should rewrite all this to make easier to validate
     // ToDo: use a proper log
 DashboardView
-    // ToDo: check for possible deadlock in devices communication
-    //ToDo: what happens if a timeout and no response is received??
     /* ToDo: this will be calculated with the screen length */
-            /*ToDo: better to refine this design before more complex controls arrive*/
-            /*ToDo: since the device id is used as identifier, a new local id should be generated to handle
-                    the cases where two controls such as switch and plain text share the same idDevice value*/
 DevicesListView
     //ToDo: perform validations
 NodeListView
