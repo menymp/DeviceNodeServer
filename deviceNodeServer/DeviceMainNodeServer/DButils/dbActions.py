@@ -64,6 +64,18 @@ class dbDevicesActions(dbConnectorBase):
         else:
             result = ['OK',False]
         return result
+    
+    def addDeviceMeasure(self, value, idDevice):
+        self.dbConn.execute("INSERT INTO devicesmeasures (value, uploadDate, idDevice) values (%s,CURRENT_TIMESTAMP(),%s)", (value,idDevice,))
+        pass
+
+    def getDeviceMeasures(self, idDevice):
+        records = self.dbConn.execute("SELECT * FROM devicesmeasures WHERE idDevice=%s", (idDevice,))
+        return records
+    
+    def cleanOldRecords(self, retentionPeriod = 60):
+        result = self.dbConn.execute("DELETE FROM devicesmeasures WHERE uploadDate < UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL %s DAY))", (retentionPeriod,))
+        pass
 
     def updateDevice(self, deviceName, Mode, Type, channelPath, idParentNode):
         if not self.deviceExists(deviceName,idParentNode):

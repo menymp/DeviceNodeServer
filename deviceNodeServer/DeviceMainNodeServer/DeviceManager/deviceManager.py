@@ -32,11 +32,20 @@ class deviceManager():
         for deviceInfo in self.availableDevices:
             if not self.deviceAlreadyInit(deviceInfo[1],deviceInfo[5]):
                 tmpDevice = device()
-                tmpDevice.init(deviceInfo)
+                tmpDevice.init(deviceInfo, self.updateDeviceMeasure)
                 self.Devices.append(tmpDevice)
             pass
         self.cleanOldDevices()
+        self.dbActions.cleanOldRecords() #by default 60 days of retention
         pass
+
+    def updateDeviceMeasure(self, value, idDevice):
+        try:
+            self.dbActions.addDeviceMeasure(value, idDevice)
+        except:
+            print("Error attempting to update '" + str(idDevice) + "' device with '"+ str(value) +"' value")
+        pass
+
 
     def deviceAlreadyInit(self, deviceName, parentNodeId):
         flagExists = False
@@ -76,6 +85,26 @@ class deviceManager():
         
         for cmd in cmdArrayObj:
             state = "SUCCESS"
+
+            if "servercommand" in cmd:
+                result = []
+                try:
+                    if cmd["servercommand"] == "getMeasures":
+                        result = self.dbActions.getDeviceMeasures(cmd['idDevice'])
+                    
+                except:
+                    state = "ERROR"
+                
+                cmdServerResult = {
+                    "idDevice":cmd['idDevice'],
+                    "syscommand":cmd['servercommand'],
+                    "result":result,
+                    "state":state
+                }
+                results.append(cmdServerResult)
+                continue
+
+
             try:
                 result, flagUpdate = self.executeCMDraw(cmd['idDevice'], cmd['command'], cmd['args'])
             except:
