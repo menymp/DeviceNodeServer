@@ -1,4 +1,5 @@
 
+import { SERVFAIL } from "dns"
 import { Control } from "../services/dashboardService"
 import { ReactComponentElement } from "react"
 
@@ -8,6 +9,11 @@ export type deviceCommand = {
     idDevice: number,
     command: string,
     args: string
+}
+
+export type serverCommand = {
+    idDevice: number,
+    servercommand: string
 }
 
 export type reactUIControll =  { 
@@ -34,6 +40,7 @@ export interface GenericUIControlParameters {
 }
 
 export interface updateResponse {
+    syscommand?: string,
     result: string,
     state: string
 }
@@ -60,6 +67,13 @@ export const generateUpdateCommand = (idDevice: number, cmdUpdate: string, args:
         idDevice: idDevice,
         command: cmdUpdate,
         args: args
+    }
+}
+
+export const generateSystemCommand = (idDevice: number, servercommand: string):serverCommand => {
+    return {
+        idDevice: idDevice,
+        servercommand: servercommand
     }
 }
 

@@ -4,12 +4,13 @@ import {
     uiControlResponseHandler, 
     deviceCommand, 
     generateUpdateCommand, 
+    generateSystemCommand,
     ws_send 
 } from '../types/ControlTypes'
 import { POLL_INTERVAL_MS } from '../constants'
 
 type controlUtilsParameters = {
-    getControlParameters: () => {idDevice: string, updateCmdStr: string},
+    getControlParameters: () => {idDevice: string, updateCmdStr?: string, systemcommand?: string},
     ws: WebSocket,
     update: (args: updateResponse) => void
 }
@@ -20,7 +21,15 @@ const useControlUtils = ({getControlParameters, ws, update}:controlUtilsParamete
     const userCommands = useRef<deviceCommand | null>(null);
 
     const parameters = getControlParameters();
-    const updateCommand = JSON.stringify([generateUpdateCommand(parseInt(parameters.idDevice), parameters.updateCmdStr, "")]);
+    const getUpdateCommandType = () => {
+        if (parameters.updateCmdStr) {
+            return JSON.stringify([generateUpdateCommand(parseInt(parameters.idDevice), parameters.updateCmdStr, "")]);
+        } else if (parameters.systemcommand) {
+            return JSON.stringify([generateSystemCommand(parseInt(parameters.idDevice), parameters.systemcommand)]);
+        }
+        return "";
+    }
+    const updateCommand = getUpdateCommandType();
 
     const commandHandler = (idDevice: number, command: string, args: string) => {
         userCommands.current = {idDevice, command, args};
