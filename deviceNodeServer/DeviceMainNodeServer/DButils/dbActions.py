@@ -69,8 +69,8 @@ class dbDevicesActions(dbConnectorBase):
         self.dbConn.execute("INSERT INTO devicesmeasures (value, uploadDate, idDevice) values (%s,CURRENT_TIMESTAMP(),%s)", (value,idDevice,))
         pass
 
-    def getDeviceMeasures(self, idDevice):
-        records = self.dbConn.execute("SELECT * FROM devicesmeasures WHERE idDevice=%s", (idDevice,))
+    def getDeviceMeasures(self, idDevice, limit=20):
+        records = self.dbConn.execute("SELECT * FROM devicesmeasures WHERE idDevice=%s LIMIT %s", (idDevice, limit,))
         return records
     
     def cleanOldRecords(self, retentionPeriod = 60):

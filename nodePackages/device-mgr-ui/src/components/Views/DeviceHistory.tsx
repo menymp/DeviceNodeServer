@@ -20,8 +20,22 @@ type GetHistoryParameters = {
     servercommand: string
 }
 
+type HistoryRow = {
+    value: string,
+    date: string
+}
+
+const initialTableState = {
+    headers: ['Value', 'upload date'],
+    rows: [],
+    detailBtn: false,
+    deleteBtn: false,
+    editBtn: false,
+}
+
 const DeviceHistory = ({ws, idDevice}: DeviceHistoryParameters) => {
     const [getDeviceById, {isSuccess: selectedDeviceFound, data: matchDevices}] = useFetchDeviceByIdMutation()
+    const [measuresDisplay, setMeasuresDisplay] = useState<tableInit>(initialTableState)
 
     useEffect(() => {
         getDeviceById({deviceId: parseInt(idDevice)});
@@ -45,89 +59,28 @@ const DeviceHistory = ({ws, idDevice}: DeviceHistoryParameters) => {
         if(response.state === 'SUCCESS')
         {
             // decode the expected history
+            displayHistoryTable(JSON.parse(response.result) as Array<HistoryRow>)
         }
         /* ends user specific code */
         //////////////////////////////////////////////////
     }
 
+
+    const displayHistoryTable = (list: Array<HistoryRow>) => {
+        try {
+            const newTable = {
+                headers: ['Value', 'upload date'],
+                rows: list.map((row) => {return [row.value, row.date]}),
+            } as tableInit
+            setMeasuresDisplay(newTable)
+        } catch (error) {
+            console.log(error);
+        }
+    }
     const { commandHandler } = useControlUtils({ getControlParameters, ws, update});
     
     return(
         <>
-            <Modal show={show} onHide={handleClose}>
-                <Modal.Header closeButton>
-                    <Modal.Title>Device details</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <Form>
-                        <Form.Group className="mb-3" controlId="deviceDetails.name">
-                            <Form.Label>device id</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="Device id ..."
-                                autoFocus
-                                readOnly
-                                defaultValue={deviceDetail?.idDevices}
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3" controlId="deviceDetails.name">
-                            <Form.Label>device name</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="name ..."
-                                autoFocus
-                                readOnly
-                                defaultValue={deviceDetail?.name}
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3" controlId="deviceDetails.path">
-                            <Form.Label>Mode</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="mode..."
-                                autoFocus
-                                readOnly
-                                defaultValue={deviceDetail?.mode}
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3" controlId="deviceDetails.name">
-                            <Form.Label>type</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="type ..."
-                                autoFocus
-                                readOnly
-                                defaultValue={deviceDetail?.type}
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3" controlId="deviceDetails.path">
-                            <Form.Label>device path</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="/devicePath/..."
-                                autoFocus
-                                readOnly
-                                defaultValue={deviceDetail?.channelPath}
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3" controlId="deviceParentNode.name">
-                            <Form.Label>parent node</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="parent node..."
-                                autoFocus
-                                readOnly
-                                defaultValue={deviceDetail?.nodeName}
-                            />
-                        </Form.Group>
-                    </Form>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={handleClose}>
-                        Close
-                    </Button>
-                </Modal.Footer>
-            </Modal>
             <Container >
                 <Row className="p-3 mb-2 bg-success bg-gradient text-white rounded-3">
                     <Col xs={5} >
@@ -135,30 +88,7 @@ const DeviceHistory = ({ws, idDevice}: DeviceHistoryParameters) => {
                             <Form.Group className="mb-3 form-check-inline" controlId="searchFilterField">
                                 <Row xs={12}>
                                     <Col xs={2}>
-                                        <Form.Label>Filter</Form.Label>
-                                    </Col>
-                                    <Col xs={5}>
-                                        <Form.Control type="text" placeholder="node name..." onChange={handleChangeFilterNodeName}/>
-                                    </Col>
-                                    <Col xs={5}>
-                                        <Form.Control type="text" placeholder="parent node..." onChange={handleChangeFilterName}/>
-                                    </Col>
-                                </Row>
-                            </Form.Group>
-                        </Form>
-                    </Col>
-                    <Col>
-                        <Form className="mr-left ">
-                            <Form.Group className="mb-3 form-check-inline" controlId="searchFilterField">
-                                <Row xs={12}>
-                                    <Col xs={6}>
-                                        <Button onClick={() => {(page > 0) && setPage(page - 1)}}>Previous page</Button>
-                                    </Col>
-                                    <Col xs={1}>
-                                        <Form.Label>{page}</Form.Label>
-                                    </Col>
-                                    <Col xs={5}>
-                                        <Button onClick={() => {setPage(page + 1)}}>Next page</Button>
+                                        <Form.Label>Last measures</Form.Label>
                                     </Col>
                                 </Row>
                             </Form.Group>
@@ -166,7 +96,7 @@ const DeviceHistory = ({ws, idDevice}: DeviceHistoryParameters) => {
                     </Col>
                 </Row>
                 <Row>
-                    <Col><BaseTable {...devicesDisplay}></BaseTable></Col>
+                    <Col><BaseTable {...measuresDisplay}></BaseTable></Col>
                 </Row>
             </Container>
         </>
