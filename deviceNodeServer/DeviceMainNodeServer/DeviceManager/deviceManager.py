@@ -22,12 +22,12 @@ class deviceManager():
         self.dbUser = initArgs[2]
         self.dbPass = initArgs[3]
         self.deviceArgs = initArgs[4]
+        self.dbActions = dbDevicesActions()
+        self.dbActions.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
         self.deviceLoad()
         pass
     #
     def deviceLoad(self):
-        self.dbActions = dbDevicesActions()
-        self.dbActions.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
         self.availableDevices = self.dbActions.getDevices()
         for deviceInfo in self.availableDevices:
             if not self.deviceAlreadyInit(deviceInfo[1],deviceInfo[5]):
@@ -41,9 +41,11 @@ class deviceManager():
 
     def updateDeviceMeasure(self, value, idDevice):
         try:
+            print("Updating "+ str(value) + " for id " + str(idDevice))
             self.dbActions.addDeviceMeasure(value, idDevice)
-        except:
+        except Exception as e:
             print("Error attempting to update '" + str(idDevice) + "' device with '"+ str(value) +"' value")
+            print(e)
         pass
 
 
@@ -162,7 +164,7 @@ class deviceManager():
 
 
 class device():
-    def init(self, args):
+    def init(self, args, updateDeviceMeasure):
         self.initArgs = args
         self.id = args[0]
         self.name = args[1]
@@ -175,9 +177,14 @@ class device():
         self.ParentNodeProtocol = args[8]
         self.idOwnerUser = args[9]
         self.ParentConnectionParameters = args[10]
+        self.updateDeviceMeasure = updateDeviceMeasure
 
         self.value = ""
         self.initDriver(self.ParentNodeProtocol)
+        pass
+
+    def writeDeviceMeasure(self, value):
+        self.updateDeviceMeasure(value, self.id) #adds id from device
         pass
 
     def __del__(self):
@@ -193,7 +200,7 @@ class device():
             self.Driver = mqttDriver()
             if self.mode == "PUBLISHER":
                 #a publisher just updates its internal value
-                self.Driver.init(self.ParentConnectionParameters, self.channelPath)
+                self.Driver.init(self.ParentConnectionParameters, self.writeDeviceMeasure, self.channelPath)
             if self.mode == "SUBSCRIBER":
                 #if a subscriber type, in order to get the value we subscribe to the publish path
                 self.Driver.init(self.ParentConnectionParameters, self.ParentNodePath + self.name)
@@ -228,13 +235,14 @@ class device():
         return result, updatingLock
 
 class mqttDriver():
-    def init(self, args, path = ""):
+    def init(self, args, writeMeasureCallback, path = ""):
         self.subscriberPath = path
         self.connArgs = json.loads(args)
         self.initDriver()
         self.value = ""
         self.lastSentCmd = ""
         self.lockUpdateFlag = False
+        self.writeMeasureCallback = writeMeasureCallback
         #self.initDriver()
         pass
 
@@ -281,6 +289,7 @@ class mqttDriver():
         m_decode=str(msg.payload.decode("utf-8","ignore"))
         data = json.loads(m_decode)
         self.value = data["Value"]
+        self.writeMeasureCallback(data["Value"]) #updates value to measures
         if self.lockUpdateFlag and self.lastSentCmd == self.value: #ToDo: a race condition may happens if no update received
             self.lockUpdateFlag = False
         pass
