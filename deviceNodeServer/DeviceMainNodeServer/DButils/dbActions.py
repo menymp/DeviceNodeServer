@@ -70,11 +70,11 @@ class dbDevicesActions(dbConnectorBase):
         pass
 
     def getDeviceMeasures(self, idDevice, limit=20):
-        records = self.dbConn.execute("SELECT * FROM devicesmeasures WHERE idDevice=%s LIMIT %s", (idDevice, limit,))
+        records = self.dbConn.execute("SELECT * FROM devicesmeasures WHERE idDevice=%s ORDER BY uploadDate DESC LIMIT %s;", (idDevice, limit,))
         return records
     
     def cleanOldRecords(self, retentionPeriod = 60):
-        result = self.dbConn.execute("DELETE FROM devicesmeasures WHERE uploadDate < UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL %s DAY))", (retentionPeriod,))
+        result = self.dbConn.execute("DELETE FROM devicesmeasures WHERE uploadDate < (NOW() - INTERVAL %s DAY) AND idDevice > -1", (retentionPeriod,))
         pass
 
     def updateDevice(self, deviceName, Mode, Type, channelPath, idParentNode):

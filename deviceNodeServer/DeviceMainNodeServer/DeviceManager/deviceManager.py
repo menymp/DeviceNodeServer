@@ -5,6 +5,7 @@ import sys
 import threading
 import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
+import queue
 
 from os.path import dirname, realpath, sep, pardir
 # Get current main.py directory
@@ -25,6 +26,18 @@ class deviceManager():
         self.dbActions = dbDevicesActions()
         self.dbActions.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
         self.deviceLoad()
+        self.measuresQueue = queue.Queue(10)
+        self.taskWriteMeasures = threading.Thread(target=self.updateMeasuresWorker, args=())
+        self.taskWriteMeasures.start()
+        pass
+
+    def updateMeasuresWorker(self):
+        self.dbActionMeasures = dbDevicesActions()
+        self.dbActionMeasures.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
+        while True:
+            if not self.measuresQueue.empty():
+                (value, idDevice) = self.measuresQueue.get()
+                self.dbActionMeasures.addDeviceMeasure(value, idDevice)
         pass
     #
     def deviceLoad(self):
@@ -41,11 +54,9 @@ class deviceManager():
 
     def updateDeviceMeasure(self, value, idDevice):
         try:
-            print("Updating "+ str(value) + " for id " + str(idDevice))
-            self.dbActions.addDeviceMeasure(value, idDevice)
+            self.measuresQueue.put((value, idDevice))
         except Exception as e:
             print("Error attempting to update '" + str(idDevice) + "' device with '"+ str(value) +"' value")
-            print(e)
         pass
 
 
