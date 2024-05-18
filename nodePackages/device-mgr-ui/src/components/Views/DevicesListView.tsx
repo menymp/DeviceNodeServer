@@ -1,9 +1,11 @@
 import React from "react";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
-import BaseTable, { tableInit } from '../Table/Table'
-import { useFetchDevicesMutation, useFetchDeviceByIdMutation, device } from '../../services/deviceService'
-import { ITEM_LIST_DISPLAY_CNT } from '../../constants'
+import BaseTable, { tableInit } from '../Table/Table';
+import { useFetchDevicesMutation, useFetchDeviceByIdMutation, device } from '../../services/deviceService';
+import { ITEM_LIST_DISPLAY_CNT } from '../../constants';
+import DeviceHistory, { DeviceHistoryParameters } from './DeviceHistory';
+import { WEB_SOCK_SERVER_ADDR } from '../../constants';
 
 const initialTableState = {
     headers: ['Device id', 'Name', 'Mode', 'Type', 'Path', 'Parent node'],
@@ -17,9 +19,11 @@ const DevicesListView: React.FC = () => {
     const [getDevices] = useFetchDevicesMutation()
     const [getDeviceById, {isSuccess: selectedDeviceFound, data: matchDevices}] = useFetchDeviceByIdMutation()
     const [show, setShow] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
 
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
+    const handleCloseHistory = () => setShowHistory(false);
 
     // a pagination item already exists
 
@@ -32,9 +36,23 @@ const DevicesListView: React.FC = () => {
     const [filterName, setFilterName] = useState<string>('')
     const handleChangeFilterName = (event: React.ChangeEvent<HTMLInputElement>) => setFilterName(event.target.value); //ToDo: perform validations
 
+    let ws = useRef<WebSocket|null>();
+
     const fetchDeviceDetails = (deviceId: string) => {
         getDeviceById({deviceId: parseInt(deviceId)})
     }
+
+    useEffect(() => {
+        ws.current = new WebSocket(WEB_SOCK_SERVER_ADDR);
+        ws.current.onopen = () => console.log("ws opened");
+        ws.current.onclose = () => console.log("ws closed");
+
+        const wsCurrent = ws.current;
+
+        return () => {
+            wsCurrent.close();
+        };
+    }, []);
 
     const fetchDevices = async () => {
         try {
@@ -52,6 +70,11 @@ const DevicesListView: React.FC = () => {
         }
     }
 
+    const handleOpenDeviceHistory = () => {
+
+        setShowHistory(true);
+    }
+
     useEffect(() => {
         fetchDevices()
     },[page, filterNodeName, filterName])
@@ -63,9 +86,30 @@ const DevicesListView: React.FC = () => {
         setDeviceDetail(matchDevices[0]);
         handleShow();
     }, [selectedDeviceFound, matchDevices])
+
+    const deviceHistoryArgs = {
+        ws: ws.current,
+        idDevice: deviceDetail?.idDevices.toString()
+    } as DeviceHistoryParameters
+
     
     return(
         <>
+            <Modal show={showHistory}>
+            <Modal.Header closeButton>
+                <Modal.Title>Device History</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    { ws.current &&  deviceDetail?.idDevices &&  
+                        (<DeviceHistory { ...deviceHistoryArgs } />)
+                    }
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={handleCloseHistory}>
+                        Close
+                    </Button>
+                </Modal.Footer>
+            </Modal>
             <Modal show={show} onHide={handleClose}>
                 <Modal.Header closeButton>
                     <Modal.Title>Device details</Modal.Title>
@@ -137,6 +181,9 @@ const DevicesListView: React.FC = () => {
                 <Modal.Footer>
                     <Button variant="secondary" onClick={handleClose}>
                         Close
+                    </Button>
+                    <Button variant="primary" onClick={handleOpenDeviceHistory}>
+                        history
                     </Button>
                 </Modal.Footer>
             </Modal>

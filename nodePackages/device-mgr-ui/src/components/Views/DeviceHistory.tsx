@@ -33,7 +33,8 @@ const initialTableState = {
     editBtn: false,
 }
 
-const DeviceHistory = ({ws, idDevice}: DeviceHistoryParameters) => {
+const DeviceHistory = (params:  DeviceHistoryParameters) => {
+    const {ws, idDevice} = params
     const [getDeviceById, {isSuccess: selectedDeviceFound, data: matchDevices}] = useFetchDeviceByIdMutation()
     const [measuresDisplay, setMeasuresDisplay] = useState<tableInit>(initialTableState)
 
