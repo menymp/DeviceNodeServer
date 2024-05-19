@@ -104,6 +104,14 @@ class deviceManager():
                 try:
                     if cmd["servercommand"] == "getMeasures":
                         result = self.dbActions.getDeviceMeasures(cmd['idDevice'])
+                        formattedResults = []
+                        for row in result:
+                            tmpFormatRow = {
+                                "id": row[0],
+                                "value": str(row[1]),
+                                "date": row[2].strftime("%Y-%m-%d %H:%M:%S")
+                            }
+                            formattedResults.append(tmpFormatRow)
                     
                 except:
                     state = "ERROR"
@@ -111,7 +119,7 @@ class deviceManager():
                 cmdServerResult = {
                     "idDevice":cmd['idDevice'],
                     "syscommand":cmd['servercommand'],
-                    "result":result,
+                    "result":json.dumps(formattedResults),
                     "state":state
                 }
                 results.append(cmdServerResult)

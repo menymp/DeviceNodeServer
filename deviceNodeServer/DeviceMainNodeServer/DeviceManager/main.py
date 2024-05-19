@@ -23,9 +23,12 @@ def initMQServer(serverPath):
     return socket
 
 def taskLoadDevices(deviceManager, timeSleep, stopEvent):
-    while not stopEvent.is_set():
-        deviceManager.deviceLoad()
-        time.sleep(timeSleep)
+    try:
+        while not stopEvent.is_set():
+            deviceManager.deviceLoad()
+            time.sleep(timeSleep)
+    except:
+        print("conflict attempting to load devices")
     pass
 
 def startLoadDevices(deviceManager, add_time_poll):
@@ -52,6 +55,7 @@ def processIncommingMessage(deviceManager, message):
             }
             result = json.dumps(error)
     except Exception as e:
+        print(commandObj)
         print("command error!" + str(e))
         error = {
             "type":"command error!"

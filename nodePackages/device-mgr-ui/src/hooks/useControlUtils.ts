@@ -10,7 +10,7 @@ import {
 import { POLL_INTERVAL_MS } from '../constants'
 
 type controlUtilsParameters = {
-    getControlParameters: () => {idDevice: string, updateCmdStr?: string, systemcommand?: string},
+    getControlParameters: () => {idDevice: string, updateCmdStr?: string, servercommand?: string},
     ws: WebSocket,
     update: (args: updateResponse) => void
 }
@@ -24,8 +24,8 @@ const useControlUtils = ({getControlParameters, ws, update}:controlUtilsParamete
     const getUpdateCommandType = () => {
         if (parameters.updateCmdStr) {
             return JSON.stringify([generateUpdateCommand(parseInt(parameters.idDevice), parameters.updateCmdStr, "")]);
-        } else if (parameters.systemcommand) {
-            return JSON.stringify([generateSystemCommand(parseInt(parameters.idDevice), parameters.systemcommand)]);
+        } else if (parameters.servercommand) {
+            return JSON.stringify([generateSystemCommand(parseInt(parameters.idDevice), parameters.servercommand)]);
         }
         return "";
     }
