@@ -16,6 +16,7 @@ const initialTableState = {
 }
 
 const CamerasDashboardView: React.FC = () => {
+    /* implement a editor function to create cameras */
     const [show, setShow] = useState(false);
     const navigate = useNavigate();
     const [getConfigsFetch, {isSuccess: configsLoaded, data: dashConfigs}] = useFetchConfigsMutation();
