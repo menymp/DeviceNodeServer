@@ -33,11 +33,29 @@ export const camerasDashboardService = createApi({
         dataType: 'JSON',
         withcredentials: true,
         body: {...requestCamsInfo, actionOption:"fetchConfigs", userId: parseInt(sessionStorage.getItem("userId") as string)}
+       })
+      }),
+      deleteById: builder.mutation<void , dashboardCameraConfigs>({
+        query: (requestCamsInfo) => ({
+          url: 'camerasDashboardService.php',
+          method: 'POST',
+          dataType: 'JSON',
+          withcredentials: true,
+          body: {...requestCamsInfo, actionOption:"deleteById", userId: parseInt(sessionStorage.getItem("userId") as string)}
+        })
+      }),
+      saveVideoDashboard: builder.mutation<void , dashboardCameraConfigs>({
+        query: (requestCamsInfo) => ({
+          url: 'camerasDashboardService.php',
+          method: 'POST',
+          dataType: 'JSON',
+          withcredentials: true,
+          body: {...requestCamsInfo, actionOption:"saveVideoDashboard", userId: parseInt(sessionStorage.getItem("userId") as string)}
+        })
       })
-    })
   })
 })
 
 // Export hooks for usage in functional components, which are
 // auto-generated based on the defined endpoints
-export const { useFetchConfigsMutation } = camerasDashboardService
+export const { useFetchConfigsMutation, useDeleteByIdMutation, useSaveVideoDashboardMutation } = camerasDashboardService

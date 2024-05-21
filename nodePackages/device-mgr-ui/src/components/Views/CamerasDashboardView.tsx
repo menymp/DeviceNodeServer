@@ -4,7 +4,7 @@ import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable from '../Table/Table'
 import { useNavigate } from "react-router-dom";
 import WebSocket from 'ws';
-import { dashboardCameraConfigs, useFetchConfigsMutation } from "../../services/camerasDashboardService";
+import { dashboardCameraConfigs, useFetchConfigsMutation, useDeleteByIdMutation, useSaveVideoDashboardMutation } from "../../services/camerasDashboardService";
 import { ITEM_LIST_DISPLAY_CNT } from '../../constants';
 
 const initialTableState = {
@@ -20,6 +20,9 @@ const CamerasDashboardView: React.FC = () => {
     const [show, setShow] = useState(false);
     const navigate = useNavigate();
     const [getConfigsFetch, {isSuccess: configsLoaded, data: dashConfigs}] = useFetchConfigsMutation();
+    const [deleteConfigById, {isSuccess: successDelete }] = useDeleteByIdMutation();
+    const [saveDashboardConfig, {isSuccess: successSave }] = useSaveVideoDashboardMutation();
+
     const [page, setPage] = useState<number>(0);
     const [startVideo, setStartVideo] = useState<boolean>(false);
     const startVideoRef = useRef(false);

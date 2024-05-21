@@ -74,6 +74,71 @@ if($operationOption == "fetchConfigs")
 		echo EncodeJSONClientResponse(['Message' => "0 results","Result" =>"Success"]);
 	}
 }
+if($operationOption == "deleteById")
+{
+		$sql = "DELETE FROM videoDashboard WHERE idvideoDashboard = ?;";
+		
+		if(!isset($POST['idvideoDashboard']))
+		{
+			exit();
+		}
+		$idControl = $POST['idvideoDashboard'];
+		
+		$result = $dbObj1->dbQuery($sql, "i", [$idControl]);
+
+		if ($result !== false && $result->num_rows > 0) 
+		{	
+			$data = $result->fetch_all( MYSQLI_ASSOC );
+			echo EncodeJSONClientResponse($data);
+		}
+		else 
+		{
+			echo EncodeJSONClientResponse(['Message' => "0 results","Result" =>"Success"]);
+		}
+}	
+if($operationOption == "saveVideoDashboard")
+{
+		$sqlSaveCtl = "UPDATE videoDashboard SET configJsonFetch = ? WHERE idvideoDashboard = ?;";
+		$sqlNewCtl = "INSERT INTO videoDashboard (configJsonFetch , idOwnerUser) VALUES (?,?);";
+		
+		if(!isset($POST['configJsonFetch']))
+		{
+			exit();
+		}
+		if(!isset($POST['idOwnerUser']))
+		{
+			exit();
+		}
+		if(!isset($POST['idvideoDashboard']))
+		{
+			exit();
+		}
+		
+		$configJsonFetch = $POST['configJsonFetch'];
+		$idOwnerUser = $POST['idOwnerUser'];
+		$idvideoDashboard = $POST['idvideoDashboard'];
+		
+		if($idvideoDashboard != -1)
+		{
+			$result = $dbObj1->dbQuery($sqlSaveCtl, "i", [$configJsonFetch, $idvideoDashboard]);
+		}
+		else
+		{
+			/*new control creation*/
+			$result = $dbObj1->dbQuery($sqlNewCtl, "i", [$configJsonFetch,$idOwnerUser]);
+		}
+
+
+		if ($result !== false && $result > 0) 
+		{	
+			$data = $result->fetch_all( MYSQLI_ASSOC );
+			echo EncodeJSONClientResponse($data);
+		}
+		else 
+		{
+			echo EncodeJSONClientResponse(['Message' => "0 results","Result" =>"Success"]);
+		}
+}
 $dbObj1->disconect();
 	
 ?>
