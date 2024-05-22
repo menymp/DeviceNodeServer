@@ -4,7 +4,7 @@ import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable from '../Table/Table'
 import { useNavigate } from "react-router-dom";
 import WebSocket from 'ws';
-import { dashboardCameraConfigs, useFetchConfigsMutation, useDeleteByIdMutation, useSaveVideoDashboardMutation } from "../../services/camerasDashboardService";
+import { configCameraData, dashboardCameraConfigs, useFetchConfigsMutation, useDeleteByIdMutation, useSaveVideoDashboardMutation } from "../../services/camerasDashboardService";
 import { ITEM_LIST_DISPLAY_CNT } from '../../constants';
 
 const initialTableState = {
@@ -22,6 +22,7 @@ const CamerasDashboardView: React.FC = () => {
     const [getConfigsFetch, {isSuccess: configsLoaded, data: dashConfigs}] = useFetchConfigsMutation();
     const [deleteConfigById, {isSuccess: successDelete }] = useDeleteByIdMutation();
     const [saveDashboardConfig, {isSuccess: successSave }] = useSaveVideoDashboardMutation();
+    const [currentCameraValues, setCurrentCameraValues] = useState<configCameraData>();
 
     const [page, setPage] = useState<number>(0);
     const [startVideo, setStartVideo] = useState<boolean>(false);
@@ -81,6 +82,27 @@ const CamerasDashboardView: React.FC = () => {
         }, 10);
     }
     
+    const initCameraValues = ( values: configCameraData) => {
+        setCurrentCameraValues(values);
+    }
+
+    const validateAndCreateArray = (input: string): number[] | null => {
+        const parts = input.split(',');
+    
+        // Validate each part
+        for (const part of parts) {
+            const num = parseInt(part.trim(), 10);
+            if (isNaN(num)) {
+                // Invalid integer found
+                return null;
+            }
+        }
+    
+        // Convert valid parts to an array of integers
+        const result = parts.map(part => parseInt(part.trim(), 10));
+        return result;
+    }
+
     return(
         <>
             <Modal show={show} onHide={handleClose}>
@@ -94,19 +116,51 @@ const CamerasDashboardView: React.FC = () => {
                             <Form.Control
                                 type="text"
                                 placeholder="height ..."
+                                defaultValue={currentCameraValues?.height? currentCameraValues?.height : ""}
+                                onChange={(e) => {
+                                    setCurrentCameraValues({...currentCameraValues, height: parseInt(e.target.value)});
+                                }}
                                 autoFocus
                             />
                             <Form.Label>Width</Form.Label>
                             <Form.Control
                                 type="text"
                                 placeholder="width ..."
-                                autoFocus
+                                defaultValue={currentCameraValues?.width? currentCameraValues?.width : ""}
+                                onChange={(e) => {
+                                    setCurrentCameraValues({...currentCameraValues, width: parseInt(e.target.value)});
+                                }}
+
                             />
                             <Form.Label>Row Length</Form.Label>
                             <Form.Control
                                 type="text"
                                 placeholder="row length ..."
-                                autoFocus
+                                defaultValue={currentCameraValues?.rowLen? currentCameraValues?.rowLen : ""}
+                                onChange={(e) => {
+                                    setCurrentCameraValues({...currentCameraValues, rowLen: parseInt(e.target.value)});
+                                }}
+                            />
+                            <Form.Label>Id List</Form.Label>
+                            <Form.Control
+                                type="text"
+                                placeholder="id list ..."
+                                defaultValue={currentCameraValues?.idList? (currentCameraValues.idList.join(",")) : ""}
+                                onChange={(e) => {
+                                    const array = validateAndCreateArray(e.target.value);
+                                    if (array) {
+                                        setCurrentCameraValues({...currentCameraValues, idList: array});
+                                    }
+                                }}
+                            />
+                            <Form.Label>Id Text</Form.Label>
+                            <Form.Control
+                                type="text"
+                                placeholder="id text ..."
+                                defaultValue={currentCameraValues?.idText? currentCameraValues?.idText : ""}
+                                onChange={(e) => {
+                                    setCurrentCameraValues({...currentCameraValues, idText: parseInt(e.target.value)});
+                                }}
                             />
                         </Form.Group>
                     </Form>
