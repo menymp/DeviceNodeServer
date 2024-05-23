@@ -4,7 +4,7 @@ import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable from '../Table/Table'
 import { useNavigate } from "react-router-dom";
 import WebSocket from 'ws';
-import { configCameraData, dashboardCameraConfigs, useFetchConfigsMutation, useDeleteByIdMutation, useSaveVideoDashboardMutation } from "../../services/camerasDashboardService";
+import { dashboardCameraConfigs, useFetchConfigsMutation, useDeleteByIdMutation, useSaveVideoDashboardMutation } from "../../services/camerasDashboardService";
 import { ITEM_LIST_DISPLAY_CNT } from '../../constants';
 
 const initialTableState = {
@@ -22,13 +22,14 @@ const CamerasDashboardView: React.FC = () => {
     const [getConfigsFetch, {isSuccess: configsLoaded, data: dashConfigs}] = useFetchConfigsMutation();
     const [deleteConfigById, {isSuccess: successDelete }] = useDeleteByIdMutation();
     const [saveDashboardConfig, {isSuccess: successSave }] = useSaveVideoDashboardMutation();
-    const [currentCameraValues, setCurrentCameraValues] = useState<configCameraData>();
 
     const [page, setPage] = useState<number>(0);
     const [startVideo, setStartVideo] = useState<boolean>(false);
     const startVideoRef = useRef(false);
 
     const [selectedConfig, setSelectedConfig] = useState<dashboardCameraConfigs>();
+    const currentCameraValues = selectedConfig?.configJsonFetch
+
     const handleChangeConfig = (event: React.ChangeEvent<HTMLSelectElement>) => {
         if (!configsLoaded || !dashConfigs || !event.target.value) {
             return;
@@ -39,8 +40,31 @@ const CamerasDashboardView: React.FC = () => {
         }
     }
 
+    const handleSaveConfigs = () => {
+        if (!selectedConfig) {
+            return
+        }
+        saveDashboardConfig(selectedConfig);
+    }
+
+    const handleDeleteConfigs = () => {
+        if (!selectedConfig) {
+            return
+        }
+        deleteConfigById(selectedConfig);
+    }
+
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
+
+    const handleNewDashConfig = () => {
+        // inits selected data with empty case
+        if (!sessionStorage.getItem("userId")) {
+            return
+        }
+        setSelectedConfig({idOwnerUser: parseInt(sessionStorage.getItem("userId")!),idvideoDashboard: -1, configJsonFetch: {height: 400, width: 600, idText: 1, idList: []} });
+        handleShow();
+    }
 
     useEffect(() => {
         startVideoRef.current = startVideo;
@@ -81,10 +105,6 @@ const CamerasDashboardView: React.FC = () => {
             startVideoRef.current && videoLoopStart();
         }, 10);
     }
-    
-    const initCameraValues = ( values: configCameraData) => {
-        setCurrentCameraValues(values);
-    }
 
     const validateAndCreateArray = (input: string): number[] | null => {
         const parts = input.split(',');
@@ -116,9 +136,12 @@ const CamerasDashboardView: React.FC = () => {
                             <Form.Control
                                 type="text"
                                 placeholder="height ..."
-                                defaultValue={currentCameraValues?.height? currentCameraValues?.height : ""}
+                                defaultValue={selectedConfig?.configJsonFetch?.height? currentCameraValues?.height : ""}
                                 onChange={(e) => {
-                                    setCurrentCameraValues({...currentCameraValues, height: parseInt(e.target.value)});
+                                    if (!selectedConfig) {
+                                        return
+                                    }
+                                    setSelectedConfig({...selectedConfig, configJsonFetch: {...currentCameraValues, height: parseInt(e.target.value)}});
                                 }}
                                 autoFocus
                             />
@@ -128,9 +151,11 @@ const CamerasDashboardView: React.FC = () => {
                                 placeholder="width ..."
                                 defaultValue={currentCameraValues?.width? currentCameraValues?.width : ""}
                                 onChange={(e) => {
-                                    setCurrentCameraValues({...currentCameraValues, width: parseInt(e.target.value)});
+                                    if (!selectedConfig) {
+                                        return
+                                    }
+                                    setSelectedConfig({...selectedConfig, configJsonFetch: {...currentCameraValues, width: parseInt(e.target.value)}});
                                 }}
-
                             />
                             <Form.Label>Row Length</Form.Label>
                             <Form.Control
@@ -138,7 +163,10 @@ const CamerasDashboardView: React.FC = () => {
                                 placeholder="row length ..."
                                 defaultValue={currentCameraValues?.rowLen? currentCameraValues?.rowLen : ""}
                                 onChange={(e) => {
-                                    setCurrentCameraValues({...currentCameraValues, rowLen: parseInt(e.target.value)});
+                                    if (!selectedConfig) {
+                                        return
+                                    }
+                                    setSelectedConfig({...selectedConfig, configJsonFetch: {...currentCameraValues, rowLen: parseInt(e.target.value)}});
                                 }}
                             />
                             <Form.Label>Id List</Form.Label>
@@ -148,8 +176,8 @@ const CamerasDashboardView: React.FC = () => {
                                 defaultValue={currentCameraValues?.idList? (currentCameraValues.idList.join(",")) : ""}
                                 onChange={(e) => {
                                     const array = validateAndCreateArray(e.target.value);
-                                    if (array) {
-                                        setCurrentCameraValues({...currentCameraValues, idList: array});
+                                    if (array && selectedConfig) {
+                                        setSelectedConfig({...selectedConfig, configJsonFetch: {...currentCameraValues, idList: array}});
                                     }
                                 }}
                             />
@@ -159,17 +187,31 @@ const CamerasDashboardView: React.FC = () => {
                                 placeholder="id text ..."
                                 defaultValue={currentCameraValues?.idText? currentCameraValues?.idText : ""}
                                 onChange={(e) => {
-                                    setCurrentCameraValues({...currentCameraValues, idText: parseInt(e.target.value)});
+                                    if (!selectedConfig) {
+                                        return
+                                    }
+                                    setSelectedConfig({...selectedConfig, configJsonFetch: {...currentCameraValues, idText: parseInt(e.target.value)}});
                                 }}
                             />
                         </Form.Group>
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>
-                    <Button variant="secondary" onClick={handleClose}>
+                    <Button variant="primary" onClick={() =>{
+                            handleSaveConfigs();
+                            handleClose();
+                        }}>
                         Save
                     </Button>
-                    <Button variant="secondary" onClick={handleClose}>
+                    <Button variant="secondary" onClick={() =>{
+                            handleDeleteConfigs();
+                            handleClose();
+                        }}>
+                        Delete
+                    </Button>
+                    <Button variant="secondary" onClick={() =>{
+                            handleClose();
+                        }}>
                         Close
                     </Button>
                 </Modal.Footer>
@@ -184,6 +226,9 @@ const CamerasDashboardView: React.FC = () => {
                     </Col>
                     <Col xs={2}>
                         <Button onClick={handleStopVideo}>Stop</Button>
+                    </Col>
+                    <Col xs={2}>
+                        <Button onClick={handleNewDashConfig}>New config...</Button>
                     </Col>
                     <Col xs={2}>
                         <Form.Group className="mb-3" controlId="nodeDetails.protocol">

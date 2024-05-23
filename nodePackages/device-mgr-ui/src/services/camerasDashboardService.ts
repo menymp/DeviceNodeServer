@@ -6,19 +6,19 @@ export type requestConfigsInfo = {
     pageSize: number;
 }
 
-export type dashboardCameraConfigs = {
-    idvideoDashboard: number;
-    configJsonFetch: string; //Convert this to JSON since its a JSON based value
-    idOwnerUser: number;
-}
-
 // configJsonFetch form
 export type configCameraData = {
-    width?: number;
-    height?: number;
-    idList?: Array<number>;
-    idText?: number;
-    rowLen?: number;
+  width?: number;
+  height?: number;
+  idList?: Array<number>;
+  idText?: number;
+  rowLen?: number;
+}
+
+export type dashboardCameraConfigs = {
+    idvideoDashboard: number;
+    configJsonFetch: configCameraData;
+    idOwnerUser: number;
 }
 
 // Define a service using a base URL and expected endpoints
