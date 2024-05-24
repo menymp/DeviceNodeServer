@@ -96,7 +96,7 @@ const CamerasDashboardView: React.FC = () => {
         if (!image || !selectedConfig) {
             return;
         }
-        image.setAttribute('src', "http://localhost:9090/video_feed?vidArgs="+JSON.stringify(selectedConfig.configJsonFetch));
+        image.setAttribute('src', "http://localhost:9090/video_feed?vidArgs="+JSON.stringify(selectedConfig.configJsonFetch.toString()));
     }
 
     const videoLoopStart = () => {
@@ -136,7 +136,9 @@ const CamerasDashboardView: React.FC = () => {
                             <Form.Control
                                 type="text"
                                 placeholder="height ..."
-                                defaultValue={selectedConfig?.configJsonFetch?.height? currentCameraValues?.height : ""}
+                                defaultValue={
+                                    selectedConfig?.configJsonFetch?.height? currentCameraValues?.height : ""
+                                }
                                 onChange={(e) => {
                                     if (!selectedConfig) {
                                         return
