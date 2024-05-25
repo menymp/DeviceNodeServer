@@ -54,8 +54,12 @@ const CamerasDashboardView: React.FC = () => {
         deleteConfigById(selectedConfig);
     }
 
-    const handleClose = () => setShow(false);
-    const handleShow = () => setShow(true);
+    const handleClose = () => {
+        setShow(false);
+    }
+    const handleShow = () => {
+        setShow(true);
+    }
 
     const handleNewDashConfig = () => {
         // inits selected data with empty case
@@ -220,13 +224,13 @@ const CamerasDashboardView: React.FC = () => {
             </Modal>
             <Container >
                 <Row className="p-3 mb-2 bg-success bg-gradient text-white rounded-3">
-                    <Col xs={2}>
+                    <Col xs={1}>
                         <Button onClick={handleShow}>Editor</Button>
                     </Col>
-                    <Col xs={2}>
+                    <Col xs={1}>
                         <Button onClick={handleStartVideo}>Start</Button>
                     </Col>
-                    <Col xs={2}>
+                    <Col xs={1}>
                         <Button onClick={handleStopVideo}>Stop</Button>
                     </Col>
                     <Col xs={2}>

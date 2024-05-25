@@ -33,7 +33,17 @@ export const camerasDashboardService = createApi({
         dataType: 'JSON',
         withcredentials: true,
         body: {...requestCamsInfo, actionOption:"fetchConfigs", userId: parseInt(sessionStorage.getItem("userId") as string)}
-       })
+       }),
+       transformResponse: (rawResponse: Array<{ 
+          idvideoDashboard: number,
+          configJsonFetch: string,
+          idOwnerUser: number 
+        }>) => {
+          const result =  rawResponse.map((config) => {
+            return {...config, configJsonFetch: JSON.parse(config.configJsonFetch) as configCameraData}
+          })
+          return result
+        }
       }),
       deleteById: builder.mutation<void , dashboardCameraConfigs>({
         query: (requestCamsInfo) => ({
