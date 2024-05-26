@@ -51,10 +51,14 @@ const CamerasDashboardView: React.FC = () => {
         if (!selectedConfig) {
             return
         }
-        deleteConfigById(selectedConfig);
+        if (window.confirm('Quieres elimiar la configuracion: ' + selectedConfig.idvideoDashboard + '?')) {
+            deleteConfigById(selectedConfig);
+        }
+        
     }
 
     const handleClose = () => {
+        getConfigsFetch({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT});
         setShow(false);
     }
     const handleShow = () => {
@@ -100,7 +104,7 @@ const CamerasDashboardView: React.FC = () => {
         if (!image || !selectedConfig) {
             return;
         }
-        image.setAttribute('src', "http://localhost:9090/video_feed?vidArgs="+JSON.stringify(selectedConfig.configJsonFetch.toString()));
+        image.setAttribute('src', "http://localhost:9090/video_feed?vidArgs="+JSON.stringify(JSON.stringify(selectedConfig.configJsonFetch)));
     }
 
     const videoLoopStart = () => {

@@ -60,7 +60,7 @@ export const camerasDashboardService = createApi({
           method: 'POST',
           dataType: 'JSON',
           withcredentials: true,
-          body: {...requestCamsInfo, actionOption:"saveVideoDashboard", userId: parseInt(sessionStorage.getItem("userId") as string)}
+          body: {...requestCamsInfo, actionOption:"saveVideoDashboard", configJsonFetch: JSON.stringify(requestCamsInfo.configJsonFetch), userId: parseInt(sessionStorage.getItem("userId") as string)}
         })
       })
   })
