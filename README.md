@@ -12,7 +12,7 @@ Updates List
 | telegram cmds	 	  	   | done 	  |
 | base dashboard items	   | done |
 | user signup info	  	   | done  |
-| advanced debug	  	   | progress  |
+| advanced debug	  	   | done  |
 | trigger jobs	 	  	   | pending  |
 | refract server to process| done  |
-| UI enhancements	 	   | progress  |
+| UI enhancements	 	   | done  |
