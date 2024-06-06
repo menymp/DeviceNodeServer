@@ -38,7 +38,7 @@ enclosure and wiring needs
 
 Example:
 '''
-from machine import I2C, Pin, ADC 
+from machine import I2C, Pin, ADC, WDT 
 import time
 from ds1307 import DS1307
 import utime
@@ -555,6 +555,7 @@ if __name__ == "__main__":
     micropython_ota.ota_update(data["ota_host_url"], data["ota_project_name"], filenames, use_version_prefix=False, hard_reset_device=True, soft_reset_device=False, timeout=5)
     networkLock = _thread.allocate_lock()
     _thread.start_new_thread(update_task, (data,networkLock,)) #start second core thread
+    wdt = WDT(timeout=7700) # is this a good approach
     # if no updates, proceed to the main routine
 
 	while True:
@@ -568,6 +569,7 @@ if __name__ == "__main__":
 		printIndex  = printIndex + 1
 		if printIndex > printIndexCount:
 			printIndex = 0
+        wdt.feed()
 		time.sleep(5)
 	pass
 
