@@ -3,3 +3,5 @@ gauge library https://github.com/antoniolago/react-gauge-component/tree/main/src
 https://mdbootstrap.com/docs/react/content-styles/colors/
 
 continue depuration and deploy of first server
+
+rewinding deployment for server and services
