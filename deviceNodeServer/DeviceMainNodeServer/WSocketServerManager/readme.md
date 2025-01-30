@@ -2,7 +2,7 @@
 
 - handles the request response from the React main UI for the websocket communication
 
-'handleOnMessage' class will create a connector interface between deviceManager process server and the current websocket server
+'handleOnMessage' class will create a connector interface between DeviceManager process server and the current websocket server
 once a connection is established, the web UI will start sending the request commands in the following form
 ```
         cmd = {
@@ -10,7 +10,7 @@ once a connection is established, the web UI will start sending the request comm
             "arg":"{json command obj ...}"
         }
 ```
-the command will be sent with a zmq socket connection to the deviceManager interface and expect a response in return with the result of
+the command will be sent with a zmq socket connection to the DeviceManager interface and expect a response in return with the result of
 the executed commands for each of the id devices. the callback for a new websocket message from the UI is 'on_MessageCmd', this receives the command in
 the expected form and returns the result of the current execution.
 
