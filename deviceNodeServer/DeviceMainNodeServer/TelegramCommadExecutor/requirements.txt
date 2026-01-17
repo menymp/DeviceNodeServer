@@ -1,0 +1,4 @@
+opencv_python==4.6.0.66
+python-telegram-bot==22.5
+pyzmq==19.0.1
+mysql_connector_repackaged==0.3.1

@@ -1,0 +1,7 @@
+gen==0.1
+numpy==1.18.5
+numpy==1.21.6
+opencv_python==4.6.0.66
+pyzmq==19.0.1
+tornado==6.0.4
+mysql_connector_repackaged==0.3.1
