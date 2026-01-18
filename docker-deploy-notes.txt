@@ -1,0 +1,71 @@
+UBUNTU Server installation steps
+
+First update the server ####################################################
+sudo apt update && sudo apt upgrade -y
+
+Next install docker ########################################################
+# Install prerequisites
+sudo apt install -y ca-certificates curl gnupg lsb-release
+
+# Add Docker’s official GPG key
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | \
+  sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+# Add Docker repository
+echo \
+  "deb [arch=$(dpkg --print-architecture) \
+  signed-by=/etc/apt/keyrings/docker.gpg] \
+  https://download.docker.com/linux/ubuntu \
+  $(lsb_release -cs) stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+# Install Docker Engine
+sudo apt update
+sudo apt install -y docker-ce docker-ce-cli containerd.io
+
+# Enable and start Docker:
+sudo systemctl enable docker
+sudo systemctl start docker
+
+Next install docker compose plugin ########################################
+sudo apt install -y docker-compose-plugin
+# verify by
+docker compose version
+
+# add your user to docker group ###########################################
+sudo usermod -aG docker $USER
+
+#then log out and back, or run (newgrp docker)
+
+# transfer your project files #############################################
+Copy your project (Dockerfiles, docker-compose.yml, .env, secrets, init SQL, etc.) to the server.
+Example with scp:
+scp -r ./myproject user@your-server:/home/user/myproject
+
+#run docker compose #######################################################
+cd ~/myproject
+docker compose up -d
+
+This will:
+
+Build images (if you used build:).
+Start containers.
+Create networks and volumes.
+Run your init SQL scripts on first DB startup.
+
+# verify deployment with: ###################################################
+docker ps
+docker compose logs -f
+
+
+So the flow is: update server → install Docker + Compose → add user → transfer project → run docker compose up -d → verify
+
+
+## Optional Extras #########################################################################
+Reverse proxy: Use Nginx or Traefik if you want HTTPS and routing.
+
+Systemd service: You can make Compose auto‑start on reboot.
+
+Monitoring: Install tools like htop, docker stats, or Prometheus/Grafana later.
+
