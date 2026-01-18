@@ -28,6 +28,8 @@ services:
       DB_NAME: ${DB_NAME}
       DEVICE_MANAGER_SERVER_PATH: ${DEVICE_MANAGER_SERVER_PATH}
       ADD_DEVICES_TIME_POLL: ${ADD_DEVICES_TIME_POLL}
+      MQTT_BROKER_HOST: mqtt-broker
+      MQTT_BROKER_PORT: ${MQTT_BROKER_PORT} #ToDo: rewire the broker host and port into device manager as well, given the server centralization
     volumes:
       - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
     secrets:
@@ -45,6 +47,8 @@ services:
       DB_PASSWORD_FILE: /run/secrets/db_user_password
       DB_NAME: ${DB_NAME}
       SEARCH_DEVICES_PERIOD: ${SEARCH_DEVICES_PERIOD}
+      MQTT_BROKER_HOST: mqtt-broker
+      MQTT_BROKER_PORT: ${MQTT_BROKER_PORT} #ToDo: rewire the broker host and port into device manager as well, given the server centralization
     volumes:
       - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
     secrets:
@@ -127,6 +131,23 @@ services:
       - "${PHP_PORT}:${PHP_PORT}"
     depends_on:
       - nodes-db
+
+  xbee-coordinator-service:
+    build: ./deviceNodeServer/xbeeNetwork/
+    restart: always
+    privileged: true # Grants the container the necessary permissions
+    environment:
+      XBEE_COORDINATOR_NAME: ${XBEE_COORDINATOR_NAME}
+      XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY: ${XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY}
+      XBEE_COORDINATOR_TTY_PORT: ${XBEE_COORDINATOR_TTY_PORT}
+      XBEE_COORDINATOR_BAUDRATE: ${XBEE_COORDINATOR_BAUDRATE}
+      MQTT_BROKER_HOST: mqtt-broker
+      MQTT_BROKER_PORT: ${MQTT_BROKER_PORT}
+    devices:
+      # Map the host's serial device to a name inside the container
+      - "${XBEE_TTY_PORT}:${XBEE_TTY_PORT}" 
+    depends_on:
+      - mqtt-broker
 
   php-ota-service:
     build: ./phpMpyOta

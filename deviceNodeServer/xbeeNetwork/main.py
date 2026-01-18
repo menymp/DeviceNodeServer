@@ -27,6 +27,7 @@ import time
 from threading import Timer, Thread, Event
 import json
 import sys
+import os
 
 sys.path.append('../Libraries')
 from NodeMqttClient import NodeMqttClient
@@ -116,7 +117,18 @@ xbee.add_data_received_callback(my_data_received_callback)
 
 
 if __name__ == '__main__':
-    configs = readConfigFile()
+    # configs = readConfigFile()
+    configs = {
+        "name": os.getenv("XBEE_COORDINATOR_NAME", ""),
+        "mqtt-host": os.getenv("MQTT_BROKER_HOST", ""),
+        "mqtt-port":int(os.getenv("MQTT_BROKER_PORT", "1883")),
+        "manifest-publish-delay": int(os.getenv("XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY", "6")),
+        "comm-port-path": os.getenv("XBEE_COORDINATOR_TTY_PORT", ""),
+        "com-baud-rate": int(os.getenv("XBEE_COORDINATOR_BAUDRATE", "9600"))
+    }
+    print("Xbee coordinator started with")
+    print(configs)
+    #Todo: maybe a restart in case of a container restart should be available to regain the port connection
 
     xbeeServer = XbeeNetworkController(configs)
     xbeeServer.start()
