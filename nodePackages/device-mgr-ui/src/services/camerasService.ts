@@ -39,7 +39,7 @@ export type sourceParameters = {
 // Define a service using a base URL and expected endpoints
 export const camerasService = createApi({
   reducerPath: 'cameraApi',
-  baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:8080/DeviceNodeServer/phpWebApp/' }),
+  baseQuery: fetchBaseQuery({ baseUrl: process.env.REACT_APP_DEVICE_SERVICE_URL }),
   endpoints: (builder) => ({
     fetchCameras: builder.mutation<Array<camera> , requestCameraInfo>({
       query: (requestCamsInfo) => ({

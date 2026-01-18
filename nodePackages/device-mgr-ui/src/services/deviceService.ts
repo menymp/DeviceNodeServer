@@ -29,7 +29,7 @@ export type device = {
 // Define a service using a base URL and expected endpoints
 export const devicesService = createApi({
   reducerPath: 'devicesApi',
-  baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:8080/DeviceNodeServer/phpWebApp/' }),
+  baseQuery: fetchBaseQuery({ baseUrl: process.env.REACT_APP_DEVICE_SERVICE_URL }),
   endpoints: (builder) => ({
     fetchDevices: builder.mutation<Array<device> , requestDevicesInfo>({
       query: (requestDeviceInfo) => ({

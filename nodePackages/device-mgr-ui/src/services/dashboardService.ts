@@ -83,7 +83,7 @@ export type Control = {
 // Define a service using a base URL and expected endpoints
 export const dashboardService = createApi({
   reducerPath: 'dashboardApi',
-  baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:8080/DeviceNodeServer/phpWebApp/' }),
+  baseQuery: fetchBaseQuery({ baseUrl: process.env.REACT_APP_DEVICE_SERVICE_URL }),
   endpoints: (builder) => ({
     fetchControls: builder.mutation<Array<Control> , requestControlsInfo>({
       query: (requestControlsArgs) => ({

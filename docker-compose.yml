@@ -2,13 +2,16 @@ version: "3.9"
 
 services:
 
-  react-frontend:
+  react-device-manager-ui:
     build: ./nodePackages/device-mgr-ui
     restart: always
     environment:
       NODE_ENV: production
+      REACT_APP_COMMAND_WEBSOCKET_URL: http://websocket-service:${WEBSOCKET_PORT}/workHandler
+      REACT_APP_DEVICE_SERVICE_URL: http://php-node-service:${PHP_PORT}/DeviceNodeServer/phpWebApp/
+      REACT_APP_VIDEO_SEED_URL: http://video-composer-service:${VIDEO_SEED_PORT}/video_feed?vidArgs=
     ports:
-      - "3000:80"
+      - "${REACT_MANAGER_PORT}:${REACT_MANAGER_PORT}"
     volumes:
       - ./config/config.ini:/app/config.ini:ro
     depends_on:
@@ -121,7 +124,7 @@ services:
     secrets:
       - db_user_password
     ports:
-      - "${PHP_PORT}:80"
+      - "${PHP_PORT}:${PHP_PORT}"
     depends_on:
       - nodes-db
 

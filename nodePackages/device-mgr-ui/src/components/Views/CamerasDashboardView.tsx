@@ -104,7 +104,7 @@ const CamerasDashboardView: React.FC = () => {
         if (!image || !selectedConfig) {
             return;
         }
-        image.setAttribute('src', "http://localhost:9090/video_feed?vidArgs="+JSON.stringify(JSON.stringify(selectedConfig.configJsonFetch)));
+        image.setAttribute('src', process.env.REACT_APP_VIDEO_SEED_URL+JSON.stringify(JSON.stringify(selectedConfig.configJsonFetch)));
     }
 
     const videoLoopStart = () => {
