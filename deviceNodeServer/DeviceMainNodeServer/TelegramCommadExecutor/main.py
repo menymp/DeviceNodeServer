@@ -46,17 +46,22 @@ class handleOnCmd():
         print("disconected from " + self.zmqPath)
 
 if __name__ == "__main__":
-    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    configs_path = os.path.join(parent_dir, 'configs.ini')
-    print("configs path: " + configs_path)
+    #parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    #configs_path = os.path.join(parent_dir, 'configs.ini')
+    #print("configs path: " + configs_path)
 
-    cfgObj = configsParser()
-    args = cfgObj.readConfigData(configs_path)
-    zmqCfg = cfgObj.readSection("zmqConfigs",configs_path)
+    #cfgObj = configsParser()
+    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), os.getenv("DB_PASSWORD_FILE", "")] # [argsP["host"],argsP["dbname"],argsP["user"],argsP["pass"],argsP["broker"]]
+    zmqDeviceManager = os.getenv("DEVICE_MANAGER_LOCAL_CONN", "")
+    zmqVideoHandler = os.getenv("VIDEO_HANDLER_LOCAL_CONN", "")
+    print("Telegram Executor started with:")
+    print(args)
+    print(zmqDeviceManager)
+    print(zmqVideoHandler)
 
-    devMgrProxy = handleOnCmd(zmqCfg["device-manager-local-conn"])
+    devMgrProxy = handleOnCmd(zmqDeviceManager)
     devMgrProxy.connect()
-    videoHandlerProxy = handleOnCmd(zmqCfg["video-handler-local-conn"])
+    videoHandlerProxy = handleOnCmd(zmqVideoHandler)
     videoHandlerProxy.connect()
     
     objInstances = {

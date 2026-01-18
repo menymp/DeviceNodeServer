@@ -19,10 +19,10 @@ from videoHttpController import videoHandler
 #ToDo:  for now we are creating a thread to read for each vide source, is there a way to optimize this to
 #       instead use a pool or load everithing on demand?
 
-def initMQServer():
+def initMQServer(zmqCfg):
     context = zmq.Context()
     socket = context.socket(zmq.REP)
-    socket.bind(zmqCfg["video-handler-server-path"])
+    socket.bind(zmqCfg)
     return socket
 
 def taskHandleIncomingMsgs(videoHandler, mqServer, stopEvent):
@@ -57,18 +57,24 @@ def processIncommingMessage(videoHandler, message):
 
 if __name__ == "__main__":
     # Get the absolute path of the parent directory
-    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    configs_path = os.path.join(parent_dir, 'configs.ini')
-    print("configs path: " + configs_path)
+    # parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    # configs_path = os.path.join(parent_dir, 'configs.ini')
+    # print("configs path: " + configs_path)
 
-    cfgObj = configsParser()
-    args = cfgObj.readConfigData(configs_path)
-    zmqCfg = cfgObj.readSection("zmqConfigs",configs_path)
+    # cfgObj = configsParser()
+
+    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), os.getenv("DB_PASSWORD_FILE", "")] # [argsP["host"],argsP["dbname"],argsP["user"],argsP["pass"],argsP["broker"]]
+    zmqCfgConn = os.getenv("VIDEO_HANDLER_SERVER_PATH", "")
+    videoPort = int(os.getenv("VIDEO_SEED_PORT", ""))
+    print("Configs received for video handler:")
+    print(args)
+    print(zmqCfgConn)
+    print(videoPort)
 
     videoHandlerObj = videoHandler(args)
     print("video service started ...")
-    mqServerObj = initMQServer()
-    print("MQ Server started at: " + zmqCfg["video-handler-server-path"])
+    mqServerObj = initMQServer(zmqCfgConn)
+    print("MQ Server started at: " + zmqCfgConn)
 
     taskHandleIncMsgs, stopEvent = startHandleIncomingMsgs(videoHandlerObj, mqServerObj)
 
@@ -82,6 +88,6 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, sigterm_handler)
     signal.signal(signal.SIGTERM, sigterm_handler)
 
-    videoHandlerObj.serverListen()
+    videoHandlerObj.serverListen(videoPort)
     
     pass

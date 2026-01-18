@@ -66,21 +66,26 @@ def processIncommingMessage(deviceManager, message):
 if __name__ == "__main__":
     
     # Get the absolute path of the parent directory
-    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    configs_path = os.path.join(parent_dir, 'configs.ini')
-    print("configs path: " + configs_path)
+    # parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    # configs_path = os.path.join(parent_dir, 'configs.ini')
+    # print("configs path: " + configs_path)
 
-    cfgObj = configsParser()
-    args = cfgObj.readConfigData(configs_path)
-    zmqCfg = cfgObj.readSection("zmqConfigs",configs_path)
-    devMgrCfg = cfgObj.readSection("deviceMgr",configs_path)
+    #cfgObj = configsParser()
+    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), os.getenv("DB_PASSWORD_FILE", "")]
+    zmqDeviceManagerServerPath = os.getenv("DEVICE_MANAGER_SERVER_PATH", "")
+    addDevicesTimePoll = int(os.getenv("ADD_DEVICES_TIME_POLL", ""))
+
+    print("DeviceManager started with:")
+    print(args)
+    print(zmqDeviceManagerServerPath)
+    print(addDevicesTimePoll)
 
     deviceMgr = deviceManager()
     deviceMgr.init(args)
-    taskLoadDevices, stopEvent = startLoadDevices(deviceMgr, int(devMgrCfg["add-devices-time-poll"]))
+    taskLoadDevices, stopEvent = startLoadDevices(deviceMgr, addDevicesTimePoll)
     print("device manager started...")
-    mqServerObj = initMQServer(zmqCfg["device-manager-server-path"])
-    print("MQ Server started at: " + parent_dir)
+    mqServerObj = initMQServer(zmqDeviceManagerServerPath)
+    print("MQ Server started")
 
     eventStop = Event()
     def sigterm_handler(signum, frame):

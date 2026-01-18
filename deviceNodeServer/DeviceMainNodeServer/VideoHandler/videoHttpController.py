@@ -136,11 +136,11 @@ class videoHandler():
 		self.stop = True
 		tornado.ioloop.IOLoop.current().stop()
 	
-	def serverListen(self):
+	def serverListen(self, port = 9090):
 		#ToDo: bad practice, merge the tornado video logic with the socket server maybe?
 		asyncio.set_event_loop(asyncio.new_event_loop())
 		self.server = tornado.httpserver.HTTPServer(self.app)
-		self.server.listen(9090)
+		self.server.listen(port)
 		tornado.ioloop.IOLoop.current().start()
 	
 	def _make_app(self, frameObjConstructor):

@@ -16,14 +16,16 @@ from nodeManager import nodeDeviceManager
 from configsCreate import configsParser
 
 if __name__ == "__main__":
-    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    configs_path = os.path.join(parent_dir, 'configs.ini')
-    print("configs path: " + configs_path)
+    #parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    #configs_path = os.path.join(parent_dir, 'configs.ini')
+    #print("configs path: " + configs_path)
 
-    cfgObj = configsParser()
-    args = cfgObj.readConfigData(configs_path)
-    zmqCfg = cfgObj.readSection("zmqConfigs",configs_path)
-    nodeDevMgrCfg = cfgObj.readSection("nodeDeviceManager",configs_path)
+    #cfgObj = configsParser()
+    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), os.getenv("DB_PASSWORD_FILE", "")]
+    nodeDevMgrPeriod = int(os.getenv("SEARCH_DEVICES_PERIOD", "")) # cfgObj.readSection("nodeDeviceManager",configs_path)
+    print("Device manager started with:")
+    print(args)
+    print(nodeDevMgrPeriod)
 
     devMgr = nodeDeviceManager()
 
@@ -42,5 +44,5 @@ if __name__ == "__main__":
         while devMgr.getState() != 'DONE':
             pass
         devMgr.registerNodes()
-        time.sleep(int(nodeDevMgrCfg["search-devices-period"]))
+        time.sleep(nodeDevMgrPeriod)
     pass

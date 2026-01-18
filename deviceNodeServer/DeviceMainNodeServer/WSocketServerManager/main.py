@@ -51,15 +51,21 @@ class handleOnMessage():
 if __name__ == "__main__":
     cfgObj = configsParser()
     # Get the absolute path of the parent directory
-    parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    configs_path = os.path.join(parent_dir, 'configs.ini')
-    print("configs path: " + configs_path)
-    args = cfgObj.readConfigData(configs_path)
-    wSockCfg = cfgObj.readSection("wSocketServerManager",configs_path)
-    zmqCfg = cfgObj.readSection("zmqConfigs",configs_path)
-    print(zmqCfg["device-manager-server-path"])
+    # parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    # configs_path = os.path.join(parent_dir, 'configs.ini')
+    # print("configs path: " + configs_path)
+    # args = cfgObj.readConfigData(configs_path)
+    # wSockCfg = cfgObj.readSection("wSocketServerManager",configs_path)
+    # zmqCfg = cfgObj.readSection("zmqConfigs",configs_path)
+    zmqDeviceManagerConn = os.getenv("DEVICE_MANAGER_LOCAL_CONN", "") # zmqCfg["device-manager-local-conn"]
+    webSocketPort = int(os.getenv("WEBSOCKET_PORT", "8112"))
 
-    onMsgHandler = handleOnMessage(zmqCfg["device-manager-local-conn"])
+    print("Configs for tornado server: ")
+    print(zmqDeviceManagerConn)
+    print(webSocketPort)
+
+
+    onMsgHandler = handleOnMessage(zmqDeviceManagerConn)
     onMsgHandler.connect()
 
     WSServer = wSocketServerManager()
@@ -73,7 +79,7 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, sigterm_handler)
 
     WSServer = wSocketServerManager()
-    WSServer.init(wSockCfg["port"])
+    WSServer.init(webSocketPort)
     WSServer.serverListen(onMsgHandler.on_MessageCmd)
     onMsgHandler.disconnect()
 

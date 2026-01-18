@@ -22,7 +22,6 @@ class deviceManager():
         self.dbName = initArgs[1]
         self.dbUser = initArgs[2]
         self.dbPass = initArgs[3]
-        self.deviceArgs = initArgs[4]
         self.dbActions = dbDevicesActions()
         self.dbActions.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
         self.deviceLoad()
