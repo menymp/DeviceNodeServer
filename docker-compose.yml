@@ -157,7 +157,7 @@ services:
       - ./config/config.ini:/var/www/html/config.ini:ro
     secrets:
     ports:
-      - "${PHP_OTA_PORT}:80"
+      - "${PHP_OTA_PORT}:${PHP_OTA_PORT}"
     depends_on:
 
   nodes-db:
@@ -176,13 +176,13 @@ services:
       - db_root_password
       - db_user_password
     ports:
-      - "3306:3306"
+      - "${DB_NODE_PORT}:${DB_NODE_PORT}"
 
   mqtt-broker:
     image: eclipse-mosquitto:2.0
     restart: always
     ports:
-      - "1883:1883"
+      - "${MQTT_BROKER_PORT}:${MQTT_BROKER_PORT}"
       - "9001:9001"
     volumes:
       - ./mosquitto/config:/mosquitto/config
