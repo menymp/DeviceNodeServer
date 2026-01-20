@@ -48,7 +48,7 @@ class deviceManager():
                 self.Devices.append(tmpDevice)
             pass
         self.cleanOldDevices()
-        self.dbActions.cleanOldRecords() #by default 60 days of retention
+        # Moved cleanup to maintenance file
         pass
 
     def updateDeviceMeasure(self, value, idDevice):

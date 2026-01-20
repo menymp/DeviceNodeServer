@@ -12,9 +12,11 @@ from os.path import dirname, realpath, sep, pardir
 # Get current main.py directory
 sys.path.append(dirname(realpath(__file__)) + sep + pardir)
 sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "ConfigsUtils")
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
 
 from configsCreate import configsParser
 from videoHttpController import videoHandler
+from secretReader import get_secret
 
 #ToDo:  for now we are creating a thread to read for each vide source, is there a way to optimize this to
 #       instead use a pool or load everithing on demand?
@@ -63,7 +65,7 @@ if __name__ == "__main__":
 
     # cfgObj = configsParser()
 
-    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), os.getenv("DB_PASSWORD_FILE", "")] # [argsP["host"],argsP["dbname"],argsP["user"],argsP["pass"],argsP["broker"]]
+    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD_FILE")] # [argsP["host"],argsP["dbname"],argsP["user"],argsP["pass"],argsP["broker"]]
     zmqCfgConn = os.getenv("VIDEO_HANDLER_SERVER_PATH", "")
     videoPort = int(os.getenv("VIDEO_SEED_PORT", ""))
     print("Configs received for video handler:")

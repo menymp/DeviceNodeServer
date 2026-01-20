@@ -189,6 +189,21 @@ services:
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
 
+  maintenance-service:
+    build: ./deviceNodeServer/DeviceMainNodeServer/MaintenanceService/
+    restart: always
+    environment:
+      DB_HOST: nodes-db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD_FILE: /run/secrets/db_user_password
+      DB_NAME: ${DB_NAME}
+    volumes:
+      - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
+    secrets:
+      - db_user_password
+    depends_on:
+      - nodes-db
+
 volumes:
   db_data:
 

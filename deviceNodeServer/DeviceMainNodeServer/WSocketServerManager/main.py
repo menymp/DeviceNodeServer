@@ -12,9 +12,11 @@ import signal
 # Get current main.py directory
 sys.path.append(dirname(realpath(__file__)) + sep + pardir)
 sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "ConfigsUtils")
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
 
 from websocketHandler import wSocketServerManager
 from configsCreate import configsParser
+from secretReader import get_secret
 
 class handleOnMessage():
     def __init__(self, zmqPath):
@@ -49,7 +51,7 @@ class handleOnMessage():
 
 
 if __name__ == "__main__":
-    cfgObj = configsParser()
+    #cfgObj = configsParser()
     # Get the absolute path of the parent directory
     # parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
     # configs_path = os.path.join(parent_dir, 'configs.ini')

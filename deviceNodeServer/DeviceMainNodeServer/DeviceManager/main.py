@@ -12,9 +12,11 @@ from os.path import dirname, realpath, sep, pardir
 # Get current main.py directory
 sys.path.append(dirname(realpath(__file__)) + sep + pardir)
 sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "ConfigsUtils")
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
 
 from deviceManager import deviceManager
 from configsCreate import configsParser
+from secretReader import get_secret
 
 def initMQServer(serverPath):
     context = zmq.Context()
@@ -71,7 +73,7 @@ if __name__ == "__main__":
     # print("configs path: " + configs_path)
 
     #cfgObj = configsParser()
-    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), os.getenv("DB_PASSWORD_FILE", "")]
+    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD_FILE")]
     zmqDeviceManagerServerPath = os.getenv("DEVICE_MANAGER_SERVER_PATH", "")
     addDevicesTimePoll = int(os.getenv("ADD_DEVICES_TIME_POLL", ""))
 

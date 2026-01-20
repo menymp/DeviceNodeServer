@@ -4,8 +4,7 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 COPY ../DBUtils/ ./DBUtils/
-COPY ../ConfigUtils/ ./ConfigUtils/
 COPY ../DockerUtils/ ./DockerUtils/
-COPY ../VideoHandler/ ./VideoHandler/
+COPY ../MaintenanceService/ ./MaintenanceService/
 
-CMD ["python", "VideoHandler/main.py"]
+CMD ["python", "MaintenanceService/main.py"]

@@ -3,8 +3,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY ../DBUtils ./DBUtils
-COPY ../ConfigUtils ./ConfigUtils
-COPY ../NodeDeviceManager ./NodeDeviceManager
+COPY ../DBUtils/ ./DBUtils/
+COPY ../ConfigUtils/ ./ConfigUtils/
+COPY ../DockerUtils/ ./DockerUtils/
+COPY ../NodeDeviceManager/ ./NodeDeviceManager/
 
 CMD ["python", "NodeDeviceManager/main.py"]
