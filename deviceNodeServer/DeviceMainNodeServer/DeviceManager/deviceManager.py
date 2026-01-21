@@ -11,13 +11,17 @@ from os.path import dirname, realpath, sep, pardir
 # Get current main.py directory
 sys.path.append(dirname(realpath(__file__)) + sep + pardir)
 sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DBUtils")
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
 
 from dbActions import dbDevicesActions
+from loggerUtils import get_logger
+logger = get_logger(__name__)
 
 #
 class deviceManager():
     Devices = []
     def init(self, initArgs):
+        logger.info("init device manager with %s" % initArgs)
         self.dbHost = initArgs[0]
         self.dbName = initArgs[1]
         self.dbUser = initArgs[2]
@@ -31,18 +35,22 @@ class deviceManager():
         pass
 
     def updateMeasuresWorker(self):
+        logger.info("measures worker starting")
         self.dbActionMeasures = dbDevicesActions()
         self.dbActionMeasures.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
         while True:
             if not self.measuresQueue.empty():
+                logger.info("taking measures")
                 (value, idDevice) = self.measuresQueue.get()
                 self.dbActionMeasures.addDeviceMeasure(value, idDevice)
         pass
     #
     def deviceLoad(self):
+        logger.info("loading devices")
         self.availableDevices = self.dbActions.getDevices()
         for deviceInfo in self.availableDevices:
             if not self.deviceAlreadyInit(deviceInfo[1],deviceInfo[5]):
+                logger.info("integrating new device %s" % deviceInfo)
                 tmpDevice = device()
                 tmpDevice.init(deviceInfo, self.updateDeviceMeasure)
                 self.Devices.append(tmpDevice)
@@ -53,6 +61,7 @@ class deviceManager():
 
     def updateDeviceMeasure(self, value, idDevice):
         try:
+            logger.info("new measure for %s" % (value, idDevice))
             self.measuresQueue.put((value, idDevice))
         except Exception as e:
             print("Error attempting to update '" + str(idDevice) + "' device with '"+ str(value) +"' value")
@@ -73,6 +82,7 @@ class deviceManager():
                 if (deviceObj.name == availableDevice[1] and deviceObj.idParentNode == availableDevice[5]):
                     flagExists = True
             if not flagExists:
+                logger.info("device: '"+str(deviceObj.name)+"' from parent node id: '"+str(deviceObj.idParentNode)+ "' removed")
                 print("device: '"+str(deviceObj.name)+"' from parent node id: '"+str(deviceObj.idParentNode)+ "' removed")
                 deviceToDel = self.Devices.pop(index)
                 del deviceToDel
@@ -89,6 +99,7 @@ class deviceManager():
 	}
 	'''
     def executeCMDJson(self, jsonArgs):
+        logger.info("running json command %s" % jsonArgs)
         flagUpdate = False
         cmdArrayObj1 = json.loads(jsonArgs["args"])
         cmdArrayObj = json.loads(cmdArrayObj1)#ToDo: fix, for some weird reason, objects are stringified with dual quotes
@@ -113,6 +124,7 @@ class deviceManager():
                             formattedResults.append(tmpFormatRow)
                     
                 except:
+                    logger.info("error attempting to retrive measures")
                     state = "ERROR"
                 
                 cmdServerResult = {
@@ -122,11 +134,13 @@ class deviceManager():
                     "state":state
                 }
                 results.append(cmdServerResult)
+                logger.info("command results %s" % cmdServerResult)
                 continue
 
 
             try:
                 result, flagUpdate = self.executeCMDraw(cmd['idDevice'], cmd['command'], cmd['args'])
+                logger.info("raw command result %s" % (result, flagUpdate))
             except:
                 state = "ERROR"
             
@@ -143,12 +157,15 @@ class deviceManager():
         return json.dumps(results)
 
     def executeCMD(self, idDevice, command, args):
+        logger.info("running command %s" % (idDevice, command, args))
         rawResult, flagUpdate = self.executeCMDraw(idDevice, command, args)
         dictionary = {'result':rawResult}
         jsonString = json.dumps(dictionary, indent=4)
+        logger.info("result %s" % (jsonString, flagUpdate))
         return jsonString, flagUpdate 
     
     def executeCMDraw(self, idDevice, command, args):
+        logger.info("running raw command %s" % (idDevice, command, args))
         result = ""
         flagUpdate = False
         for device in self.Devices:
@@ -159,6 +176,7 @@ class deviceManager():
     
     #toDo: still in proof of concept expect for a better approach
     def execCommand(self, inputArgs):
+        logger.info("base command %s" % inputArgs)
         #parses the command
         #list devices
         
@@ -173,6 +191,7 @@ class deviceManager():
             result,flagUpdate = self.executeCMD(inTks[1],inTks[2],inTks[3])
             return result
         else:
+            logger.error("unknown")
             return "unknown command"
         pass
     
@@ -183,6 +202,7 @@ class deviceManager():
 
 class device():
     def init(self, args, updateDeviceMeasure):
+        logger.info("init new device %s" % args)
         self.initArgs = args
         self.id = args[0]
         self.name = args[1]
@@ -202,15 +222,18 @@ class device():
         pass
 
     def writeDeviceMeasure(self, value):
+        logger.info("device update measure %s" % (value, self.id))
         self.updateDeviceMeasure(value, self.id) #adds id from device
         pass
 
     def __del__(self):
+        logger.info("exiting device")
         if self.Driver:
             self.Driver.stop()
         pass
 
     def getValue(self):
+        logger.info("returning value %s" % self.value)
         return self.value
 
     def initDriver(self, protocol):
@@ -226,6 +249,7 @@ class device():
             raise Exception("Protocol "+args[4]+"not supported")
 
     def executeCMD(self, cmd, args):
+        logger.info("running command %s" % (cmd, args))
         result = ""
         updatingLock = False
         '''
@@ -254,6 +278,7 @@ class device():
 
 class mqttDriver():
     def init(self, args, writeMeasureCallback, path = ""):
+        logger.info("starting an mqtt protocol driver %s" % (args, path))
         self.subscriberPath = path
         self.connArgs = json.loads(args)
         self.initDriver()
@@ -265,6 +290,7 @@ class mqttDriver():
         pass
 
     def stop(self):
+        logger.info("stopping mqtt driver")
         self.client.disconnect()
         self.client.loop_stop()
         pass
@@ -272,6 +298,7 @@ class mqttDriver():
     #since the backend is designed in this way this should
     #mitigate the effect of the delayed update
     def getLockFlag(self):
+        logger.info("lock is %s" % self.lockUpdateFlag)
         return self.lockUpdateFlag
 
     def initDriver(self):
@@ -282,6 +309,7 @@ class mqttDriver():
 
         taskListen = threading.Thread(target=self.clientlisten, args=(self.client,))
         taskListen.start()
+        logger.info("mqtt driver thread started")
         pass
 
     def clientlisten(self, arg):
@@ -289,6 +317,7 @@ class mqttDriver():
         pass
 
     def sendCommand(self,command, args):
+        logger.info("sending mqtt command")
         self.lockUpdateFlag  = True
         self.lastSentCmd = command
         publish.single(topic = args, payload = command, hostname = self.connArgs["broker"])
@@ -306,6 +335,7 @@ class mqttDriver():
     def on_message(self, client, userdata, msg):
         m_decode=str(msg.payload.decode("utf-8","ignore"))
         data = json.loads(m_decode)
+        logger.info("mqtt message received %s" % (client, userdata, msg))
         self.value = data["Value"]
         self.writeMeasureCallback(data["Value"]) #updates value to measures
         if self.lockUpdateFlag and self.lastSentCmd == self.value: #ToDo: a race condition may happens if no update received

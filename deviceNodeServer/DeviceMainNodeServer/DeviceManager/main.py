@@ -17,8 +17,11 @@ sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils"
 from deviceManager import deviceManager
 from configsCreate import configsParser
 from secretReader import get_secret
+from loggerUtils import get_logger
+logger = get_logger(__name__)
 
 def initMQServer(serverPath):
+    logger.info("MQ Server started path %s" % serverPath)
     context = zmq.Context()
     socket = context.socket(zmq.REP)
     socket.bind(serverPath)
@@ -29,23 +32,28 @@ def taskLoadDevices(deviceManager, timeSleep, stopEvent):
         while not stopEvent.is_set():
             deviceManager.deviceLoad()
             time.sleep(timeSleep)
+        logger.info("exiting loadDevices")
     except:
         print("conflict attempting to load devices")
+        logger.error("conflict attempting to load devices")
     pass
 
 def startLoadDevices(deviceManager, add_time_poll):
+    logger.info("startLoadDevices with time %s" % add_time_poll)
     stopEvent = Event()
     taskAddDevices = threading.Thread(target=taskLoadDevices, args=(deviceManager, add_time_poll, stopEvent, ))
     taskAddDevices.start()
     return taskAddDevices, stopEvent
 
 def stopLoadDevices(stopEvent):
+    logger.info("stopping device load")
     stopEvent.set()
     pass
 
 def processIncommingMessage(deviceManager, message):
     #Process Incomming message request from different processes
     commandObj = json.loads(message)
+    logger.info("processIncommingMessage %s" % message)
     try:
         if(commandObj["method"] == "executeCMDJson"):
             result = deviceManager.executeCMDJson(commandObj)
@@ -57,8 +65,9 @@ def processIncommingMessage(deviceManager, message):
             }
             result = json.dumps(error)
     except Exception as e:
-        print(commandObj)
+        logger.info(commandObj)
         print("command error!" + str(e))
+        logger.error("command error %s" % e)
         error = {
             "type":"command error!"
         }
@@ -77,21 +86,21 @@ if __name__ == "__main__":
     zmqDeviceManagerServerPath = os.getenv("DEVICE_MANAGER_SERVER_PATH", "")
     addDevicesTimePoll = int(os.getenv("ADD_DEVICES_TIME_POLL", ""))
 
-    print("DeviceManager started with:")
-    print(args)
-    print(zmqDeviceManagerServerPath)
-    print(addDevicesTimePoll)
+    logger.info("DeviceManager started with:")
+    logger.info(args)
+    logger.info(zmqDeviceManagerServerPath)
+    logger.info(addDevicesTimePoll)
 
     deviceMgr = deviceManager()
     deviceMgr.init(args)
     taskLoadDevices, stopEvent = startLoadDevices(deviceMgr, addDevicesTimePoll)
-    print("device manager started...")
+    logger.info("device manager started...")
     mqServerObj = initMQServer(zmqDeviceManagerServerPath)
-    print("MQ Server started")
+    logger.info("MQ Server started")
 
     eventStop = Event()
     def sigterm_handler(signum, frame):
-        print("stop process")
+        logger.info("stop process")
         eventStop.set()
         mqServerObj.destroy()
     signal.signal(signal.SIGINT, sigterm_handler)
@@ -106,5 +115,5 @@ if __name__ == "__main__":
         pass
     stopLoadDevices(stopEvent)
     
-    print("exit success for DeviceManager")
+    logger.info("exit success for DeviceManager")
     pass

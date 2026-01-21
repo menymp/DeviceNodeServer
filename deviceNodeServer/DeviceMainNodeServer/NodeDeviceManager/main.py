@@ -16,6 +16,8 @@ sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils"
 from nodeManager import nodeDeviceManager
 from configsCreate import configsParser
 from secretReader import get_secret
+from loggerUtils import get_logger
+logger = get_logger(__name__)
 
 if __name__ == "__main__":
     #parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -25,15 +27,15 @@ if __name__ == "__main__":
     #cfgObj = configsParser()
     args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD_FILE")]
     nodeDevMgrPeriod = int(os.getenv("SEARCH_DEVICES_PERIOD", "")) # cfgObj.readSection("nodeDeviceManager",configs_path)
-    print("Device manager started with:")
-    print(args)
-    print(nodeDevMgrPeriod)
+    logger.info("Device manager started with:")
+    logger.info(args)
+    logger.info(nodeDevMgrPeriod)
 
     devMgr = nodeDeviceManager()
 
     eventStop = Event()
     def sigterm_handler(signum, frame):
-        print("stop process")
+        logger.info("stop process %s" % (signum, frame))
         eventStop.set()
         devMgr.stop()
     signal.signal(signal.SIGINT, sigterm_handler)

@@ -4,10 +4,17 @@ import time
 import threading
 import paho.mqtt.client as mqtt
 import json
+import sys
+from os.path import dirname, realpath, sep, pardir
+
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
+from loggerUtils import get_logger
+logger = get_logger(__name__)
 
 class nodeDeviceDiscoveryTool():
     devicesFound = []
     def initNodeParameters(self, args, discoveryArgs):
+        logger.info("node discovery tool started with %s" % (args, discoveryArgs))
         #[id,nodename,path,parameters,protocolname]
         #[arguments for the search protocol]
         self.discoveryArgs = discoveryArgs
@@ -27,10 +34,11 @@ class nodeDeviceDiscoveryTool():
             self.listener.start()
         else:
             #raise Exception("Protocol "+args[4]+"not supported")
-            print("Protocol "+args[4]+" not supported")
+            logger.error("Protocol "+args[4]+" not supported")
         pass
 
     def stop(self):
+        logger.info("node discovery stopped")
         self.listener.stop()
     
     def getState(self):
@@ -38,11 +46,13 @@ class nodeDeviceDiscoveryTool():
     
     #{"Name":"Humidity","Mode":"PUBLISHER","Type":"FLOAT","Channel":"/MenyNode1/Humidity","Value":"40.00"}
     def addDiscoveredChildDevice(self,args):
+        logger.info("new child discovered %s" % args)
         #print("Found device: " + args['Name'] + " " + args['Channel'])
         self.devicesFound.append(args)
         pass
     
     def discoveryListenerDone(self):
+        logger.info("discovery finished")
         #print("device discovery ended")
         self.state = "DONE"
         pass
@@ -51,6 +61,7 @@ class nodeDeviceDiscoveryTool():
 
 class mqttNodeListener():
     def init(self, path, mqttBroketPath, callbackAddDevice, callbackDiscoveryDone, port = 1883, keepalive = 60):
+        logger.info("mqtt node listener started with %s" % (path, mqttBroketPath, callbackAddDevice, callbackDiscoveryDone, port, keepalive))
         self.path = path #poner el manifest en el path NOTA IMPORTANTE
         self.mqttBroketPath = mqttBroketPath
         self.port = port
@@ -61,6 +72,7 @@ class mqttNodeListener():
         pass
     
     def startMqttClient(self, mqttBrokerPath, on_connect, on_message, port, keepalive):
+        logger.info("starting client mqtt")
         client = mqtt.Client()
         client.on_connect = on_connect
         client.on_message = on_message
@@ -82,6 +94,7 @@ class mqttNodeListener():
         self.Nodeclient.loop_stop() # stops network loop
     
     def on_Manifestconnect(self, client, userdata, flags, rc):
+        logger.info("manifest linked %s" % (client))
         client.subscribe(self.path + "manifest")
         
 
@@ -89,8 +102,9 @@ class mqttNodeListener():
         try:
             self.Nodeclient.unsubscribe(self.path + "manifest")
             self.Nodeclient.disconnect()
-
+            
             m_decode=str(msg.payload.decode("utf-8","ignore"))
+            logger.info("manifest discovered %s" % (m_decode))
             nodeManifest = json.loads(m_decode)
             
             self.nodeName = nodeManifest["Name"]
@@ -104,10 +118,11 @@ class mqttNodeListener():
             self.FoundDevices = []
             
             for devicePath in self.Devices:
-                print("listen for device on:" + self.path + devicePath)
+                logger.info("listen for device on:" + self.path + devicePath)
                 self.clientDev.subscribe(self.path + devicePath)
             
         except:
+            logger.error("an error ocurred processing manifest")
             self.client.subscribe(self.path)
             pass
     
@@ -122,18 +137,21 @@ class mqttNodeListener():
             
             if self.deviceAlreadyFound(deviceInfo["Name"]):
                 return
-
+            
+            logger.info("new device info added %s" % deviceInfo)
             self.FoundDevices.append(deviceInfo["Name"])
             self.devicesAddedCount = self.devicesAddedCount + 1
             
             self.callbackAddDevice(deviceInfo)
             
             if self.allDevicesFound():
+                logger.info("all devices found")
                 self.clientDev.disconnect()
                 self.callbackDiscoveryDone()
             
         except:
             #self.client.subscribe(self.path)
+            logger.info("an error ocurred listening to device channel")
             pass 
         pass
 
