@@ -16,23 +16,26 @@ sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils"
 from telegramCommands import TelegramCommandExecutor
 from configsCreate import configsParser
 from secretReader import get_secret
+from loggerUtils import get_logger
+logger = get_logger(__name__)
 
 class handleOnCmd():
     def __init__(self, zmqPath):
         context = zmq.Context()
         #  Socket to talk to server
-        print("Connecting to "+ zmqPath +" server")
+        logger.info("Connecting to "+ zmqPath +" server")
         self.socket = context.socket(zmq.REQ)
         self.zmqPath = zmqPath
         pass
 
     def connect(self):
         self.socket.connect(self.zmqPath)
-        print("succesfuly connected to " + self.zmqPath)
+        logger.info("succesfuly connected to " + self.zmqPath)
 
     def execCommand(self, cmdObj):
         #deviceManager.executeCMDJson
         #command form:
+        logger.info("running command " + str(cmdObj))
         
         cmd = {
             "method":"executeCMDJson",
@@ -44,7 +47,7 @@ class handleOnCmd():
     
     def disconnect(self):
         self.socket.close()
-        print("disconected from " + self.zmqPath)
+        logger.info("disconected from " + self.zmqPath)
 
 if __name__ == "__main__":
     #parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -55,10 +58,10 @@ if __name__ == "__main__":
     args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD_FILE")] # [argsP["host"],argsP["dbname"],argsP["user"],argsP["pass"],argsP["broker"]]
     zmqDeviceManager = os.getenv("DEVICE_MANAGER_LOCAL_CONN", "")
     zmqVideoHandler = os.getenv("VIDEO_HANDLER_LOCAL_CONN", "")
-    print("Telegram Executor started with:")
-    print(args)
-    print(zmqDeviceManager)
-    print(zmqVideoHandler)
+    logger.info("Telegram Executor started with:")
+    logger.info(args)
+    logger.info(zmqDeviceManager)
+    logger.info(zmqVideoHandler)
 
     devMgrProxy = handleOnCmd(zmqDeviceManager)
     devMgrProxy.connect()
@@ -75,7 +78,7 @@ if __name__ == "__main__":
 
     eventStop = Event()
     def sigterm_handler(signum, frame):
-        print("stop process")
+        logger.info("stop process")
         eventStop.set()
         objTelegramServer.stop()
         devMgrProxy.disconnect()

@@ -4,8 +4,16 @@ import cv2
 import numpy as np
 from BaseVideoService import BaseVideoService
 
+import sys
+from os.path import dirname, realpath, sep, pardir
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
+
+from loggerUtils import get_logger
+logger = get_logger(__name__)
+
 class LocalVideoService(BaseVideoService):
 	def _taskUpdateImage(self, connectionArgs):
+		logger.info("local video service start with " + str(connectionArgs))
 		# select first video device in system
 		self.cam = cv2.VideoCapture(connectionArgs["cameraId"])
 		# set camera resolution
@@ -30,6 +38,7 @@ class LocalVideoService(BaseVideoService):
 	#ToDo: h and w are shared by the thread, so a threadsafe approach should be 
 	#      implemented in the future
 	def set_resolution(self, new_w, new_h):
+		logger.info("local video service setting frame resolution to " + str((new_w, new_h)))
 		if isinstance(new_h, int) and isinstance(new_w, int):
 			# check if args are int and correct
 			if (new_w <= 800) and (new_h <= 600) and \

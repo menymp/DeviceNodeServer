@@ -15,16 +15,22 @@ from os.path import dirname, realpath, sep, pardir
 # Get current main.py directory
 sys.path.append(dirname(realpath(__file__)) + sep + pardir)
 sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DBUtils")
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
+
+from loggerUtils import get_logger
+logger = get_logger(__name__)
 
 from dbActions import dbVideoActions
 from FrameConstructor import *
 
 class videoFeedHandler(tornado.web.RequestHandler):
 	def initialize(self, frameConstObj):
+		logger.info("video handler controller started")
 		self.frameConstObj = frameConstObj
 	
 	@tornado.gen.coroutine
 	def get(self):
+		logger.info("video handler controller accepting new client request")
 		self.set_header('Cache-Control', 'no-store, no-cache, must-revalidate, pre-check=0, post-check=0, max-age=0')
 		self.set_header( 'Pragma', 'no-cache')
 		self.set_header( 'Content-Type', 'multipart/x-mixed-replace;boundary=--jpgboundary')
@@ -50,6 +56,7 @@ class videoFeedHandler(tornado.web.RequestHandler):
 
 class videoHandler():
 	def __init__(self, args):
+		logger.info("init new video handler with: " + str(args))
 		self.dbHost = args[0]
 		self.dbName = args[1]
 		self.dbUser = args[2]
@@ -72,6 +79,7 @@ class videoHandler():
 			connArgs["idCreator"]=deviceInfo[2]
 			self.frameObjConstructor.initNewCamera(connArgs)
 			pass
+		logger.info("init video sources ")
 		self.startTimerFetch()
 		pass
 	
@@ -110,11 +118,13 @@ class videoHandler():
 	#ToDo: need to implement a char update method to restart the camera obj when a change
 	#		is detected, for now leave this as it is
 	def _timerGetNewVideoSources(self):
+		logger.info("reading new added video sources ")
 		if self.stop:
 			return
 		newVideoSources = self.dbActions.getVideoSources()
 		#ToDo: DRY principle
 		currentDeviceIds = self.frameObjConstructor.getDeviceIds()
+		logger.info("found new video sources " + str(newVideoSources))
 		for deviceInfo in newVideoSources:
 			if deviceInfo[0] not in  currentDeviceIds:
 				connArgs=deviceInfo[3]
@@ -129,6 +139,7 @@ class videoHandler():
 	
 	#ToDo: use this in the item destructor
 	def stopTimerFetch(self):
+		logger.info("video handler stop new devices fetching")
 		self.stop = True
 		pass
 
@@ -137,6 +148,7 @@ class videoHandler():
 		tornado.ioloop.IOLoop.current().stop()
 	
 	def serverListen(self, port = 9090):
+		logger.info("listening for video request connections on port: " + str(port))
 		#ToDo: bad practice, merge the tornado video logic with the socket server maybe?
 		asyncio.set_event_loop(asyncio.new_event_loop())
 		self.server = tornado.httpserver.HTTPServer(self.app)
@@ -144,5 +156,6 @@ class videoHandler():
 		tornado.ioloop.IOLoop.current().start()
 	
 	def _make_app(self, frameObjConstructor):
+		logger.info("video handler bind server route")
 		# add handlers
 		return tornado.web.Application([(r'/video_feed', videoFeedHandler, {'frameConstObj': frameObjConstructor})],)

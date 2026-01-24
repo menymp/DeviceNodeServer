@@ -4,8 +4,16 @@ import cv2
 import numpy as np
 from BaseVideoService import BaseVideoService
 
+import sys
+from os.path import dirname, realpath, sep, pardir
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
+
+from loggerUtils import get_logger
+logger = get_logger(__name__)
+
 class Esp32VideoService(BaseVideoService):
 	def _taskUpdateImage(self, connectionArgs):
+		logger.info("esp 32 video service start with " + str(connectionArgs))
 		# Reserve a port for your service.
 		#ToDo: review for better approach than connect and disconect.
 		#	   in the near future maybe never, check for a better approach for this case

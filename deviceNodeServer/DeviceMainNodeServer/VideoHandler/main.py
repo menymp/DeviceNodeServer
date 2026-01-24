@@ -17,11 +17,14 @@ sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils"
 from configsCreate import configsParser
 from videoHttpController import videoHandler
 from secretReader import get_secret
+from loggerUtils import get_logger
+logger = get_logger(__name__)
 
 #ToDo:  for now we are creating a thread to read for each vide source, is there a way to optimize this to
 #       instead use a pool or load everithing on demand?
 
 def initMQServer(zmqCfg):
+    logger.info("video handler init mq server with: " + str(zmqCfg))
     context = zmq.Context()
     socket = context.socket(zmq.REP)
     socket.bind(zmqCfg)
@@ -30,7 +33,9 @@ def initMQServer(zmqCfg):
 def taskHandleIncomingMsgs(videoHandler, mqServer, stopEvent):
     while not stopEvent.is_set():
         msg = mqServer.recv().decode() ###### test plis
+        logger.info("video handler new message arrived with: " + str(msg))
         result = processIncommingMessage(videoHandler, msg)
+        logger.info("result: " + str(result))
         mqServer.send(result.encode()) ##### test plis
     pass
 
@@ -38,9 +43,11 @@ def startHandleIncomingMsgs(videoHandler, mqServer):
     stopEvent = Event()
     taskHandleIncMsgs = threading.Thread(target=taskHandleIncomingMsgs, args=(videoHandler, mqServer, stopEvent, ))
     taskHandleIncMsgs.start()
+    logger.info("started video handle messages service with success")
     return taskHandleIncMsgs, stopEvent
 
 def stopHandleIncomingMsgs(stopEvent):
+    logger.info("stopping service video handler")
     stopEvent.set()
     pass
 
@@ -68,21 +75,21 @@ if __name__ == "__main__":
     args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD_FILE")] # [argsP["host"],argsP["dbname"],argsP["user"],argsP["pass"],argsP["broker"]]
     zmqCfgConn = os.getenv("VIDEO_HANDLER_SERVER_PATH", "")
     videoPort = int(os.getenv("VIDEO_SEED_PORT", ""))
-    print("Configs received for video handler:")
-    print(args)
-    print(zmqCfgConn)
-    print(videoPort)
+    logger.info("Configs received for video handler:")
+    logger.info(args)
+    logger.info(zmqCfgConn)
+    logger.info(videoPort)
 
     videoHandlerObj = videoHandler(args)
-    print("video service started ...")
+    logger.info("video service started ...")
     mqServerObj = initMQServer(zmqCfgConn)
-    print("MQ Server started at: " + zmqCfgConn)
+    logger.info("MQ Server started at: " + zmqCfgConn)
 
     taskHandleIncMsgs, stopEvent = startHandleIncomingMsgs(videoHandlerObj, mqServerObj)
 
     eventStop = Event()
     def sigterm_handler(signum, frame):
-        print("stop process")
+        logger.info("stop process")
         eventStop.set()
         stopHandleIncomingMsgs(stopEvent)
         videoHandlerObj.stop()

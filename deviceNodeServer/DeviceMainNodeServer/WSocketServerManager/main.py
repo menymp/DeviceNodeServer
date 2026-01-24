@@ -17,12 +17,15 @@ sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils"
 from websocketHandler import wSocketServerManager
 from configsCreate import configsParser
 from secretReader import get_secret
+from loggerUtils import get_logger
+logger = get_logger(__name__)
+
 
 class handleOnMessage():
     def __init__(self, zmqPath):
         context = zmq.Context()
         #  Socket to talk to server
-        print("Connecting to DeviceManager server")
+        logger.info("Connecting to DeviceManager server")
         self.socket = context.socket(zmq.REQ)
         self.zmqPath = zmqPath
         pass
@@ -31,6 +34,7 @@ class handleOnMessage():
         self.socket.connect(self.zmqPath)
 
     def on_MessageCmd(self, cmdObj):
+        logger.info("processing message for web socket server manager with:" + str(cmdObj))
         #deviceManager.executeCMDJson
         #command form:
         '''
@@ -62,9 +66,9 @@ if __name__ == "__main__":
     zmqDeviceManagerConn = os.getenv("DEVICE_MANAGER_LOCAL_CONN", "") # zmqCfg["device-manager-local-conn"]
     webSocketPort = int(os.getenv("WEBSOCKET_PORT", "8112"))
 
-    print("Configs for tornado server: ")
-    print(zmqDeviceManagerConn)
-    print(webSocketPort)
+    logger.info("Configs for tornado server: ")
+    logger.info(zmqDeviceManagerConn)
+    logger.info(webSocketPort)
 
 
     onMsgHandler = handleOnMessage(zmqDeviceManagerConn)
@@ -73,7 +77,7 @@ if __name__ == "__main__":
     WSServer = wSocketServerManager()
     eventStop = Event()
     def sigterm_handler(signum, frame):
-        print("stop process")
+        logger.info("stop process")
         eventStop.set()
         WSServer.stop()
         onMsgHandler.disconnect()

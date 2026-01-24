@@ -7,6 +7,13 @@ import numpy as np
 from Esp32VideoService import Esp32VideoService
 from LocalVideoService import LocalVideoService
 
+import sys
+from os.path import dirname, realpath, sep, pardir
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
+
+from loggerUtils import get_logger
+logger = get_logger(__name__)
+
 #init status codes
 STATUS_OK = 0
 STATUS_ERR = 1
@@ -16,6 +23,7 @@ LOCALCAM = 2
 
 class FrameConstructor():
 	def __init__(self):
+		logger.info("frame constructor instance started ")
 		self.deviceDict = {}
 		pass
 	'''
@@ -30,6 +38,7 @@ class FrameConstructor():
 	}
 	'''
 	def initNewCamera(self, argsObj):
+		logger.info("frame constructor init new camera")
 		result={
 			"status":STATUS_OK,
 			"msg":""
@@ -44,17 +53,20 @@ class FrameConstructor():
 				camObj.start()
 				self.deviceDict[argsObj["id"]] = camObj
 			else:
+				logger.error("Camera type not supported")
 				raise Exception("Camera type not supported")
 		except Exception as e:
 			camObj.stop()
 			result["status"] = STATUS_ERR
 			result["msg"] = e
+			logger.error("frame constructor error init " + str(result))
 		return result
 	
 	def getDeviceIds(self):
 		devIdArr = []
 		for deviceD in self.deviceDict:
 			devIdArr.append(deviceD)
+		logger.info("frame constructor found devices: " + str(devIdArr))
 		return devIdArr
 	
 	'''
@@ -69,6 +81,7 @@ class FrameConstructor():
 	#ToDo: deep test of every case of failure
 	#create the no image from cam driver
 	def buildFrame(self, argsObj):
+		logger.info("frame constructor building frame with " + str(argsObj))
 		toggleFlag = 0
 		frameRow = None
 		frame = None
