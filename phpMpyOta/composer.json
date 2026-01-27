@@ -1,0 +1,15 @@
+{
+    "name": "menymp/php-mpy-ota",
+    "description": "OTA server for micropython devices",
+    "type": "project",
+    "require": {
+        "monolog/monolog": "^3.10"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "menymp",
+            "email": "lmeny04@hotmail.com"
+        }
+    ]
+}
