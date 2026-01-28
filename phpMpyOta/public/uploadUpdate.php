@@ -1,4 +1,6 @@
 <?php
+require __DIR__ . '/../vendor/autoload.php';
+
 /*
 NOTE: this is an experiment with bing chat-gpt generated code at october 2023 01
 those were the prompted command inputs for the result
