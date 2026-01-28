@@ -41,6 +41,10 @@ When you upload a group of .py files to this script, it creates a new directory 
  chatgpt is still a long way to be a real coder, but the result are really impresive at first glance
 */
 
+use App\LoggerFactory; 
+$logger = LoggerFactory::create(); 
+$logger->info("Upload script process started");
+
 $projectName = $_POST['projectName'];
 
 $dir = './' . $projectName;
@@ -48,10 +52,12 @@ $version_file = $dir . '/version';
 $version_data = json_decode(file_get_contents($version_file), true);
 $version = $version_data['version'];
 $new_version = $version + 1;
+$logger->info("New version: " . $new_version);
 $new_dir = $dir . '/' . $new_version;
 mkdir($new_dir);
 $files = $_FILES['files'];
 $file_names = array();
+$logger->info("Uploading files: " . $file_names);
 for($i = 0; $i < count($files['name']); $i++) {
     if (pathinfo($files['name'][$i], PATHINFO_EXTENSION) == 'py') {
         $file_names[] = $files['name'][$i];
@@ -63,7 +69,7 @@ $new_version_data = (object) [
     'version' => $new_version,
     'files' => $file_names
 ];
-
+$logger->info("Version created: " . $new_version_data);
 file_put_contents($new_dir . '/version', json_encode($new_version_data));
 copy($version_file, $dir . '/version_' . $version);
 $result = copy($new_dir . '/version', $dir . '/version');
