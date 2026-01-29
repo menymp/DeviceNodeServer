@@ -1,0 +1,20 @@
+{
+    "name": "menymp/php-web-app",
+    "description": "main backend for devices nodes UI",
+    "type": "project",
+    "require": {
+        "monolog/monolog": "^3.10"
+    },
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Menymp\\PhpWebApp\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "menymp",
+            "email": "lmeny04@hotmail.com"
+        }
+    ]
+}
