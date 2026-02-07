@@ -1,5 +1,8 @@
 <?php
 	require __DIR__ . '/../vendor/autoload.php';
+	use App\LoggerFactory; 
+  	$logger = LoggerFactory::create();
+
 	function EncodeJSONClientResponse($inData)
 	{
 		//header("Content-Type: application/json");
@@ -32,7 +35,7 @@
 	//header("Location: ./index.php?error=sss".$_POST['userId']);
 	$userId = $_SESSION['userId'];
 	$operationOption = $_POST['actionOption'];
-
+	$logger->info("Received devices request with: " . $userId . " and " . $operationOption);
 	
 	include 'dbConn.php';
 	
@@ -63,6 +66,7 @@
 		if ($result->num_rows > 0) 
 		{	
 			$data = $result->fetch_all( MYSQLI_ASSOC );
+			$logger->info("fetching nodes with " . $data);
 			echo EncodeJSONClientResponse($data);
 		}
 		else 
@@ -105,6 +109,7 @@
 				//check if success by validating if node exists on table
 				$sql = "SELECT * FROM NodesTable WHERE nodeName = ? AND idOwnerUser = ?";
 				$result = $dbObj1->dbQuery($sql, "i", [$nodeName,$userId]);
+				$logger->info("node created with success ");
 				//validate that node creation was a success
 				if($result->num_rows == 1)
 				{
@@ -125,6 +130,7 @@
 						//validate thar node does not exists previously for the user
 			$sql = "SELECT * FROM supportedProtocols WHERE idsupportedProtocols=?";
 			$result = $dbObj1->dbQuery($sql, "i", [$nodeProtocol]);
+			
 			if($result->num_rows != 0)
 			{
 				//echo EncodeJSONClientResponse(['Message' => "RESULT: Node '".$nodeName."' updated!"]);
@@ -136,6 +142,7 @@
 				//check if node exists
 				$sql = "SELECT * FROM NodesTable WHERE nodeName = ? AND idOwnerUser = ?";
 				$result = $dbObj1->dbQuery($sql, "i", [$nodeName,$userId]);
+				$logger->info("node saved ");
 				//validate that node creation was a success
 				if($result->num_rows == 1)
 				{
@@ -164,6 +171,7 @@
 		if ($result->num_rows > 0) 
 		{
 			$data = $result->fetch_all( MYSQLI_ASSOC );
+			$logger->info("fetching configs with " . $data);
 			echo EncodeJSONClientResponse($data);
 		}
 		else
@@ -190,6 +198,7 @@
 			//verify that node does not exists
 			$sql = "SELECT * FROM NodesTable WHERE nodeName = ? AND idOwnerUser = ?";
 			$result = $dbObj1->dbQuery($sql, "i", [$nodeName,$userId]);
+			$logger->info("fetching configs with " . $result);
 			if($result->num_rows == 0)
 				echo EncodeJSONClientResponse(['Message' => "RESULT: Node '".$nodeName."' deleted!","Result" =>"Success"]);
 			else

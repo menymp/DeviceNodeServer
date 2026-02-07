@@ -1,5 +1,8 @@
 <?php
 	require __DIR__ . '/../vendor/autoload.php';
+	use App\LoggerFactory; 
+  	$logger = LoggerFactory::create();
+
 	function EncodeJSONClientResponse($inData)
 	{
 		//header("Content-Type: application/json");
@@ -33,6 +36,7 @@
 	$userId = $_SESSION['userId'];
 	$operationOption = $_POST['actionOption'];
 
+	$logger->info("Received cameras request with: " . $userId . " and " . $operationOption);
 	
 	include 'dbConn.php';
 	$configs = include('config.php');
@@ -53,6 +57,7 @@
 		if ($result->num_rows > 0) 
 		{	
 			$data = $result->fetch_all( MYSQLI_ASSOC );
+			$logger->info("fetchConfigs: " . $data );
 			echo EncodeJSONClientResponse($data);
 		}
 		else 

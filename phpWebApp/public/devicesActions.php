@@ -1,5 +1,8 @@
 <?php
 	require __DIR__ . '/../vendor/autoload.php';
+	use App\LoggerFactory; 
+  	$logger = LoggerFactory::create();
+
 	function EncodeJSONClientResponse($inData)
 	{
 		//header("Content-Type: application/json");
@@ -32,7 +35,7 @@
 	//header("Location: ./index.php?error=sss".$_POST['userId']);
 	$userId = $_SESSION['userId'];
 	$operationOption = $_POST['actionOption'];
-
+	$logger->info("Received devices request with: " . $userId . " and " . $operationOption);
 	
 	include 'dbConn.php';
 	
@@ -148,6 +151,7 @@
 		if ($result->num_rows > 0) 
 		{	
 			$data = $result->fetch_all( MYSQLI_ASSOC );
+			$logger->info("fetching devices request with: " . $data);
 			echo EncodeJSONClientResponse($data);
 		}
 		else 
@@ -183,6 +187,7 @@
 		if ($result->num_rows > 0) 
 		{	
 			$data = $result->fetch_all( MYSQLI_ASSOC );
+			$logger->info("fetching devices by id with: " . $data);
 			echo EncodeJSONClientResponse($data);
 		}
 		else 
@@ -215,6 +220,7 @@
 		if ($result->num_rows > 0) 
 		{	
 			$data = $result->fetch_all( MYSQLI_ASSOC );
+			$logger->info("fetching devices record with: " . $data);
 			echo EncodeJSONClientResponse($data);
 		}
 		else 

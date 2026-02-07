@@ -1,5 +1,8 @@
 <?php
 	require __DIR__ . '/../vendor/autoload.php';
+	use App\LoggerFactory; 
+  	$logger = LoggerFactory::create();
+
 	function EncodeJSONClientResponse($inData)
 	{
 		//header("Content-Type: application/json");
@@ -33,7 +36,7 @@
 	$userId = $_SESSION['userId'];
 	$operationOption = $_POST['actionOption'];
 
-	
+	$logger->info("Received dashboard request with: " . $userId . " and " . $operationOption);
 	include 'dbConn.php';
 	$configs = include('config.php');
 	
@@ -76,6 +79,7 @@
 		if ($result->num_rows > 0) 
 		{	
 			$data = $result->fetch_all( MYSQLI_ASSOC );
+			$logger->info("fetching controls: " . $data);
 			echo EncodeJSONClientResponse($data);
 		}
 		else 
@@ -114,6 +118,7 @@
 		if ($result->num_rows > 0) 
 		{	
 			$data = $result->fetch_all( MYSQLI_ASSOC );
+			$logger->info("fetching control: " . $data);
 			echo EncodeJSONClientResponse($data);
 		}
 		else 
@@ -130,6 +135,7 @@
 		if ($result->num_rows > 0) 
 		{	
 			$data = $result->fetch_all( MYSQLI_ASSOC );
+			$logger->info("fetching types: " . $data);
 			echo EncodeJSONClientResponse($data);
 		}
 		else 
@@ -152,6 +158,7 @@
 		if ($result->num_rows > 0) 
 		{	
 			$data = $result->fetch_all( MYSQLI_ASSOC );
+			$logger->info("fetching templates: " . $data);
 			echo EncodeJSONClientResponse($data);
 		}
 		else 
@@ -168,6 +175,7 @@
 			exit();
 		}
 		$idControl = $_POST['idControl'];
+		$logger->info("Deleting control: " . $idControl);
 		
 		$result = $dbObj1->dbQuery($sql, "i", [$idControl]);
 
@@ -209,6 +217,7 @@
 		$idType = $_POST['idType'];
 		$Name = $_POST['Name'];
 		$idControl = $_POST['idControl'];
+		$logger->info("Saving control: " . $idControl);
 		
 		if($idControl != -1)
 		{

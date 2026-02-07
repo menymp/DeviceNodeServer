@@ -1,5 +1,8 @@
 <?php
 	require __DIR__ . '/../vendor/autoload.php';
+	use App\LoggerFactory; 
+  	$logger = LoggerFactory::create();
+
 	function EncodeJSONClientResponse($inData)
 	{
 		//header("Content-Type: application/json");
@@ -32,6 +35,8 @@
 	//header("Location: ./index.php?error=sss".$_POST['userId']);
 	$userId = $_SESSION['userId'];
 	$operationOption = $_POST['actionOption'];
+
+	$logger->info("Received cameras request with: " . $userId . " and " . $operationOption);
 
 	
 	include 'dbConn.php';
@@ -70,6 +75,7 @@
 		if ($result->num_rows > 0) 
 		{	
 			$data = $result->fetch_all( MYSQLI_ASSOC );
+			$logger->info("fetchCams: " . $data );
 			echo EncodeJSONClientResponse($data);
 		}
 		else 
@@ -98,7 +104,8 @@
 					(name, idCreator,  sourceParameters)
 				VALUES 
 					(?, ?, ?)";
-		$result = $dbObj1->dbQuery($sql, "i", [$name,$userId,$sourceParameters]);			
+		$result = $dbObj1->dbQuery($sql, "i", [$name,$userId,$sourceParameters]);
+		$logger->info("AddCam: " . $result );			
 		
 		echo EncodeJSONClientResponse(['Message' => "0 results","Result" =>"Success"]);
 	}
@@ -122,6 +129,7 @@
 		$sourceParameters = $_POST['sourceParameters'];
 		
 		$sql = "SELECT * FROM VideoSources WHERE idVideoSource=?";
+		$logger->info("UpdateCam: " . $idCameraUpdate );
 		$result = $dbObj1->dbQuery($sql, "i", [$idCameraUpdate]);
 		if ($result->num_rows == 0)
 		{
@@ -145,6 +153,7 @@
 		{
 			exit();
 		}
+		$logger->info("DelCam: ");
 		$idVideoSource = $_POST['idVideoSource'];
 		$sql = "DELETE FROM VideoSources WHERE idVideoSource = ?";
 		$result = $dbObj1->dbQuery($sql, "i", [$idVideoSource]);	
