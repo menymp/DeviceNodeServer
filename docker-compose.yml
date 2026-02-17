@@ -185,7 +185,6 @@ services:
       - "${MQTT_BROKER_PORT}:${MQTT_BROKER_PORT}"
       - "9001:9001"
     volumes:
-      - ./mosquitto/config:/mosquitto/config
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
 
