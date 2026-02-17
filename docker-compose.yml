@@ -2,163 +2,163 @@ version: "3.9"
 
 services:
 
-  react-device-manager-ui:
-    build: ./nodePackages/device-mgr-ui
-    restart: always
-    environment:
-      NODE_ENV: production
-      REACT_APP_COMMAND_WEBSOCKET_URL: http://websocket-service:${WEBSOCKET_PORT}/workHandler
-      REACT_APP_DEVICE_SERVICE_URL: http://php-node-service:${PHP_PORT}/DeviceNodeServer/phpWebApp/
-      REACT_APP_VIDEO_SEED_URL: http://video-composer-service:${VIDEO_SEED_PORT}/video_feed?vidArgs=
-    ports:
-      - "${REACT_MANAGER_PORT}:${REACT_MANAGER_PORT}"
-    volumes:
-      - ./config/config.ini:/app/config.ini:ro
-    depends_on:
-      - websocket-service
-      - php-node-service
+  # react-device-manager-ui:
+  #   build: ./nodePackages/device-mgr-ui
+  #   restart: always
+  #   environment:
+  #     NODE_ENV: production
+  #     REACT_APP_COMMAND_WEBSOCKET_URL: http://websocket-service:${WEBSOCKET_PORT}/workHandler
+  #     REACT_APP_DEVICE_SERVICE_URL: http://php-node-service:${PHP_PORT}/DeviceNodeServer/phpWebApp/
+  #     REACT_APP_VIDEO_SEED_URL: http://video-composer-service:${VIDEO_SEED_PORT}/video_feed?vidArgs=
+  #   ports:
+  #     - "${REACT_MANAGER_PORT}:${REACT_MANAGER_PORT}"
+  #   volumes:
+  #     - ./config/config.ini:/app/config.ini:ro
+  #   depends_on:
+  #     - websocket-service
+  #     - php-node-service
 
-  device-manager-service:
-    build: ./deviceNodeServer/DeviceMainNodeServer/DeviceManager/
-    restart: always
-    environment:
-      DB_HOST: nodes-db
-      DB_USER: ${DB_USER}
-      DB_PASSWORD_FILE: /run/secrets/db_user_password
-      DB_NAME: ${DB_NAME}
-      DEVICE_MANAGER_SERVER_PATH: ${DEVICE_MANAGER_SERVER_PATH}
-      ADD_DEVICES_TIME_POLL: ${ADD_DEVICES_TIME_POLL}
-      MQTT_BROKER_HOST: mqtt-broker
-      MQTT_BROKER_PORT: ${MQTT_BROKER_PORT} #ToDo: rewire the broker host and port into device manager as well, given the server centralization
-    volumes:
-      - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
-    secrets:
-      - db_user_password
-    depends_on:
-      - nodes-db
-      - mqtt-broker
+  # device-manager-service:
+  #   build: ./deviceNodeServer/DeviceMainNodeServer/DeviceManager/
+  #   restart: always
+  #   environment:
+  #     DB_HOST: nodes-db
+  #     DB_USER: ${DB_USER}
+  #     DB_PASSWORD_FILE: /run/secrets/db_user_password
+  #     DB_NAME: ${DB_NAME}
+  #     DEVICE_MANAGER_SERVER_PATH: ${DEVICE_MANAGER_SERVER_PATH}
+  #     ADD_DEVICES_TIME_POLL: ${ADD_DEVICES_TIME_POLL}
+  #     MQTT_BROKER_HOST: mqtt-broker
+  #     MQTT_BROKER_PORT: ${MQTT_BROKER_PORT} #ToDo: rewire the broker host and port into device manager as well, given the server centralization
+  #   volumes:
+  #     - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
+  #   secrets:
+  #     - db_user_password
+  #   depends_on:
+  #     - nodes-db
+  #     - mqtt-broker
 
-  node-device-manager-service:
-    build: ./deviceNodeServer/DeviceMainNodeServer/NodeDeviceManager/
-    restart: always
-    environment:
-      DB_HOST: nodes-db
-      DB_USER: ${DB_USER}
-      DB_PASSWORD_FILE: /run/secrets/db_user_password
-      DB_NAME: ${DB_NAME}
-      SEARCH_DEVICES_PERIOD: ${SEARCH_DEVICES_PERIOD}
-      MQTT_BROKER_HOST: mqtt-broker
-      MQTT_BROKER_PORT: ${MQTT_BROKER_PORT} #ToDo: rewire the broker host and port into device manager as well, given the server centralization
-    volumes:
-      - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
-    secrets:
-      - db_user_password
-    depends_on:
-      - nodes-db
-      - mqtt-broker
+  # node-device-manager-service:
+  #   build: ./deviceNodeServer/DeviceMainNodeServer/NodeDeviceManager/
+  #   restart: always
+  #   environment:
+  #     DB_HOST: nodes-db
+  #     DB_USER: ${DB_USER}
+  #     DB_PASSWORD_FILE: /run/secrets/db_user_password
+  #     DB_NAME: ${DB_NAME}
+  #     SEARCH_DEVICES_PERIOD: ${SEARCH_DEVICES_PERIOD}
+  #     MQTT_BROKER_HOST: mqtt-broker
+  #     MQTT_BROKER_PORT: ${MQTT_BROKER_PORT} #ToDo: rewire the broker host and port into device manager as well, given the server centralization
+  #   volumes:
+  #     - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
+  #   secrets:
+  #     - db_user_password
+  #   depends_on:
+  #     - nodes-db
+  #     - mqtt-broker
 
-  telegram-executor-service:
-    build: ./deviceNodeServer/DeviceMainNodeServer/TelegramCommandExecutor/
-    restart: always
-    environment:
-      DB_HOST: nodes-db
-      DB_USER: ${DB_USER}
-      DB_PASSWORD_FILE: /run/secrets/db_user_password
-      DB_NAME: ${DB_NAME}
-      WEBSOCKET_PORT: ${WEBSOCKET_PORT}
-      DEVICE_MANAGER_LOCAL_CONN: ${DEVICE_MANAGER_LOCAL_CONN}
-      VIDEO_HANDLER_LOCAL_CONN: ${VIDEO_HANDLER_LOCAL_CONN}
-    volumes:
-      - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
-    secrets:
-      - db_user_password
-    depends_on:
-      - device-manager-service
-      - video-composer-service
+  # telegram-executor-service:
+  #   build: ./deviceNodeServer/DeviceMainNodeServer/TelegramCommandExecutor/
+  #   restart: always
+  #   environment:
+  #     DB_HOST: nodes-db
+  #     DB_USER: ${DB_USER}
+  #     DB_PASSWORD_FILE: /run/secrets/db_user_password
+  #     DB_NAME: ${DB_NAME}
+  #     WEBSOCKET_PORT: ${WEBSOCKET_PORT}
+  #     DEVICE_MANAGER_LOCAL_CONN: ${DEVICE_MANAGER_LOCAL_CONN}
+  #     VIDEO_HANDLER_LOCAL_CONN: ${VIDEO_HANDLER_LOCAL_CONN}
+  #   volumes:
+  #     - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
+  #   secrets:
+  #     - db_user_password
+  #   depends_on:
+  #     - device-manager-service
+  #     - video-composer-service
 
-  video-composer-service:
-    build: ./deviceNodeServer/DeviceMainNodeServer/VideoHandler/
-    restart: always
-    environment:
-      DB_HOST: nodes-db
-      DB_USER: ${DB_USER}
-      DB_PASSWORD_FILE: /run/secrets/db_user_password
-      DB_NAME: ${DB_NAME}
-      VIDEO_HANDLER_SERVER_PATH: ${VIDEO_HANDLER_SERVER_PATH}
-      VIDEO_SEED_PORT: ${VIDEO_SEED_PORT}
-    volumes:
-      - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
-    secrets:
-      - db_user_password
-    ports:
-      - "${VIDEO_SEED_PORT}:${VIDEO_SEED_PORT}"
-    depends_on:
-      - nodes-db
-      - mqtt-broker
+  # video-composer-service:
+  #   build: ./deviceNodeServer/DeviceMainNodeServer/VideoHandler/
+  #   restart: always
+  #   environment:
+  #     DB_HOST: nodes-db
+  #     DB_USER: ${DB_USER}
+  #     DB_PASSWORD_FILE: /run/secrets/db_user_password
+  #     DB_NAME: ${DB_NAME}
+  #     VIDEO_HANDLER_SERVER_PATH: ${VIDEO_HANDLER_SERVER_PATH}
+  #     VIDEO_SEED_PORT: ${VIDEO_SEED_PORT}
+  #   volumes:
+  #     - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
+  #   secrets:
+  #     - db_user_password
+  #   ports:
+  #     - "${VIDEO_SEED_PORT}:${VIDEO_SEED_PORT}"
+  #   depends_on:
+  #     - nodes-db
+  #     - mqtt-broker
 
-  websocket-service:
-    build: ./deviceNodeServer/DeviceMainNodeServer/WSocketServerManager/
-    restart: always
-    environment:
-      DB_HOST: nodes-db
-      DB_USER: ${DB_USER}
-      DB_PASSWORD_FILE: /run/secrets/db_user_password
-      DB_NAME: ${DB_NAME}
-      WEBSOCKET_PORT: ${WEBSOCKET_PORT}
-      DEVICE_MANAGER_LOCAL_CONN: ${DEVICE_MANAGER_LOCAL_CONN}
-    volumes:
-      - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
-    secrets:
-      - db_user_password
-    ports:
-      - "${WEBSOCKET_PORT}:${WEBSOCKET_PORT}"
-    depends_on:
-      - device-manager-service
+  # websocket-service:
+  #   build: ./deviceNodeServer/DeviceMainNodeServer/WSocketServerManager/
+  #   restart: always
+  #   environment:
+  #     DB_HOST: nodes-db
+  #     DB_USER: ${DB_USER}
+  #     DB_PASSWORD_FILE: /run/secrets/db_user_password
+  #     DB_NAME: ${DB_NAME}
+  #     WEBSOCKET_PORT: ${WEBSOCKET_PORT}
+  #     DEVICE_MANAGER_LOCAL_CONN: ${DEVICE_MANAGER_LOCAL_CONN}
+  #   volumes:
+  #     - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
+  #   secrets:
+  #     - db_user_password
+  #   ports:
+  #     - "${WEBSOCKET_PORT}:${WEBSOCKET_PORT}"
+  #   depends_on:
+  #     - device-manager-service
 
-  php-node-service:
-    build: ./phpWebApp
-    restart: always
-    environment:
-      DB_HOST: nodes-db
-      DB_USER: ${DB_USER}
-      DB_PASSWORD_FILE: /run/secrets/db_user_password
-      DB_NAME: ${DB_NAME}
-    volumes:
-      - ./config/config.ini:/var/www/html/config.ini:ro
-    secrets:
-      - db_user_password
-    ports:
-      - "${PHP_PORT}:${PHP_PORT}"
-    depends_on:
-      - nodes-db
+  # php-node-service:
+  #   build: ./phpWebApp
+  #   restart: always
+  #   environment:
+  #     DB_HOST: nodes-db
+  #     DB_USER: ${DB_USER}
+  #     DB_PASSWORD_FILE: /run/secrets/db_user_password
+  #     DB_NAME: ${DB_NAME}
+  #   volumes:
+  #     - ./config/config.ini:/var/www/html/config.ini:ro
+  #   secrets:
+  #     - db_user_password
+  #   ports:
+  #     - "${PHP_PORT}:${PHP_PORT}"
+  #   depends_on:
+  #     - nodes-db
 
-  xbee-coordinator-service:
-    build: ./deviceNodeServer/xbeeNetwork/
-    restart: always
-    privileged: true # Grants the container the necessary permissions
-    environment:
-      XBEE_COORDINATOR_NAME: ${XBEE_COORDINATOR_NAME}
-      XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY: ${XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY}
-      XBEE_COORDINATOR_TTY_PORT: ${XBEE_COORDINATOR_TTY_PORT}
-      XBEE_COORDINATOR_BAUDRATE: ${XBEE_COORDINATOR_BAUDRATE}
-      MQTT_BROKER_HOST: mqtt-broker
-      MQTT_BROKER_PORT: ${MQTT_BROKER_PORT}
-    devices:
-      # Map the host's serial device to a name inside the container
-      - "${XBEE_TTY_PORT}:${XBEE_TTY_PORT}" 
-    depends_on:
-      - mqtt-broker
+  # xbee-coordinator-service:
+  #   build: ./deviceNodeServer/xbeeNetwork/
+  #   restart: always
+  #   privileged: true # Grants the container the necessary permissions
+  #   environment:
+  #     XBEE_COORDINATOR_NAME: ${XBEE_COORDINATOR_NAME}
+  #     XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY: ${XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY}
+  #     XBEE_COORDINATOR_TTY_PORT: ${XBEE_COORDINATOR_TTY_PORT}
+  #     XBEE_COORDINATOR_BAUDRATE: ${XBEE_COORDINATOR_BAUDRATE}
+  #     MQTT_BROKER_HOST: mqtt-broker
+  #     MQTT_BROKER_PORT: ${MQTT_BROKER_PORT}
+  #   devices:
+  #     # Map the host's serial device to a name inside the container
+  #     - "${XBEE_TTY_PORT}:${XBEE_TTY_PORT}" 
+  #   depends_on:
+  #     - mqtt-broker
 
-  php-ota-service:
-    build: ./phpMpyOta
-    restart: always
-    environment:
-    volumes:
-      - ./config/config.ini:/var/www/html/config.ini:ro
-    secrets:
-    ports:
-      - "${PHP_OTA_PORT}:${PHP_OTA_PORT}"
-    depends_on:
+  # php-ota-service:
+  #   build: ./phpMpyOta
+  #   restart: always
+  #   environment:
+  #   volumes:
+  #     - ./config/config.ini:/var/www/html/config.ini:ro
+  #   secrets:
+  #   ports:
+  #     - "${PHP_OTA_PORT}:${PHP_OTA_PORT}"
+  #   depends_on:
 
   nodes-db:
     image: mariadb:10.11
@@ -189,20 +189,20 @@ services:
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
 
-  maintenance-service:
-    build: ./deviceNodeServer/DeviceMainNodeServer/MaintenanceService/
-    restart: always
-    environment:
-      DB_HOST: nodes-db
-      DB_USER: ${DB_USER}
-      DB_PASSWORD_FILE: /run/secrets/db_user_password
-      DB_NAME: ${DB_NAME}
-    volumes:
-      - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
-    secrets:
-      - db_user_password
-    depends_on:
-      - nodes-db
+  # maintenance-service:
+  #   build: ./deviceNodeServer/DeviceMainNodeServer/MaintenanceService/
+  #   restart: always
+  #   environment:
+  #     DB_HOST: nodes-db
+  #     DB_USER: ${DB_USER}
+  #     DB_PASSWORD_FILE: /run/secrets/db_user_password
+  #     DB_NAME: ${DB_NAME}
+  #   volumes:
+  #     - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
+  #   secrets:
+  #     - db_user_password
+  #   depends_on:
+  #     - nodes-db
 
 volumes:
   db_data:
