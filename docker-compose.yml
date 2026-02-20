@@ -18,44 +18,44 @@ services:
   #     - websocket-service
   #     - php-node-service
 
-  # device-manager-service:
-  #   build: ./deviceNodeServer/DeviceMainNodeServer/DeviceManager/
-  #   restart: always
-  #   environment:
-  #     DB_HOST: nodes-db
-  #     DB_USER: ${DB_USER}
-  #     DB_PASSWORD_FILE: /run/secrets/db_user_password
-  #     DB_NAME: ${DB_NAME}
-  #     DEVICE_MANAGER_SERVER_PATH: ${DEVICE_MANAGER_SERVER_PATH}
-  #     ADD_DEVICES_TIME_POLL: ${ADD_DEVICES_TIME_POLL}
-  #     MQTT_BROKER_HOST: mqtt-broker
-  #     MQTT_BROKER_PORT: ${MQTT_BROKER_PORT} #ToDo: rewire the broker host and port into device manager as well, given the server centralization
-  #   volumes:
-  #     - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
-  #   secrets:
-  #     - db_user_password
-  #   depends_on:
-  #     - nodes-db
-  #     - mqtt-broker
+  device-manager-service:
+    build: ./deviceNodeServer/DeviceMainNodeServer/DeviceManager/
+    restart: always
+    environment:
+      DB_HOST: nodes-db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD_FILE: /run/secrets/db_user_password
+      DB_NAME: ${DB_NAME}
+      DEVICE_MANAGER_SERVER_PATH: ${DEVICE_MANAGER_SERVER_PATH}
+      ADD_DEVICES_TIME_POLL: ${ADD_DEVICES_TIME_POLL}
+      MQTT_BROKER_HOST: mqtt-broker
+      MQTT_BROKER_PORT: ${MQTT_BROKER_PORT} #ToDo: rewire the broker host and port into device manager as well, given the server centralization
+    volumes:
+      - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
+    secrets:
+      - db_user_password
+    depends_on:
+      - nodes-db
+      - mqtt-broker
 
-  # node-device-manager-service:
-  #   build: ./deviceNodeServer/DeviceMainNodeServer/NodeDeviceManager/
-  #   restart: always
-  #   environment:
-  #     DB_HOST: nodes-db
-  #     DB_USER: ${DB_USER}
-  #     DB_PASSWORD_FILE: /run/secrets/db_user_password
-  #     DB_NAME: ${DB_NAME}
-  #     SEARCH_DEVICES_PERIOD: ${SEARCH_DEVICES_PERIOD}
-  #     MQTT_BROKER_HOST: mqtt-broker
-  #     MQTT_BROKER_PORT: ${MQTT_BROKER_PORT} #ToDo: rewire the broker host and port into device manager as well, given the server centralization
-  #   volumes:
-  #     - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
-  #   secrets:
-  #     - db_user_password
-  #   depends_on:
-  #     - nodes-db
-  #     - mqtt-broker
+  node-device-manager-service:
+    build: ./deviceNodeServer/DeviceMainNodeServer/NodeDeviceManager/
+    restart: always
+    environment:
+      DB_HOST: nodes-db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD_FILE: /run/secrets/db_user_password
+      DB_NAME: ${DB_NAME}
+      SEARCH_DEVICES_PERIOD: ${SEARCH_DEVICES_PERIOD}
+      MQTT_BROKER_HOST: mqtt-broker
+      MQTT_BROKER_PORT: ${MQTT_BROKER_PORT} #ToDo: rewire the broker host and port into device manager as well, given the server centralization
+    volumes:
+      - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
+    secrets:
+      - db_user_password
+    depends_on:
+      - nodes-db
+      - mqtt-broker
 
   # telegram-executor-service:
   #   build: ./deviceNodeServer/DeviceMainNodeServer/TelegramCommandExecutor/
@@ -115,22 +115,22 @@ services:
   #   depends_on:
   #     - device-manager-service
 
-  # php-node-service:
-  #   build: ./phpWebApp
-  #   restart: always
-  #   environment:
-  #     DB_HOST: nodes-db
-  #     DB_USER: ${DB_USER}
-  #     DB_PASSWORD_FILE: /run/secrets/db_user_password
-  #     DB_NAME: ${DB_NAME}
-  #   volumes:
-  #     - ./config/config.ini:/var/www/html/config.ini:ro
-  #   secrets:
-  #     - db_user_password
-  #   ports:
-  #     - "${PHP_PORT}:${PHP_PORT}"
-  #   depends_on:
-  #     - nodes-db
+  php-node-service:
+    build: ./phpWebApp
+    restart: always
+    environment:
+      DB_HOST: nodes-db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD_FILE: /run/secrets/db_user_password
+      DB_NAME: ${DB_NAME}
+    volumes:
+      - ./config/config.ini:/var/www/html/config.ini:ro
+    secrets:
+      - db_user_password
+    ports:
+      - "${PHP_PORT}:${PHP_PORT}"
+    depends_on:
+      - nodes-db
 
   # xbee-coordinator-service:
   #   build: ./deviceNodeServer/xbeeNetwork/
@@ -187,6 +187,7 @@ services:
     volumes:
       - ./mosquitto/data:/mosquitto/data
       - ./mosquitto/log:/mosquitto/log
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
 
   # maintenance-service:
   #   build: ./deviceNodeServer/DeviceMainNodeServer/MaintenanceService/
