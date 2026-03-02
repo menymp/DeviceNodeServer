@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Copy dependency files first for caching
 COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile
+RUN yarn install --frozen-lockfile --non-interactive --production
 
 # Copy the rest of the source code
 COPY . .
@@ -22,8 +22,9 @@ RUN rm -rf ./*
 # Copy build output from previous stage
 COPY --from=build /app/build .
 
-# Copy custom Nginx config if you want (optional)
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy custom Nginx config (important for React Router)
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 CMD ["nginx", "-g", "daemon off;"]
+

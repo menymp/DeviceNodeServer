@@ -5,7 +5,7 @@ import sys
 from os.path import dirname, realpath, sep, pardir
 # Get current main.py directory
 sys.path.append(dirname(realpath(__file__)) + sep + pardir)
-sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DBUtils")
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DButils")
 sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
 
 

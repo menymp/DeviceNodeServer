@@ -10,7 +10,7 @@ import sys
 from os.path import dirname, realpath, sep, pardir
 # Get current main.py directory
 sys.path.append(dirname(realpath(__file__)) + sep + pardir)
-sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DBUtils")
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DButils")
 sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
 
 from dbActions import dbUserActions
@@ -92,7 +92,7 @@ def loopThreadForever(telegramBotObject):
 
 async def hello(update: Update, context: ContextTypes.DEFAULT_TYPE, refArg) -> None:
 	logger.info("say hello")
-    await update.message.reply_text(f'Hello {update.effective_user.first_name}')
+	await update.message.reply_text(f'Hello {update.effective_user.first_name}')
 
 async def deviceCmdHandler(update: Update, context: ContextTypes.DEFAULT_TYPE, refArg) -> None:
 	logger.info("device command handler requested with " + str(refArg))
@@ -108,7 +108,7 @@ async def videoCmdHandler(update: Update, context: ContextTypes.DEFAULT_TYPE, re
 	result = refArg.execCommand(context.args)
 	if result is None:
 		return
-	
+
 	if ('ls' in context.args):
 		await update.message.reply_text(result)
 	elif('get' in context.args):

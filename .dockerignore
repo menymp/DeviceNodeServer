@@ -1,0 +1,27 @@
+# Ignore version control
+.git
+.gitignore
+
+# Ignore Composer dependencies
+/vendor
+composer.lock
+
+# Ignore Node.js dependencies if present
+node_modules
+
+# Ignore Python caches if present
+__pycache__/
+*.pyc
+
+# Ignore logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Ignore OS/editor junk
+.DS_Store
+Thumbs.db
+
+# Ignore build artifacts
+dist/
+build/

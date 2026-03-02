@@ -1,10 +1,17 @@
 FROM python:3.11-slim
 WORKDIR /app
-COPY requirements.txt .
-RUN pip install -r requirements.txt
 
-COPY ../DBUtils/ ./DBUtils/
-COPY ../DockerUtils/ ./DockerUtils/
-COPY ../MaintenanceService/ ./MaintenanceService/
+# Copy requirements file from the service folder
+COPY ./deviceNodeServer/DeviceMainNodeServer/MaintenanceService/requirements.txt .
+RUN pip install --upgrade pip \ 
+ && pip install -r requirements.txt
+
+# Copy shared modules from inside DeviceMainNodeServer
+COPY ./deviceNodeServer/DeviceMainNodeServer/ConfigsUtils ./ConfigsUtils
+COPY ./deviceNodeServer/DeviceMainNodeServer/DButils ./DButils
+COPY ./deviceNodeServer/DeviceMainNodeServer/DockerUtils ./DockerUtils
+
+# Copy the service code itself
+COPY ./deviceNodeServer/DeviceMainNodeServer/MaintenanceService ./MaintenanceService
 
 CMD ["python", "MaintenanceService/main.py"]

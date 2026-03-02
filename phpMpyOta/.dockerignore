@@ -1,0 +1,19 @@
+# Ignore Composer dependencies
+/vendor
+
+# Ignore version control
+.git
+.gitignore
+
+# Ignore logs and temp files
+*.log
+*.tmp
+*.swp
+
+# Ignore OS/editor junk
+.DS_Store
+Thumbs.db
+
+# Ignore build artifacts
+dist/
+build/

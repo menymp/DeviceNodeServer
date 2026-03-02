@@ -1,9 +1,10 @@
-version: "3.9"
 
 services:
 
   # react-device-manager-ui:
-  #   build: ./nodePackages/device-mgr-ui
+  #   build:
+  #     context: .
+  #     dockerfile: ./nodePackages/device-mgr-ui/Dockerfile
   #   restart: always
   #   environment:
   #     NODE_ENV: production
@@ -19,7 +20,9 @@ services:
   #     - php-node-service
 
   device-manager-service:
-    build: ./deviceNodeServer/DeviceMainNodeServer/DeviceManager/
+    build:
+      context: .
+      dockerfile: ./deviceNodeServer/DeviceMainNodeServer/DeviceManager/Dockerfile
     restart: always
     environment:
       DB_HOST: nodes-db
@@ -39,7 +42,9 @@ services:
       - mqtt-broker
 
   node-device-manager-service:
-    build: ./deviceNodeServer/DeviceMainNodeServer/NodeDeviceManager/
+    build:
+      context: .
+      dockerfile: ./deviceNodeServer/DeviceMainNodeServer/NodeDeviceManager/Dockerfile
     restart: always
     environment:
       DB_HOST: nodes-db
@@ -58,7 +63,9 @@ services:
       - mqtt-broker
 
   # telegram-executor-service:
-  #   build: ./deviceNodeServer/DeviceMainNodeServer/TelegramCommandExecutor/
+  #   build:
+  #     context: .
+  #     dockerfile: ./deviceNodeServer/DeviceMainNodeServer/TelegramCommandExecutor/Dockerfile
   #   restart: always
   #   environment:
   #     DB_HOST: nodes-db
@@ -77,7 +84,9 @@ services:
   #     - video-composer-service
 
   # video-composer-service:
-  #   build: ./deviceNodeServer/DeviceMainNodeServer/VideoHandler/
+  #   build:
+  #     context: .
+  #     dockerfile: ./deviceNodeServer/DeviceMainNodeServer/VideoHandler/Dockerfile
   #   restart: always
   #   environment:
   #     DB_HOST: nodes-db
@@ -97,7 +106,9 @@ services:
   #     - mqtt-broker
 
   # websocket-service:
-  #   build: ./deviceNodeServer/DeviceMainNodeServer/WSocketServerManager/
+  #   build:
+  #     context: .
+  #     dockerfile: ./deviceNodeServer/DeviceMainNodeServer/WSocketServerManager/Dockerfile
   #   restart: always
   #   environment:
   #     DB_HOST: nodes-db
@@ -116,7 +127,9 @@ services:
   #     - device-manager-service
 
   php-node-service:
-    build: ./phpWebApp
+    build:
+       context: ./phpWebApp
+       dockerfile: Dockerfile
     restart: always
     environment:
       DB_HOST: nodes-db
@@ -133,7 +146,9 @@ services:
       - nodes-db
 
   # xbee-coordinator-service:
-  #   build: ./deviceNodeServer/xbeeNetwork/
+  #   build:
+  #     context: .
+  #     dockerfile: ./deviceNodeServer/xbeeNetwork/Dockerfile
   #   restart: always
   #   privileged: true # Grants the container the necessary permissions
   #   environment:
@@ -150,7 +165,9 @@ services:
   #     - mqtt-broker
 
   # php-ota-service:
-  #   build: ./phpMpyOta
+  #   build:
+  #     context: ./phpWebApp
+  #     dockerfile: ./phpWebApp/Dockerfile
   #   restart: always
   #   environment:
   #   volumes:
@@ -190,7 +207,9 @@ services:
       - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
 
   # maintenance-service:
-  #   build: ./deviceNodeServer/DeviceMainNodeServer/MaintenanceService/
+  #   build:
+  #     context: .
+  #     dockerfile: ./deviceNodeServer/DeviceMainNodeServer/MaintenanceService/Dockerfile
   #   restart: always
   #   environment:
   #     DB_HOST: nodes-db
