@@ -137,7 +137,7 @@ services:
       DB_PASSWORD_FILE: /run/secrets/db_user_password
       DB_NAME: ${DB_NAME}
     volumes:
-      - ./config/config.ini:/var/www/html/config.ini:ro
+      - ./phpconfig/php.ini:/var/www/html/config.ini:ro
     secrets:
       - db_user_password
     ports:
