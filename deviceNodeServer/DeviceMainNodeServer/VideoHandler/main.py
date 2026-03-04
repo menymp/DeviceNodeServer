@@ -72,7 +72,7 @@ if __name__ == "__main__":
 
     # cfgObj = configsParser()
 
-    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD_FILE")] # [argsP["host"],argsP["dbname"],argsP["user"],argsP["pass"],argsP["broker"]]
+    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD")] # [argsP["host"],argsP["dbname"],argsP["user"],argsP["pass"],argsP["broker"]]
     zmqCfgConn = os.getenv("VIDEO_HANDLER_SERVER_PATH", "")
     videoPort = int(os.getenv("VIDEO_SEED_PORT", ""))
     logger.info("Configs received for video handler:")

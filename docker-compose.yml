@@ -38,8 +38,10 @@ services:
     secrets:
       - db_user_password
     depends_on:
-      - nodes-db
-      - mqtt-broker
+      nodes-db:
+        condition: service_healthy
+      mqtt-broker:
+        condition: service_started
 
   node-device-manager-service:
     build:
@@ -59,8 +61,10 @@ services:
     secrets:
       - db_user_password
     depends_on:
-      - nodes-db
-      - mqtt-broker
+      nodes-db:
+        condition: service_healthy
+      mqtt-broker:
+        condition: service_started
 
   # telegram-executor-service:
   #   build:
@@ -143,7 +147,11 @@ services:
     ports:
       - "80:${PHP_PORT}"
     depends_on:
-      - nodes-db
+      nodes-db:
+        condition: service_healthy
+      mqtt-broker:
+        condition: service_started
+          
 
   # xbee-coordinator-service:
   #   build:
@@ -181,10 +189,15 @@ services:
     image: mariadb:10.11
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
-      MYSQL_DATABASE: ${DB_NAME}
-      MYSQL_USER: ${DB_USER}
-      MYSQL_PASSWORD_FILE: /run/secrets/db_user_password
+      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MARIADB_DATABASE: ${DB_NAME}
+      MARIADB_USER: ${DB_USER}
+      MARIADB_PASSWORD_FILE: /run/secrets/db_user_password
+    healthcheck: 
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${DB_USER} --password=$(cat /run/secrets/db_user_password) || exit 1"]
+      interval: 10s 
+      timeout: 5s 
+      retries: 5
     volumes:
       - db_data:/var/lib/mysql
       - ./sql/nodeServerModel.sql:/docker-entrypoint-initdb.d/nodeServerModel.sql:ro
@@ -221,7 +234,8 @@ services:
   #   secrets:
   #     - db_user_password
   #   depends_on:
-  #     - nodes-db
+  #     - nodes-db:
+  #        condition: service_healthy
 
 volumes:
   db_data:

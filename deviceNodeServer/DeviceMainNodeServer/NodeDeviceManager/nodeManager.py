@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 
 class nodeDeviceManager():
     def getNodes(self,nodeDeviceManagerArgs, timeoutInterval = 15):
-        logger.info("get nodes started with %s" % (nodeDeviceManagerArgs, timeoutInterval))
+        logger.info("get nodes started with %s %s", nodeDeviceManagerArgs, timeoutInterval)
         self.nodeDeviceManagerArgs = nodeDeviceManagerArgs
         self.timeoutInterval = timeoutInterval
         self.dbAct = dbNodesActions()

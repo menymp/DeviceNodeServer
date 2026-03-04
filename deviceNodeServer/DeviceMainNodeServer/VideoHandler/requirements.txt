@@ -4,4 +4,4 @@ numpy==1.21.6
 opencv_python==4.6.0.66
 pyzmq>=25.1.0
 tornado==6.0.4
-mysql_connector_repackaged==0.3.1
+mysql-connector-python==8.0.33

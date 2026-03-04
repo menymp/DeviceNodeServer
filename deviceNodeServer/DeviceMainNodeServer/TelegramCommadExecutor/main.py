@@ -55,7 +55,7 @@ if __name__ == "__main__":
     #print("configs path: " + configs_path)
 
     #cfgObj = configsParser()
-    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD_FILE")] # [argsP["host"],argsP["dbname"],argsP["user"],argsP["pass"],argsP["broker"]]
+    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD")] # [argsP["host"],argsP["dbname"],argsP["user"],argsP["pass"],argsP["broker"]]
     zmqDeviceManager = os.getenv("DEVICE_MANAGER_LOCAL_CONN", "")
     zmqVideoHandler = os.getenv("VIDEO_HANDLER_LOCAL_CONN", "")
     logger.info("Telegram Executor started with:")

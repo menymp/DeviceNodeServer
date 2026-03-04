@@ -3,17 +3,27 @@
  
  
 import mysql.connector
+import time 
  
 #'','','','' 
 # Connecting from the server
 
 
 class dbConn():
-    def connect(self, user, password, host, database, auth = 'mysql_native_password', port = 3306, autocommit=True):
-        self.connection = mysql.connector.connect(user = user, password=password,
-                               host = host,
-                               auth_plugin=auth,
-                              database = database, port = port,autocommit = autocommit)
+    def connect(self, user, password, host, database, auth = 'mysql_native_password', port = 3306, autocommit=True, retries=10, delay=3):
+        self.connection = None
+        for attempt in range(retries):
+            try:
+                self.connection = mysql.connector.connect(user = user, password=password,
+                                    host = host,
+                                    auth_plugin=auth,
+                                    database = database, port = port,autocommit = autocommit)
+                print(f"Connected to DB on attempt {attempt+1}")
+                return
+            except mysql.connector.Error as e:
+                print(f"DB connection failed ({e}), retrying in {delay}s...")
+                time.sleep(delay)
+        raise RuntimeError("Could not connect to DB after retries")
         pass
     
     def execute(self, query, args = None):

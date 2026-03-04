@@ -43,7 +43,7 @@ class devicesDbMaintenance:
 
 
 if __name__ == "__main__":
-    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD_FILE")]
+    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD")]
 
     # Set maintenance objects
     devicesMaintainer = devicesDbMaintenance(args)

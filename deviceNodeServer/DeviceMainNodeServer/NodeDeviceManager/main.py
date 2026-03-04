@@ -25,7 +25,7 @@ if __name__ == "__main__":
     #print("configs path: " + configs_path)
 
     #cfgObj = configsParser()
-    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD_FILE")]
+    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD")]
     nodeDevMgrPeriod = int(os.getenv("SEARCH_DEVICES_PERIOD", "")) # cfgObj.readSection("nodeDeviceManager",configs_path)
     logger.info("Device manager started with:")
     logger.info(args)

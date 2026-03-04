@@ -82,7 +82,7 @@ if __name__ == "__main__":
     # print("configs path: " + configs_path)
 
     #cfgObj = configsParser()
-    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD_FILE")]
+    args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD")]
     zmqDeviceManagerServerPath = os.getenv("DEVICE_MANAGER_SERVER_PATH", "")
     addDevicesTimePoll = int(os.getenv("ADD_DEVICES_TIME_POLL", ""))
 
