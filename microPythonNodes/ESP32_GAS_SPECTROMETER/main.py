@@ -117,6 +117,31 @@ def readMQSensor(analogSensors, name):
     #ToDo: if a conversion is needed, this is the place
     return analogSensors[name].read()  
 
+'''
+{
+    "Name":"MenyGardenNode1",
+    "RootName":"/MenyGardenNode1/",
+    "ip": "x.x.x.x"
+    "Devices": [
+        {
+            "Name":"PirSensor",
+            "Mode":"PUBLISHER",
+            "Type":"STRING",
+            "Channel": "/MenyGardenNode1/PirSensor",
+            "Value": "69.69"
+        },
+        {
+            "Name":"WaterPump",
+            "Mode":"SUBSCRIBER",
+            "Type":"STRING",
+            "Channel":""/MenyNode1/WatterSolenoid/state"",
+            "Value": "ON"
+        }
+    ]
+
+}
+'''
+
 def buildMQMsg(Name, Channel, value):
     mqx_tmp =  {
         "Name":Name,

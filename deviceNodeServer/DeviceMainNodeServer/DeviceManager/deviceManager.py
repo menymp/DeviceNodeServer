@@ -76,8 +76,8 @@ class deviceManager():
         return flagExists
     
     def cleanOldDevices(self):
+        flagExists = False
         for index, deviceObj in enumerate(self.Devices):
-            flagExists = False
             for availableDevice in self.availableDevices:
                 if (deviceObj.name == availableDevice[1] and deviceObj.idParentNode == availableDevice[5]):
                     flagExists = True

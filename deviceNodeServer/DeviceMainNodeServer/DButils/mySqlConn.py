@@ -33,9 +33,17 @@ class dbConn():
         return records
     
     def close(self):
-        if self.connection.is_connected():
-            self.connection.close()
-            self.cursor.close()
+        if hasattr(self, "cursor") and self.cursor:
+            try:
+                self.cursor.close()
+            except Exception as e:
+                print(f"Cursor close failed: {e}")
+        if hasattr(self, "connection") and self.connection and self.connection.is_connected():
+            try:
+                self.connection.close()
+            except Exception as e:
+                print(f"Connection close failed: {e}")
+
     
 
 
