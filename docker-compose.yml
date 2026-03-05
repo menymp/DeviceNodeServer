@@ -87,48 +87,48 @@ services:
   #     - device-manager-service
   #     - video-composer-service
 
-  # video-composer-service:
-  #   build:
-  #     context: .
-  #     dockerfile: ./deviceNodeServer/DeviceMainNodeServer/VideoHandler/Dockerfile
-  #   restart: always
-  #   environment:
-  #     DB_HOST: nodes-db
-  #     DB_USER: ${DB_USER}
-  #     DB_PASSWORD_FILE: /run/secrets/db_user_password
-  #     DB_NAME: ${DB_NAME}
-  #     VIDEO_HANDLER_SERVER_PATH: ${VIDEO_HANDLER_SERVER_PATH}
-  #     VIDEO_SEED_PORT: ${VIDEO_SEED_PORT}
-  #   volumes:
-  #     - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
-  #   secrets:
-  #     - db_user_password
-  #   ports:
-  #     - "${VIDEO_SEED_PORT}:${VIDEO_SEED_PORT}"
-  #   depends_on:
-  #     - nodes-db
-  #     - mqtt-broker
+  video-composer-service:
+    build:
+      context: .
+      dockerfile: ./deviceNodeServer/DeviceMainNodeServer/VideoHandler/Dockerfile
+    restart: always
+    environment:
+      DB_HOST: nodes-db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD_FILE: /run/secrets/db_user_password
+      DB_NAME: ${DB_NAME}
+      VIDEO_HANDLER_SERVER_PATH: ${VIDEO_HANDLER_SERVER_PATH}
+      VIDEO_SEED_PORT: ${VIDEO_SEED_PORT}
+    volumes:
+      - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
+    secrets:
+      - db_user_password
+    ports:
+      - "${VIDEO_SEED_PORT}:${VIDEO_SEED_PORT}"
+    depends_on:
+      - nodes-db
+      - mqtt-broker
 
-  # websocket-service:
-  #   build:
-  #     context: .
-  #     dockerfile: ./deviceNodeServer/DeviceMainNodeServer/WSocketServerManager/Dockerfile
-  #   restart: always
-  #   environment:
-  #     DB_HOST: nodes-db
-  #     DB_USER: ${DB_USER}
-  #     DB_PASSWORD_FILE: /run/secrets/db_user_password
-  #     DB_NAME: ${DB_NAME}
-  #     WEBSOCKET_PORT: ${WEBSOCKET_PORT}
-  #     DEVICE_MANAGER_LOCAL_CONN: ${DEVICE_MANAGER_LOCAL_CONN}
-  #   volumes:
-  #     - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
-  #   secrets:
-  #     - db_user_password
-  #   ports:
-  #     - "${WEBSOCKET_PORT}:${WEBSOCKET_PORT}"
-  #   depends_on:
-  #     - device-manager-service
+  websocket-service:
+    build:
+      context: .
+      dockerfile: ./deviceNodeServer/DeviceMainNodeServer/WSocketServerManager/Dockerfile
+    restart: always
+    environment:
+      DB_HOST: nodes-db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD_FILE: /run/secrets/db_user_password
+      DB_NAME: ${DB_NAME}
+      WEBSOCKET_PORT: ${WEBSOCKET_PORT}
+      DEVICE_MANAGER_LOCAL_CONN: ${DEVICE_MANAGER_LOCAL_CONN}
+    volumes:
+      - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
+    secrets:
+      - db_user_password
+    ports:
+      - "${WEBSOCKET_PORT}:${WEBSOCKET_PORT}"
+    depends_on:
+      - device-manager-service
 
   php-node-service:
     build:
