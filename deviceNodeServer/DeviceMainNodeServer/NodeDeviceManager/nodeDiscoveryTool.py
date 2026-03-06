@@ -11,6 +11,11 @@ sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils"
 from loggerUtils import get_logger
 logger = get_logger(__name__)
 
+
+
+
+
+
 class nodeDeviceDiscoveryTool():
     devicesFound = []
     def initNodeParameters(self, args, discoveryArgs):

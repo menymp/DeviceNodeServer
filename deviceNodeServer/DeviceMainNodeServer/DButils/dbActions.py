@@ -15,6 +15,9 @@ class dbNodesActions(dbConnectorBase):
     def getNodes(self):
         records =  self.dbConn.execute("SELECT nodestable.idNodesTable,nodestable.nodename,nodestable.nodepath,nodestable.connectionparameters,supportedprotocols.protocolname  FROM nodestable INNER JOIN supportedprotocols ON supportedprotocols.idsupportedprotocols = nodestable.iddeviceprotocol");
         return records
+    
+    def addNewNode(self):
+        pass
         
     def setNodeState(self):
         pass
@@ -67,6 +70,10 @@ class dbDevicesActions(dbConnectorBase):
     
     def addDeviceMeasure(self, value, idDevice):
         self.dbConn.execute("INSERT INTO devicesmeasures (value, uploadDate, idDevice) values (%s,CURRENT_TIMESTAMP(),%s)", (value,idDevice,))
+        pass
+
+    def addDeviceMeasure(self, value, idNode, deviceName):
+        self.dbConn.execute("INSERT INTO devicesmeasures (value, uploadDate, idDevice) values (%s,CURRENT_TIMESTAMP(),%s)", (value,idNode, deviceName,))
         pass
 
     def getDeviceMeasures(self, idDevice, limit=20):
