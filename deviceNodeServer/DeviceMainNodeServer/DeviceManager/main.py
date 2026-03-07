@@ -85,14 +85,20 @@ if __name__ == "__main__":
     args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD")]
     zmqDeviceManagerServerPath = os.getenv("DEVICE_MANAGER_SERVER_PATH", "")
     addDevicesTimePoll = int(os.getenv("ADD_DEVICES_TIME_POLL", ""))
+    mqttBroker = int(os.getenv("MQTT_BROKER_HOST", ""))
+    mqttPort = int(os.getenv("MQTT_BROKER_PORT", ""))
+    mqttKeepalive = int(os.getenv("MQTT_CLIENT_KEEPALIVE", ""))
+    zmqSyncServer = int(os.getenv("DEVICE_MAIN_LOCAL_CONN", ""))
+
 
     logger.info("DeviceManager started with:")
     logger.info(args)
     logger.info(zmqDeviceManagerServerPath)
     logger.info(addDevicesTimePoll)
+    logger.info("%s %s %s %s" % mqttBroker % mqttPort % mqttKeepalive % zmqSyncServer)
 
     deviceMgr = deviceManager()
-    deviceMgr.init(args)
+    deviceMgr.init(args, zmqSyncServer, mqttBroker, mqttPort, mqttKeepalive)
     taskLoadDevices, stopEvent = startLoadDevices(deviceMgr, addDevicesTimePoll)
     logger.info("device manager started...")
     mqServerObj = initMQServer(zmqDeviceManagerServerPath)

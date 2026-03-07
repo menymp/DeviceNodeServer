@@ -1,0 +1,147 @@
+import threading
+from threading import Event
+from threading import Timer
+import sys
+import queue
+import time
+from os.path import dirname, realpath, sep, pardir
+# Get current main.py directory
+sys.path.append(dirname(realpath(__file__)) + sep + pardir)
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DButils")
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
+
+
+from dbActions import dbNodesActions
+from dbActions import dbDevicesActions
+from nodeDiscoveryTool import nodeDeviceDiscoveryTool
+from loggerUtils import get_logger
+logger = get_logger(__name__)
+
+
+#
+# Periodicaly retrives the current nodes and its devices from database
+#
+class deviceDatabaseSync():
+    def __init__(self, initArgs):
+        logger.info("init device sync %s" % initArgs)
+        self.dbHost = initArgs[0]
+        self.dbName = initArgs[1]
+        self.dbUser = initArgs[2]
+        self.dbPass = initArgs[3]
+        self.dbDevicesActions = dbDevicesActions()
+        self.dbNodesActions = dbNodesActions()
+        self.dbActionMeasures = dbDevicesActions()
+        self.dbDevicesActions.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
+        self.dbNodesActions.initConector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
+        self.dbActionMeasures.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
+        self.stop_event = Event()
+        self.taskListen = threading.Thread(target=self._updateBaseDevices, args=())
+        self.taskListen.start()
+        self.CurrentNodes = self.dbAct.getNodes() # first start
+        self.pendingNodes = [] #array of nodes pending to be processed
+        self.devicesValues = {}
+        pass
+
+    def _updateBaseDevices(self):
+        while not self.stop_event.is_set():
+            self.CurrentNodes = self.dbNodesActions.getNodes()
+            self.CurrentDevices = self.dbDevicesActions.getDevices()
+            self.pendingNodes = []
+            time.sleep(1)
+            pass
+        self.dbDevicesActions.deinitConnector()
+        self.dbNodesActions.deinitConnector()
+        pass
+
+    def getNodeFromName(self, name):
+        for node in self.CurrentNodes:
+            if node.nodeName == name:
+                logger.info("found node %s" % node)
+                return node
+        logger.info("node not found %s" % name)
+        return None
+    
+    def getDeviceInfo(self, deviceId):
+        for device in self.CurrentDevices:
+            if device.idDevice == deviceId:
+                logger.info("found device %s" % device)
+                return device
+        logger.info("device not found %s" % deviceId)
+        return None
+    
+    def isNodePending(self, name):
+        return (name in self.pendingNodes)
+    
+    '''
+    {
+        "Name":"MenyGardenNode1",
+        "RootName":"/MenyGardenNode1/",
+        "ip": "x.x.x.x"
+        "Devices": [
+            {
+                "Name":"PirSensor",
+                "Mode":"PUBLISHER",
+                "Type":"STRING",
+                "Channel": "/MenyGardenNode1/PirSensor",
+                "Value": "69.69"
+            },
+            {
+                "Name":"WaterPump",
+                "Mode":"SUBSCRIBER",
+                "Type":"STRING",
+                "Channel":""/MenyNode1/WatterSolenoid/state"",
+                "Value": "ON"
+            }
+        ]
+
+    }
+    '''
+
+    def updateNode(self, nodeData):
+        nodeId = self.getNodeFromName(nodeData["Name"])
+        if self.getNodeFromName(nodeData["Name"]) and self.isNodePending(nodeData["Name"]):
+            nodeId = self.dbNodesActions.addNewNode(nodeData["Name"], nodeData["RootName"], 2)
+            self.pendingNodes.add(nodeData["Name"])
+            pass
+
+        for device in nodeData["Devices"]:
+            logger.info("processing registered device %s" % device)
+            if self.dbDevicesAct.deviceExists(device["Name"], nodeId):
+                try:
+                    result = self.dbDevicesAct.deviceChanged(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeId)
+                    deviceId = self.getDeviceByNameNode(nodeId, device["Name"])
+                    self._updateDeviceMeasure(device["Value"] , deviceId)
+                    self.devicesValues[deviceId] = device["Value"]
+                    if result[1]:
+                        logger.info("device args updated")
+                        self.dbDevicesAct.updateDevice(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeId)
+                except:
+                    logger.error("device could not be updated: '" + str(device["Name"])+"'")
+            else:
+                try:
+                    logger.info("new device added")
+                    self.dbDevicesAct.addNewDevice(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeId)
+                except:
+                    logger.error("device could not be registered: '" + str(device["Name"])+"'")
+        pass
+
+    def _updateDeviceMeasure(self, value, idDevice):
+        try:
+            logger.info("new measure for %s" % (value, idDevice))
+            self.dbActionMeasures.addDeviceMeasure(value, idDevice)
+        except Exception as e:
+            print("Error attempting to update '" + str(idDevice) + "' device with '"+ str(value) +"' value")
+        pass
+
+    def getLastDeviceMeasure(self, idDevice):
+        if idDevice in self.devicesValues:
+            value = self.devicesValues[idDevice]
+            logger.info("last device %s measure is: " % idDevice % value)
+            return value
+        else:
+            logger.info("no measurement for device %s" % idDevice)
+            return None
+    
+    def __delete__(self):
+        self.stop_event()
+        pass

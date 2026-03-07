@@ -13,35 +13,61 @@ sys.path.append(dirname(realpath(__file__)) + sep + pardir)
 sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "ConfigsUtils")
 sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
 
-from nodeManager import nodeDeviceManager
-from configsCreate import configsParser
+
+from deviceDatabaseSync import deviceDatabaseSync
+from deviceDataUpgrader import deviceDataUpgrader
+
+
 from secretReader import get_secret
 from loggerUtils import get_logger
 logger = get_logger(__name__)
 
 if __name__ == "__main__":
-    #parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    #configs_path = os.path.join(parent_dir, 'configs.ini')
-    #print("configs path: " + configs_path)
-
-    #cfgObj = configsParser()
     args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD")]
-    nodeDevMgrPeriod = int(os.getenv("SEARCH_DEVICES_PERIOD", "")) # cfgObj.readSection("nodeDeviceManager",configs_path)
+    mqttHost = os.getenv("MQTT_BROKER_HOST", "")
+    mqttPort = os.getenv("MQTT_BROKER_PORT", "")
+    mqttKeppalive = os.getenv("MQTT_CLIENT_KEEPALIVE", "")
+    zmqServerPath = os.getenv("DEVICE_MAIN_SERVER_PATH", "")
+
     logger.info("Device manager started with:")
     logger.info(args)
-    logger.info(nodeDevMgrPeriod)
+    logger.info("%s %s %s %s" % mqttHost % mqttPort % mqttKeppalive % zmqServerPath)
 
-    devMgr = nodeDeviceManager()
+    deviceDbSync = deviceDatabaseSync(args) # source of trut
+    time.sleep(2)
+    deviceMessageHandler = deviceDataUpgrader(deviceDbSync, mqttHost, mqttPort, mqttKeppalive)
+    deviceMessageHandler.startMqttClient()
+
 
     eventStop = Event()
     def sigterm_handler(signum, frame):
         logger.info("stop process %s" % (signum, frame))
         eventStop.set()
-        devMgr.stop()
     signal.signal(signal.SIGINT, sigterm_handler)
     signal.signal(signal.SIGTERM, sigterm_handler)
 
-    
+    # init message server
+    context = zmq.Context()
+    socket = context.socket(zmq.REP)   # REP = reply, each request result in a reply to the same item
+    socket.bind(zmqServerPath)        # listen on port 5554 by default
     while not eventStop.is_set():
-        devMgr.registerNodes()
+        try:
+            message = socket.recv_string()
+            print(f"Received request: {message}")
+            commandObj = json.loads(message)
+            if "deviceId" not in commandObj:
+                logger.error("wrong command %s" % commandObj)
+                socket.send_string("ERR_KEY")
+            if commandObj["deviceId"] == "":
+                logger.error("null key %s" % commandObj)
+                socket.send_string("ERR_NULL")
+            deviceData = deviceDbSync.getDeviceInfo(commandObj["deviceId"])
+            if deviceData is None:
+                logger.error("device id data not found %s" % deviceData)
+                socket.send_string("NOT_FOUND")
+            logger.info("returning %s" % deviceData)
+            socket.send_string(json.dumps(deviceData))
+        except:
+            logger.error("an error ocurred")
+    logger.error("ending main node server")
     pass

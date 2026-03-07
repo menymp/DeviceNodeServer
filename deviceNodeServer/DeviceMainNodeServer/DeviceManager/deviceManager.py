@@ -2,6 +2,7 @@ import threading
 import json
 import time
 import sys
+import zmq
 import threading
 import paho.mqtt.client as mqtt
 import paho.mqtt.publish as publish
@@ -20,31 +21,41 @@ logger = get_logger(__name__)
 #
 class deviceManager():
     Devices = []
-    def init(self, initArgs):
-        logger.info("init device manager with %s" % initArgs)
+    def init(self, initArgs, zmqSyncServer, mqttBroker, mqttPort = 1883, mqttKeepalive = 60):
+        logger.info("init device manager with %s %s" % initArgs % mqttBroker)
         self.dbHost = initArgs[0]
         self.dbName = initArgs[1]
         self.dbUser = initArgs[2]
         self.dbPass = initArgs[3]
+        self.mqttBroker = mqttBroker
+        self.mqttPort = mqttPort
+        self.mqttKeepalive = mqttKeepalive
         self.dbActions = dbDevicesActions()
         self.dbActions.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
         self.deviceLoad()
-        self.measuresQueue = queue.Queue(10)
-        self.taskWriteMeasures = threading.Thread(target=self.updateMeasuresWorker, args=())
-        self.taskWriteMeasures.start()
+
+        # zmq client for device data sync
+        self.zmqSyncServer = zmqSyncServer
+        self.initZmqClient()
         pass
 
-    def updateMeasuresWorker(self):
-        logger.info("measures worker starting")
-        self.dbActionMeasures = dbDevicesActions()
-        self.dbActionMeasures.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
-        while True:
-            if not self.measuresQueue.empty():
-                logger.info("taking measures")
-                (value, idDevice) = self.measuresQueue.get()
-                self.dbActionMeasures.addDeviceMeasure(value, idDevice)
+    def initZmqClient(self):
+        self.ctx = zmq.Context()
+        self.socket = self.ctx.socket(zmq.REQ)
+        self.socket.connect(self.zmqSyncServer)
         pass
-    #
+
+    def requestDeviceData(self, deviceId):
+        requestString = json.dumps({ "deviceId": deviceId })
+        self.socket.send_string(requestString)
+        reply = self.socket.recv_string()
+        if reply in [f"ERR_KEY", f"ERR_NULL", f"NOT_FOUND"]:
+            logger.error("request error")
+            return None
+        return json.loads(reply)
+        #logger.info(f"Reply: {reply}")
+
+    # load devices from db
     def deviceLoad(self):
         logger.info("loading devices")
         self.availableDevices = self.dbActions.getDevices()
@@ -52,19 +63,11 @@ class deviceManager():
             if not self.deviceAlreadyInit(deviceInfo[1],deviceInfo[5]):
                 logger.info("integrating new device %s" % deviceInfo)
                 tmpDevice = device()
-                tmpDevice.init(deviceInfo, self.updateDeviceMeasure)
+                tmpDevice.init(deviceInfo, self.requestDeviceData, self.mqttBroker, self.mqttPort, self.mqttKeepalive)
                 self.Devices.append(tmpDevice)
             pass
         self.cleanOldDevices()
         # Moved cleanup to maintenance file
-        pass
-
-    def updateDeviceMeasure(self, value, idDevice):
-        try:
-            logger.info("new measure for %s" % (value, idDevice))
-            self.measuresQueue.put((value, idDevice))
-        except Exception as e:
-            print("Error attempting to update '" + str(idDevice) + "' device with '"+ str(value) +"' value")
         pass
 
 
@@ -201,9 +204,12 @@ class deviceManager():
 
 
 class device():
-    def init(self, args, updateDeviceMeasure):
+    def init(self, args, requestDeviceData, mqttBroker, mqttPort, mqttKeepalive):
         logger.info("init new device %s" % args)
         self.initArgs = args
+        self.mqttBroker = mqttBroker
+        self.mqttPort = mqttPort
+        self.mqttKeepalive = mqttKeepalive
         self.id = args[0]
         self.name = args[1]
         self.mode = args[2]
@@ -215,15 +221,9 @@ class device():
         self.ParentNodeProtocol = args[8]
         self.idOwnerUser = args[9]
         self.ParentConnectionParameters = args[10]
-        self.updateDeviceMeasure = updateDeviceMeasure
-
+        self.requestDeviceData = requestDeviceData
         self.value = ""
         self.initDriver(self.ParentNodeProtocol)
-        pass
-
-    def writeDeviceMeasure(self, value):
-        logger.info("device update measure %s" % (value, self.id))
-        self.updateDeviceMeasure(value, self.id) #adds id from device
         pass
 
     def __del__(self):
@@ -233,15 +233,17 @@ class device():
         pass
 
     def getValue(self):
-        logger.info("returning value %s" % self.value)
-        return self.value
+        result = self.requestDeviceData(self.id)
+        if "Value" not in result:
+            return ""
+        return result["Value"]
 
     def initDriver(self, protocol):
         if protocol == "MQTT":
             self.Driver = mqttDriver()
             if self.mode == "PUBLISHER":
                 #a publisher just updates its internal value
-                self.Driver.init(self.ParentConnectionParameters, self.writeDeviceMeasure, self.channelPath)
+                self.Driver.init(self.channelPath, self.mqttBroker, self.mqttBroker, self.mqttPort, self.mqttKeepalive)
             if self.mode == "SUBSCRIBER":
                 #if a subscriber type, in order to get the value we subscribe to the publish path
                 self.Driver.init(self.ParentConnectionParameters, self.ParentNodePath + self.name)
@@ -277,67 +279,23 @@ class device():
         return result, updatingLock
 
 class mqttDriver():
-    def init(self, args, writeMeasureCallback, path = ""):
-        logger.info("starting an mqtt protocol driver %s" % (args, path))
-        self.subscriberPath = path
-        self.connArgs = json.loads(args)
-        self.initDriver()
-        self.value = ""
+    def init(self, deviceTopic, mqttBroker, mqttPort, mqttKeepalive):
+        logger.info("starting an mqtt protocol driver %s" % deviceTopic)
+        self.deviceTopic = deviceTopic
         self.lastSentCmd = ""
-        self.lockUpdateFlag = False
-        self.writeMeasureCallback = writeMeasureCallback
-        #self.initDriver()
-        pass
+        self.mqttBroker = mqttBroker
+        self.mqttPort = mqttPort
+        self.mqttKeepalive = mqttKeepalive
 
-    def stop(self):
-        logger.info("stopping mqtt driver")
-        self.client.disconnect()
-        self.client.loop_stop()
-        pass
-    #locks the result until a new response is sent
-    #since the backend is designed in this way this should
-    #mitigate the effect of the delayed update
-    def getLockFlag(self):
-        logger.info("lock is %s" % self.lockUpdateFlag)
-        return self.lockUpdateFlag
-
-    def initDriver(self):
         self.client = mqtt.Client()
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
-        self.client.connect(self.connArgs["broker"], self.connArgs["port"], self.connArgs["keepalive"])
 
-        taskListen = threading.Thread(target=self.clientlisten, args=(self.client,))
-        taskListen.start()
-        logger.info("mqtt driver thread started")
+        # Connect to the broker (default port 1883, keepalive 60 seconds)
+        self.client.connect(mqttBroker, port=mqttPort, keepalive=mqttKeepalive)
         pass
 
-    def clientlisten(self, arg):
-        arg.loop_forever()
-        pass
-
-    def sendCommand(self,command, args):
+    def sendCommand(self,command):
         logger.info("sending mqtt command")
         self.lockUpdateFlag  = True
         self.lastSentCmd = command
-        publish.single(topic = args, payload = command, hostname = self.connArgs["broker"])
-        pass
-
-    def getValue(self):
-        return self.value
-
-    def on_connect(self, client, userdata, flags, rc):
-        if self.subscriberPath == "":
-            return
-        self.client.subscribe(self.subscriberPath)
-        pass
-
-    def on_message(self, client, userdata, msg):
-        m_decode=str(msg.payload.decode("utf-8","ignore"))
-        data = json.loads(m_decode)
-        logger.info("mqtt message received %s" % (client, userdata, msg))
-        self.value = data["Value"]
-        self.writeMeasureCallback(data["Value"]) #updates value to measures
-        if self.lockUpdateFlag and self.lastSentCmd == self.value: #ToDo: a race condition may happens if no update received
-            self.lockUpdateFlag = False
+        self.client.publish(topic = self.deviceTopic, payload = command)
         pass

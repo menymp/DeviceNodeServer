@@ -33,6 +33,8 @@ services:
       ADD_DEVICES_TIME_POLL: ${ADD_DEVICES_TIME_POLL}
       MQTT_BROKER_HOST: mqtt-broker
       MQTT_BROKER_PORT: ${MQTT_BROKER_PORT} #ToDo: rewire the broker host and port into device manager as well, given the server centralization
+      MQTT_CLIENT_KEEPALIVE: ${MQTT_CLIENT_KEEPALIVE}
+      DEVICE_MAIN_LOCAL_CONN: ${DEVICE_MAIN_LOCAL_CONN} # for the source of trut REP server
     volumes:
       - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
     secrets:
@@ -54,8 +56,10 @@ services:
       DB_PASSWORD_FILE: /run/secrets/db_user_password
       DB_NAME: ${DB_NAME}
       SEARCH_DEVICES_PERIOD: ${SEARCH_DEVICES_PERIOD}
+      DEVICE_MAIN_SERVER_PATH: ${DEVICE_MAIN_SERVER_PATH}
       MQTT_BROKER_HOST: mqtt-broker
       MQTT_BROKER_PORT: ${MQTT_BROKER_PORT} #ToDo: rewire the broker host and port into device manager as well, given the server centralization
+      MQTT_CLIENT_KEEPALIVE: ${MQTT_CLIENT_KEEPALIVE}
     volumes:
       - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
     secrets:
