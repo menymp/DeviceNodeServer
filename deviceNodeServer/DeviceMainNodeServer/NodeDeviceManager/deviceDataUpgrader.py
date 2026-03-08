@@ -24,6 +24,9 @@ logger = get_logger(__name__)
 # updates its db measurement states
 # notifies device manager from new devices to add by zmq
 class deviceDataUpgrader():
+    broker_registration_path = "/inbound"
+    broker_validation_path = "/node_name_request"
+    
     def __init__(self, deviceSyncInstance, broker, port = 1883, keepalive = 60):
         logger.info("init device message handler %s %s %s" % broker % port % keepalive)
         self.deviceSyncInstance = deviceSyncInstance
@@ -38,6 +41,8 @@ class deviceDataUpgrader():
         self.client = mqtt.Client()
         self.client.on_connect = self._on_connect
         self.client.on_message = self._handleIncomingMessage
+        self.client.subscribe(self.broker_registration_path)
+        self.client.subscribe(self.broker_validation_path)
         self.client.connect(self.mqttBroketPath, self.port, self.keepalive)
         self.taskListen = threading.Thread(target=self._handle, args=())
         self.taskListen.start()
@@ -76,9 +81,16 @@ class deviceDataUpgrader():
 
     }
     '''
+    def _handleIncomingMessage(self, client, userdata, msg):
+        if msg.topic == self.broker_registration_path:
+            logger.info("Registration message")
+            self._handle_registration_message(msg)
+        if msg.topic == self.broker_validation_path:
+            self._handle_validation_request(msg)
+        pass
 
     #handle each device call to main register thread
-    def _handleIncomingMessage(self, client, userdata, msg):
+    def _handle_registration_message(self, msg):
         try:
             m_decode=str(msg.payload.decode("utf-8","ignore"))
             logger.info("manifest discovered %s" % (m_decode))
@@ -93,6 +105,30 @@ class deviceDataUpgrader():
                 return
             self.deviceSyncInstance.updateNode(nodeManifest)
 
+        except:
+            logger.error("an error ocurred processing device request")
+        pass
+
+    def _handle_validation_request(self, msg):
+        try:
+            # TODO: This may be better to implement an aditional name seek with device MAC to avoid suplantation
+            m_decode=str(msg.payload.decode("utf-8","ignore"))
+            logger.info("registration request %s" % (m_decode))
+            nodeValidationRequest = json.loads(m_decode)
+            # Integrity validation
+            nodeName = nodeValidationRequest["Name"]
+            nodeAcknowledgePath = nodeValidationRequest["AcknowledgePath"] #the path where the node is waiting confirmation
+
+            if nodeName == "" or nodeAcknowledgePath == "":
+                logger.error("invalid request validation form %s %s" % nodeName % nodeAcknowledgePath)
+                return
+            if self.deviceSyncInstance.getNodeFromName(nodeName) is not None:
+                # return a failure name adquisition if name already exists in the server instance
+                logger.error("Node name %s in use " % nodeName)
+                self.client.publish(topic = nodeAcknowledgePath, payload = "ERR_ACK")
+                return
+            logger.error("Node name %s successfully registered " % nodeName)
+            self.client.publish(topic = nodeAcknowledgePath, payload = "SUCCESS_ACK")
         except:
             logger.error("an error ocurred processing device request")
         pass
