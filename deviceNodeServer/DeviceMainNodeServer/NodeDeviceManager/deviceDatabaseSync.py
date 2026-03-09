@@ -1,8 +1,6 @@
 import threading
 from threading import Event
-from threading import Timer
 import sys
-import queue
 import time
 from os.path import dirname, realpath, sep, pardir
 # Get current main.py directory
@@ -13,7 +11,6 @@ sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils"
 
 from dbActions import dbNodesActions
 from dbActions import dbDevicesActions
-from nodeDiscoveryTool import nodeDeviceDiscoveryTool
 from loggerUtils import get_logger
 logger = get_logger(__name__)
 
@@ -32,13 +29,13 @@ class deviceDatabaseSync():
         self.dbNodesActions = dbNodesActions()
         self.dbActionMeasures = dbDevicesActions()
         self.dbDevicesActions.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
-        self.dbNodesActions.initConector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
+        self.dbNodesActions.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
         self.dbActionMeasures.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
         self.stop_event = Event()
         self.taskListen = threading.Thread(target=self._updateBaseDevices, args=())
         self.taskListen.start()
-        self.CurrentNodes = self.dbAct.getNodes() # first start
-        self.pendingNodes = [] #array of nodes pending to be processed
+        self.CurrentNodes = self.dbNodesActions.getNodes() # first start
+        self.pendingNodes = set() #array of nodes pending to be processed
         self.devicesValues = {}
         pass
 
@@ -46,7 +43,7 @@ class deviceDatabaseSync():
         while not self.stop_event.is_set():
             self.CurrentNodes = self.dbNodesActions.getNodes()
             self.CurrentDevices = self.dbDevicesActions.getDevices()
-            self.pendingNodes = []
+            self.pendingNodes = set()
             time.sleep(1)
             pass
         self.dbDevicesActions.deinitConnector()
@@ -76,7 +73,7 @@ class deviceDatabaseSync():
     {
         "Name":"MenyGardenNode1",
         "RootName":"/MenyGardenNode1/",
-        "ip": "x.x.x.x"
+        "ip": "x.x.x.x",
         "Devices": [
             {
                 "Name":"PirSensor",
@@ -89,7 +86,7 @@ class deviceDatabaseSync():
                 "Name":"WaterPump",
                 "Mode":"SUBSCRIBER",
                 "Type":"STRING",
-                "Channel":""/MenyNode1/WatterSolenoid/state"",
+                "Channel":"/MenyNode1/WaterSolenoid/state",
                 "Value": "ON"
             }
         ]
@@ -106,28 +103,28 @@ class deviceDatabaseSync():
 
         for device in nodeData["Devices"]:
             logger.info("processing registered device %s" % device)
-            if self.dbDevicesAct.deviceExists(device["Name"], nodeId):
+            if self.dbDevicesActions.deviceExists(device["Name"], nodeId):
                 try:
-                    result = self.dbDevicesAct.deviceChanged(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeId)
-                    deviceId = self.getDeviceByNameNode(nodeId, device["Name"])
+                    result = self.dbDevicesActions.deviceChanged(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeId)
+                    deviceId = self.dbDevicesActions.getDeviceByNameNode(nodeId, device["Name"])
                     self._updateDeviceMeasure(device["Value"] , deviceId)
                     self.devicesValues[deviceId] = device["Value"]
                     if result[1]:
                         logger.info("device args updated")
-                        self.dbDevicesAct.updateDevice(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeId)
-                except:
-                    logger.error("device could not be updated: '" + str(device["Name"])+"'")
+                        self.dbDevicesActions.updateDevice(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeId)
+                except Exception as e:
+                    logger.error("device could not be updated: '" + str(device["Name"])+"' " + str(e))
             else:
                 try:
                     logger.info("new device added")
-                    self.dbDevicesAct.addNewDevice(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeId)
+                    self.dbDevicesActions.addNewDevice(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeId)
                 except:
                     logger.error("device could not be registered: '" + str(device["Name"])+"'")
         pass
 
     def _updateDeviceMeasure(self, value, idDevice):
         try:
-            logger.info("new measure for %s" % (value, idDevice))
+            logger.info("new measure for %s %s" % (value, idDevice))
             self.dbActionMeasures.addDeviceMeasure(value, idDevice)
         except Exception as e:
             print("Error attempting to update '" + str(idDevice) + "' device with '"+ str(value) +"' value")
@@ -136,12 +133,13 @@ class deviceDatabaseSync():
     def getLastDeviceMeasure(self, idDevice):
         if idDevice in self.devicesValues:
             value = self.devicesValues[idDevice]
-            logger.info("last device %s measure is: " % idDevice % value)
+            logger.info("last device %s measure is: %s" % (idDevice, value))
             return value
         else:
             logger.info("no measurement for device %s" % idDevice)
             return None
     
     def __delete__(self):
-        self.stop_event()
+        self.stop_event.set()
+        self.taskListen.join()
         pass

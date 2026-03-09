@@ -25,17 +25,17 @@ logger = get_logger(__name__)
 if __name__ == "__main__":
     args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD")]
     mqttHost = os.getenv("MQTT_BROKER_HOST", "")
-    mqttPort = os.getenv("MQTT_BROKER_PORT", "")
-    mqttKeppalive = os.getenv("MQTT_CLIENT_KEEPALIVE", "")
+    mqttPort = int(os.getenv("MQTT_BROKER_PORT", "1883"))
+    mqttKeepalive = int(os.getenv("MQTT_CLIENT_KEEPALIVE", "60"))
     zmqServerPath = os.getenv("DEVICE_MAIN_SERVER_PATH", "")
 
     logger.info("Device manager started with:")
     logger.info(args)
-    logger.info("%s %s %s %s" % mqttHost % mqttPort % mqttKeppalive % zmqServerPath)
+    logger.info("%s %s %s %s" % (mqttHost, mqttPort, mqttKeepalive, zmqServerPath))
 
     deviceDbSync = deviceDatabaseSync(args) # source of trut
     time.sleep(2)
-    deviceMessageHandler = deviceDataUpgrader(deviceDbSync, mqttHost, mqttPort, mqttKeppalive)
+    deviceMessageHandler = deviceDataUpgrader(deviceDbSync, mqttHost, mqttPort, mqttKeepalive)
     deviceMessageHandler.startMqttClient()
 
 
@@ -58,16 +58,22 @@ if __name__ == "__main__":
             if "deviceId" not in commandObj:
                 logger.error("wrong command %s" % commandObj)
                 socket.send_string("ERR_KEY")
+                continue
             if commandObj["deviceId"] == "":
                 logger.error("null key %s" % commandObj)
                 socket.send_string("ERR_NULL")
+                continue
             deviceData = deviceDbSync.getDeviceInfo(commandObj["deviceId"])
             if deviceData is None:
                 logger.error("device id data not found %s" % deviceData)
                 socket.send_string("NOT_FOUND")
+                continue
             logger.info("returning %s" % deviceData)
             socket.send_string(json.dumps(deviceData))
-        except:
-            logger.error("an error ocurred")
-    logger.error("ending main node server")
+        except Exception as e:
+            logger.error("an error ocurred %s", e)
+    logger.info("ending main node server")
+
+    socket.close()
+    context.term()
     pass

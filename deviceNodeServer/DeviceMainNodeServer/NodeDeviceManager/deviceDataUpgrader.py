@@ -13,9 +13,6 @@ sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DButils")
 sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
 
 
-from dbActions import dbNodesActions
-from dbActions import dbDevicesActions
-from nodeDiscoveryTool import nodeDeviceDiscoveryTool
 from loggerUtils import get_logger
 logger = get_logger(__name__)
 
@@ -28,10 +25,10 @@ class deviceDataUpgrader():
     broker_validation_path = "/node_name_request"
     
     def __init__(self, deviceSyncInstance, broker, port = 1883, keepalive = 60):
-        logger.info("init device message handler %s %s %s" % broker % port % keepalive)
+        logger.info("init device message handler %s %s %s" % (broker, port, keepalive))
         self.deviceSyncInstance = deviceSyncInstance
         self.path = broker #poner el manifest en el path NOTA IMPORTANTE
-        self.mqttBroketPath = broker
+        self.mqttBrokerPath = broker
         self.port = port
         self.keepalive = keepalive
         self.devicesAddedCount = 0
@@ -41,14 +38,15 @@ class deviceDataUpgrader():
         self.client = mqtt.Client()
         self.client.on_connect = self._on_connect
         self.client.on_message = self._handleIncomingMessage
-        self.client.subscribe(self.broker_registration_path)
-        self.client.subscribe(self.broker_validation_path)
-        self.client.connect(self.mqttBroketPath, self.port, self.keepalive)
+        self.client.connect(self.mqttBrokerPath, self.port, self.keepalive)
         self.taskListen = threading.Thread(target=self._handle, args=())
         self.taskListen.start()
         pass
     
-    def _on_connect(self):
+    def _on_connect(self, client, userdata, flags, rc):
+        logger.info("Server connected to broker")
+        self.client.subscribe(self.broker_registration_path)
+        self.client.subscribe(self.broker_validation_path)
         pass
     
     # manages the main message threading
@@ -61,7 +59,7 @@ class deviceDataUpgrader():
     {
         "Name":"MenyGardenNode1",
         "RootName":"/MenyGardenNode1/",
-        "ip": "x.x.x.x"
+        "ip": "x.x.x.x",
         "Devices": [
             {
                 "Name":"PirSensor",
@@ -74,7 +72,7 @@ class deviceDataUpgrader():
                 "Name":"WaterPump",
                 "Mode":"SUBSCRIBER",
                 "Type":"STRING",
-                "Channel":""/MenyNode1/WatterSolenoid/state"",
+                "Channel":"/MenyNode1/WaterSolenoid/state",
                 "Value": "ON"
             }
         ]
@@ -105,8 +103,8 @@ class deviceDataUpgrader():
                 return
             self.deviceSyncInstance.updateNode(nodeManifest)
 
-        except:
-            logger.error("an error ocurred processing device request")
+        except Exception as e:
+            logger.error("an error ocurred processing device registration request %s", e)
         pass
 
     def _handle_validation_request(self, msg):
@@ -120,17 +118,17 @@ class deviceDataUpgrader():
             nodeAcknowledgePath = nodeValidationRequest["AcknowledgePath"] #the path where the node is waiting confirmation
 
             if nodeName == "" or nodeAcknowledgePath == "":
-                logger.error("invalid request validation form %s %s" % nodeName % nodeAcknowledgePath)
+                logger.error("invalid request validation form %s %s" % (nodeName, nodeAcknowledgePath))
                 return
             if self.deviceSyncInstance.getNodeFromName(nodeName) is not None:
                 # return a failure name adquisition if name already exists in the server instance
-                logger.error("Node name %s in use " % nodeName)
+                logger.error("Node name %s in use " % (nodeName))
                 self.client.publish(topic = nodeAcknowledgePath, payload = "ERR_ACK")
                 return
-            logger.error("Node name %s successfully registered " % nodeName)
+            logger.info("Node name %s successfully registered " % (nodeName))
             self.client.publish(topic = nodeAcknowledgePath, payload = "SUCCESS_ACK")
-        except:
-            logger.error("an error ocurred processing device request")
+        except Exception as e:
+            logger.error("an error ocurred processing device validation request %s", e)
         pass
 
     def __exit__(self):
