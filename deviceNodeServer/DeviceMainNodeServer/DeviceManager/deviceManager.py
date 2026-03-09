@@ -18,11 +18,37 @@ from dbActions import dbDevicesActions
 from loggerUtils import get_logger
 logger = get_logger(__name__)
 
+'''
+ToDo:	now that i saw again this implementation, this is not a suitable approach
+        		current protocol works like:
+        		the nodeDevicesDiscoveryTool read each given node and initialze the existing devices with its manifest
+				and the devices table is updated in the database, then the device manager performs an initialization of
+				the expected existing devices preriodicaly in the devices list. then, the front end sends the commands
+				to getValue and read the current devices or to execute a command execution.
+				
+				this makes a complex situation where there is no way to know the true current state of the device.
+				
+				a better architecture should move the behavior of the command to the current device and create a dual
+				channel to perform a response for each existing device
+'''
+
 #
+
+#handle command object as an array in order to process an object
+#this approach is better since a fast processing is posible by large
+#objects in the backend, also one request allow the system to 
+#keep the latency at minimun instead of individual requests
+'''
+example of response object
+cmdResult = {
+	"result":"24",
+	"state":"OK"
+}
+'''
 class deviceManager():
     Devices = []
     def init(self, initArgs, zmqSyncServer, mqttBroker, mqttPort = 1883, mqttKeepalive = 60):
-        logger.info("init device manager with %s %s" % initArgs % mqttBroker)
+        logger.info("init device manager with %s %s" % (initArgs, mqttBroker))
         self.dbHost = initArgs[0]
         self.dbName = initArgs[1]
         self.dbUser = initArgs[2]
@@ -79,31 +105,19 @@ class deviceManager():
         return flagExists
     
     def cleanOldDevices(self):
-        flagExists = False
-        for index, deviceObj in enumerate(self.Devices):
+        for index, deviceObj in enumerate(self.Devices[:]):  # iterate over a copy
+            flagExists = False
             for availableDevice in self.availableDevices:
                 if (deviceObj.name == availableDevice[1] and deviceObj.idParentNode == availableDevice[5]):
                     flagExists = True
+                    break
             if not flagExists:
-                logger.info("device: '"+str(deviceObj.name)+"' from parent node id: '"+str(deviceObj.idParentNode)+ "' removed")
-                print("device: '"+str(deviceObj.name)+"' from parent node id: '"+str(deviceObj.idParentNode)+ "' removed")
+                logger.info("device '%s' from parent node id '%s' removed", deviceObj.name, deviceObj.idParentNode)
                 deviceToDel = self.Devices.pop(index)
                 del deviceToDel
-        return flagExists
-	#handle command object as an array in order to process an object
-	#this approach is better since a fast processing is posible by large
-	#objects in the backend, also one request allow the system to 
-	#keep the latency at minimun instead of individual requests
-    '''
-	example of response object
-	cmdResult = {
-		"result":"24",
-		"state":"OK"
-	}
-	'''
+
     def executeCMDJson(self, jsonArgs):
         logger.info("running json command %s" % jsonArgs)
-        flagUpdate = False
         cmdArrayObj1 = json.loads(jsonArgs["args"])
         cmdArrayObj = json.loads(cmdArrayObj1)#ToDo: fix, for some weird reason, objects are stringified with dual quotes
         results = []
@@ -142,13 +156,10 @@ class deviceManager():
 
 
             try:
-                result, flagUpdate = self.executeCMDraw(cmd['idDevice'], cmd['command'], cmd['args'])
-                logger.info("raw command result %s" % (result, flagUpdate))
+                result = self.executeCMDraw(cmd['idDevice'], cmd['command'], cmd['args'])
+                logger.info("raw command result %s" % (result))
             except:
                 state = "ERROR"
-            
-            if flagUpdate:
-                state = "UPDATING" #If a write operation is performed this notify the front end
 
             cmdResult = {
                 "idDevice":cmd['idDevice'],
@@ -161,21 +172,20 @@ class deviceManager():
 
     def executeCMD(self, idDevice, command, args):
         logger.info("running command %s" % (idDevice, command, args))
-        rawResult, flagUpdate = self.executeCMDraw(idDevice, command, args)
+        rawResult = self.executeCMDraw(idDevice, command, args)
         dictionary = {'result':rawResult}
         jsonString = json.dumps(dictionary, indent=4)
-        logger.info("result %s" % (jsonString, flagUpdate))
-        return jsonString, flagUpdate 
+        logger.info("result %s" % (jsonString))
+        return jsonString
     
     def executeCMDraw(self, idDevice, command, args):
         logger.info("running raw command %s" % (idDevice, command, args))
         result = ""
-        flagUpdate = False
         for device in self.Devices:
             if device.id == idDevice:
-                result, flagUpdate = device.executeCMD(command,args)
+                result = device.executeCMD(command,args)
                 break
-        return result, flagUpdate
+        return result
     
     #toDo: still in proof of concept expect for a better approach
     def execCommand(self, inputArgs):
@@ -191,7 +201,7 @@ class deviceManager():
                 ids.append((deviceObj.name,deviceObj.id,deviceObj.type))
             return str(ids)
         elif inTks[0] == "run":
-            result,flagUpdate = self.executeCMD(inTks[1],inTks[2],inTks[3])
+            result = self.executeCMD(inTks[1],inTks[2],inTks[3])
             return result
         else:
             logger.error("unknown")
@@ -200,8 +210,6 @@ class deviceManager():
     
     def jsonDumpResult(self,value,key):
         pass
-
-
 
 class device():
     def init(self, args, requestDeviceData, mqttBroker, mqttPort, mqttKeepalive):
@@ -243,40 +251,25 @@ class device():
             self.Driver = mqttDriver()
             if self.mode == "PUBLISHER":
                 #a publisher just updates its internal value
-                self.Driver.init(self.channelPath, self.mqttBroker, self.mqttBroker, self.mqttPort, self.mqttKeepalive)
+                self.Driver.init(self.channelPath, self.mqttBroker, self.mqttPort, self.mqttKeepalive)
             if self.mode == "SUBSCRIBER":
                 #if a subscriber type, in order to get the value we subscribe to the publish path
-                self.Driver.init(self.ParentConnectionParameters, self.ParentNodePath + self.name)
+                self.Driver.init(self.channelPath, self.mqttBroker, self.mqttPort, self.mqttKeepalive)
         else:
-            raise Exception("Protocol "+args[4]+"not supported")
+            raise Exception("Protocol "+protocol+" not supported")
 
     def executeCMD(self, cmd, args):
         logger.info("running command %s" % (cmd, args))
         result = ""
-        updatingLock = False
-        '''
-        ToDo:	now that i saw again this implementation, this is not a suitable approach
-        		current protocol works like:
-        		the nodeDevicesDiscoveryTool read each given node and initialze the existing devices with its manifest
-				and the devices table is updated in the database, then the device manager performs an initialization of
-				the expected existing devices preriodicaly in the devices list. then, the front end sends the commands
-				to getValue and read the current devices or to execute a command execution.
-				
-				this makes a complex situation where there is no way to know the true current state of the device.
-				
-				a better architecture should move the behavior of the command to the current device and create a dual
-				channel to perform a response for each existing device
-        '''
         
         if cmd == 'getValue' or self.mode == 'PUBLISHER':
-            result = self.Driver.getValue()
+            result = self.getValue()
             self.value = result
         if cmd != 'getValue' and self.mode == 'SUBSCRIBER':
             #currently the only thing that accepts commands are SUBSCRIBER nodes
             self.Driver.sendCommand(cmd, self.channelPath)
             result = "OK"
-        updatingLock = self.Driver.getLockFlag()
-        return result, updatingLock
+        return result
 
 class mqttDriver():
     def init(self, deviceTopic, mqttBroker, mqttPort, mqttKeepalive):
@@ -299,3 +292,8 @@ class mqttDriver():
         self.lastSentCmd = command
         self.client.publish(topic = self.deviceTopic, payload = command)
         pass
+
+    def stop(self):
+        logger.info("stopping mqtt driver")
+        self.client.disconnect()
+        self.client.loop_stop()

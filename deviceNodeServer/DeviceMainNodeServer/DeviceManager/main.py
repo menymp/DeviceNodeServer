@@ -25,7 +25,7 @@ def initMQServer(serverPath):
     context = zmq.Context()
     socket = context.socket(zmq.REP)
     socket.bind(serverPath)
-    return socket
+    return socket, context
 
 def taskLoadDevices(deviceManager, timeSleep, stopEvent):
     try:
@@ -33,9 +33,9 @@ def taskLoadDevices(deviceManager, timeSleep, stopEvent):
             deviceManager.deviceLoad()
             time.sleep(timeSleep)
         logger.info("exiting loadDevices")
-    except:
+    except Exception as e:
         print("conflict attempting to load devices")
-        logger.error("conflict attempting to load devices")
+        logger.error("conflict attempting to load devices %s" % (e))
     pass
 
 def startLoadDevices(deviceManager, add_time_poll):
@@ -65,7 +65,7 @@ def processIncommingMessage(deviceManager, message):
             }
             result = json.dumps(error)
     except Exception as e:
-        logger.info(commandObj)
+        logger.error("command obj: %s", commandObj)
         print("command error!" + str(e))
         logger.error("command error %s" % e)
         error = {
@@ -84,42 +84,44 @@ if __name__ == "__main__":
     #cfgObj = configsParser()
     args = [os.getenv("DB_HOST", ""), os.getenv("DB_NAME", ""), os.getenv("DB_USER", ""), get_secret("DB_PASSWORD")]
     zmqDeviceManagerServerPath = os.getenv("DEVICE_MANAGER_SERVER_PATH", "")
-    addDevicesTimePoll = int(os.getenv("ADD_DEVICES_TIME_POLL", ""))
-    mqttBroker = int(os.getenv("MQTT_BROKER_HOST", ""))
-    mqttPort = int(os.getenv("MQTT_BROKER_PORT", ""))
-    mqttKeepalive = int(os.getenv("MQTT_CLIENT_KEEPALIVE", ""))
-    zmqSyncServer = int(os.getenv("DEVICE_MAIN_LOCAL_CONN", ""))
+    addDevicesTimePoll = int(os.getenv("ADD_DEVICES_TIME_POLL", "5"))
+    mqttBroker = os.getenv("MQTT_BROKER_HOST", "")
+    mqttPort = int(os.getenv("MQTT_BROKER_PORT", "1883"))
+    mqttKeepalive = int(os.getenv("MQTT_CLIENT_KEEPALIVE", "60"))
+    zmqSyncServer = os.getenv("DEVICE_MAIN_LOCAL_CONN", "")
 
 
     logger.info("DeviceManager started with:")
     logger.info(args)
     logger.info(zmqDeviceManagerServerPath)
     logger.info(addDevicesTimePoll)
-    logger.info("%s %s %s %s" % mqttBroker % mqttPort % mqttKeepalive % zmqSyncServer)
+    logger.info("%s %s %s %s" % (mqttBroker, mqttPort, mqttKeepalive, zmqSyncServer))
 
     deviceMgr = deviceManager()
     deviceMgr.init(args, zmqSyncServer, mqttBroker, mqttPort, mqttKeepalive)
-    taskLoadDevices, stopEvent = startLoadDevices(deviceMgr, addDevicesTimePoll)
+    taskLoadDevicesRef, stopDevicesEvent = startLoadDevices(deviceMgr, addDevicesTimePoll)
     logger.info("device manager started...")
-    mqServerObj = initMQServer(zmqDeviceManagerServerPath)
+    mqServerObj, context = initMQServer(zmqDeviceManagerServerPath)
     logger.info("MQ Server started")
 
     eventStop = Event()
     def sigterm_handler(signum, frame):
         logger.info("stop process")
         eventStop.set()
-        mqServerObj.destroy()
+        mqServerObj.close()
+        context.term()
     signal.signal(signal.SIGINT, sigterm_handler)
     signal.signal(signal.SIGTERM, sigterm_handler)
     #signal.signal(signal.SIGQUIT, sigterm_handler)
 
-    while not stopEvent.is_set():
+    while not eventStop.is_set():
         message = mqServerObj.recv().decode()
         result = processIncommingMessage(deviceMgr, message)
         #  Send reply back to client
         mqServerObj.send(result.encode())
         pass
-    stopLoadDevices(stopEvent)
+    stopLoadDevices(stopDevicesEvent)
+    taskLoadDevicesRef.join()
     
     logger.info("exit success for DeviceManager")
     pass
