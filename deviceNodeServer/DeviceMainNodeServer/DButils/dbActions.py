@@ -105,11 +105,11 @@ class dbDevicesActions(dbConnectorBase):
 
 class dbVideoActions(dbConnectorBase):
 	def getVideoSources(self):
-		records = self.dbConn.execute("SELECT * FROM videoSources")
+		records = self.dbConn.execute("SELECT * FROM videosources")
 		return records
 	
 	def addVideoSource(self, name, idCreator, parameterObject):
-		records = self.dbConn.execute("INSERT INTO videoSources (name, idCreator, sourceParameters) VALUES (%s, %s, %s)")
+		records = self.dbConn.execute("INSERT INTO videosources (name, idCreator, sourceParameters) VALUES (%s, %s, %s)")
 		return "OK"
 	
 	def updateVideoSource(self, parameterObject):

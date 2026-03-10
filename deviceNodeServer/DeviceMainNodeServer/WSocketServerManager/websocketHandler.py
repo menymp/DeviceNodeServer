@@ -1,6 +1,7 @@
  #!/usr/bin/python
 #coding:utf-8
 import os.path
+from os.path import dirname, realpath, sep, pardir
 
 import tornado.httpserver
 import tornado.web

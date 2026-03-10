@@ -49,7 +49,7 @@ if __name__ == "__main__":
     devicesMaintainer = devicesDbMaintenance(args)
     
     #set schedulers callbacks
-    schedule.every(24).hours.do(devicesMaintainer.performMaintenance())
+    schedule.every(24).hours.do(devicesMaintainer.performMaintenance)
 
     logger.info("MaintenanceService started with:")
     logger.info(args)

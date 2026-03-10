@@ -34,14 +34,21 @@ class deviceDatabaseSync():
         self.stop_event = Event()
         self.taskListen = threading.Thread(target=self._updateBaseDevices, args=())
         self.taskListen.start()
-        self.CurrentNodes = self.dbNodesActions.getNodes() # first start
+        self._requestNodes()
         self.pendingNodes = set() #array of nodes pending to be processed
         self.devicesValues = {}
         pass
+    
+    def _requestNodes(self):
+        try:
+            self.CurrentNodes = self.dbNodesActions.getNodes() # first start
+        except Exception as e:
+            self.CurrentNodes = []
+            logger.error("Failed to request nodes, retrying")
 
     def _updateBaseDevices(self):
         while not self.stop_event.is_set():
-            self.CurrentNodes = self.dbNodesActions.getNodes()
+            self._requestNodes()
             self.CurrentDevices = self.dbDevicesActions.getDevices()
             self.pendingNodes = set()
             time.sleep(1)
