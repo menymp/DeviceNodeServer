@@ -12,12 +12,16 @@ class dbConnectorBase():
         pass
 
 class dbNodesActions(dbConnectorBase):
+    def getDefaultUser(self):
+        result = self.dbConn.execute("select idUser from users where username = 'default_user'")
+        return result[0][0]
+
     def getNodes(self):
         records =  self.dbConn.execute("SELECT nodestable.idNodesTable,nodestable.nodename,nodestable.nodepath,nodestable.connectionparameters,supportedprotocols.protocolname  FROM nodestable INNER JOIN supportedprotocols ON supportedprotocols.idsupportedprotocols = nodestable.iddeviceprotocol");
         return records
     
     def addNewNode(self, nodeName, nodePath, idDeviceProtocol, idOwnerUser = 1):
-        insertResult = self.dbConn.execute("INSERT INTO nodestable (nodeName, nodePath, idDeviceProtocol, idOwnerUser, connectionParameters) VALUES (%s, %s, %s, %s, "") RETURNING idNodesTable", (nodeName, nodePath, idDeviceProtocol,idOwnerUser))
+        insertResult = self.dbConn.execute("INSERT INTO nodestable (nodeName, nodePath, idDeviceProtocol, idOwnerUser, connectionParameters) VALUES (%s, %s, %s, %s, '') RETURNING idNodesTable", (nodeName, nodePath, idDeviceProtocol,idOwnerUser))
         return insertResult[0]["idNodesTable"]
         
     def setNodeState(self):

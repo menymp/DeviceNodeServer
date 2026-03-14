@@ -16,7 +16,7 @@ this class abstracts common patterns that originaly were scatered across all mod
 import time
 import json
 import paho.mqtt.client as mqtt
-import network_utils_hal
+from network_utils_hal import network_utils_hal
 from threading import Timer, Event
 
 
@@ -92,6 +92,7 @@ class node_bridge(network_utils_hal):
         self.client = mqtt.Client()
         self.client.on_connect = self._on_connect
         self.client.on_message = self._on_message
+        self.client.on_disconnect = self._on_disconnect
         self.client.connect(self.mqtt_broker, self.mqtt_port, self.mqtt_keepalive)
         self.client.loop_start()
 
@@ -201,7 +202,7 @@ class node_bridge(network_utils_hal):
     Now device will attempt to confirm its name is not already in use
     TODO: in the future rely on MAC instead
     '''
-    def _on_connect(self):
+    def _on_connect(self, client, userdata, flags, rc):
         print("connection established, attempting to register node")
         self.ack_path = self.ip_addr + "/ack"
         register_request = {
@@ -213,6 +214,17 @@ class node_bridge(network_utils_hal):
         register_request_payload = json.dumps(register_request)
         self.client.publish(self.broker_validation_path, register_request_payload)
         pass
+
+    def _on_disconnect(self, client, userdata, rc):
+        if rc != 0:
+            print("Unexpected disconnection. rc =", rc)
+            # You can try to reconnect here
+            try:
+                client.reconnect()
+            except Exception as e:
+                print("Reconnect failed:", e)
+        else:
+            print("Clean disconnect from broker")
     
     '''
     retrives a subscriber node callback

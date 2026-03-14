@@ -55,6 +55,13 @@ INSERT INTO `supportedprotocols` VALUES (2,'MQTT'),(3,'SOCKET');
 /*!40000 ALTER TABLE `supportedprotocols` ENABLE KEYS */;
 UNLOCK TABLES;
 
+LOCK TABLES `users` WRITE;
+INSERT INTO users (username, pwd, email, registerdate, telegrambotToken, userState)
+VALUES ('default_user', 'default_pass', NULL, NULL, NULL, NULL);
+/*!40000 ALTER TABLE `supportedprotocols` ENABLE KEYS */;
+UNLOCK TABLES;
+
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

@@ -80,6 +80,8 @@ class deviceDataUpgrader():
     }
     '''
     def _handleIncomingMessage(self, client, userdata, msg):
+        logger.info("received message")
+        logger.info(msg)
         if msg.topic == self.broker_registration_path:
             logger.info("Registration message")
             self._handle_registration_message(msg)

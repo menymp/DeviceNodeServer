@@ -190,13 +190,13 @@ services:
       - "${PHP_OTA_PORT}:80"
 
   nodes-db:
-    image: mariadb:10.11
+    image: mysql:8.0
     restart: always
     environment:
-      MARIADB_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
-      MARIADB_DATABASE: ${DB_NAME}
-      MARIADB_USER: ${DB_USER}
-      MARIADB_PASSWORD_FILE: /run/secrets/db_user_password
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_root_password
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD_FILE: /run/secrets/db_user_password
     healthcheck: 
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${DB_USER} --password=$(cat /run/secrets/db_user_password) || exit 1"]
       interval: 10s 

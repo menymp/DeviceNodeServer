@@ -31,10 +31,10 @@ class deviceDatabaseSync():
         self.dbDevicesActions.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
         self.dbNodesActions.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
         self.dbActionMeasures.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
+        self._requestNodes()
         self.stop_event = Event()
         self.taskListen = threading.Thread(target=self._updateBaseDevices, args=())
         self.taskListen.start()
-        self._requestNodes()
         self.pendingNodes = set() #array of nodes pending to be processed
         self.devicesValues = {}
         pass
@@ -42,9 +42,10 @@ class deviceDatabaseSync():
     def _requestNodes(self):
         try:
             self.CurrentNodes = self.dbNodesActions.getNodes() # first start
+            logger.info("Updated notes")
         except Exception as e:
             self.CurrentNodes = []
-            logger.error("Failed to request nodes, retrying")
+            logger.error("Failed to request nodes, retrying %s" % (e))
 
     def _updateBaseDevices(self):
         while not self.stop_event.is_set():
@@ -103,7 +104,8 @@ class deviceDatabaseSync():
 
     def updateNode(self, nodeData):
         nodeId = self.getNodeFromName(nodeData["Name"])
-        if self.getNodeFromName(nodeData["Name"]) and self.isNodePending(nodeData["Name"]):
+        if not self.getNodeFromName(nodeData["Name"]) and not self.isNodePending(nodeData["Name"]):
+            logger.info("adding new node %s", nodeData["Name"])
             nodeId = self.dbNodesActions.addNewNode(nodeData["Name"], nodeData["RootName"], 2)
             self.pendingNodes.add(nodeData["Name"])
             pass
