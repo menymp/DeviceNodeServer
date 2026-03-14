@@ -87,7 +87,7 @@ class deviceManager():
         self.availableDevices = self.dbActions.getDevices()
         for deviceInfo in self.availableDevices:
             if not self.deviceAlreadyInit(deviceInfo[1],deviceInfo[5]):
-                logger.info("integrating new device %s" % (deviceInfo[1]))
+                logger.info("integrating new device " + str(deviceInfo[1]))
                 tmpDevice = device()
                 tmpDevice.init(deviceInfo, self.requestDeviceData, self.mqttBroker, self.mqttPort, self.mqttKeepalive)
                 self.Devices.append(tmpDevice)
@@ -213,7 +213,7 @@ class deviceManager():
 
 class device():
     def init(self, args, requestDeviceData, mqttBroker, mqttPort, mqttKeepalive):
-        logger.info("init new device %s" % (args))
+        logger.info("init new device " + str(args))
         self.initArgs = args
         self.mqttBroker = mqttBroker
         self.mqttPort = mqttPort

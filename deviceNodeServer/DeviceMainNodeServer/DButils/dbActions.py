@@ -62,6 +62,14 @@ class dbDevicesActions(dbConnectorBase):
             return 'ERR'
         pass
 
+    def getValidDeviceTypes(self):
+        results = self.dbConn.execute("SELECT type FROM devicestype")
+        availableTypes = []
+        for devType in results:
+            availableTypes.append(devType[0])
+        return availableTypes
+            
+
     def deviceChanged(self, deviceName, Mode, Type, channelPath, idParentNode):
         result = ['ERR', False]
         if not self.deviceExists(deviceName,idParentNode):

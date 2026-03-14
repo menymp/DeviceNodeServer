@@ -37,11 +37,13 @@ class deviceDatabaseSync():
         self.taskListen.start()
         self.pendingNodes = set() #array of nodes pending to be processed
         self.devicesValues = {}
+        self.DevicesDataTypes = []
         pass
     
     def _requestNodes(self):
         try:
             self.CurrentNodes = self.dbNodesActions.getNodes() # first start
+            self.DevicesDataTypes = self.dbDevicesActions.getValidDeviceTypes()
             logger.info("Updated notes")
         except Exception as e:
             self.CurrentNodes = []
@@ -57,6 +59,9 @@ class deviceDatabaseSync():
         self.dbDevicesActions.deinitConnector()
         self.dbNodesActions.deinitConnector()
         pass
+
+    def getValidDeviceDataTypes(self):
+        return self.DevicesDataTypes
 
     def getNodeFromName(self, name):
         logger.info(self.CurrentNodes)

@@ -99,11 +99,18 @@ class deviceDataUpgrader():
             RootName = nodeManifest["RootName"]
             macAddr = nodeManifest["mac_addr"]
             Devices = nodeManifest["Devices"]
+            ackPath = nodeManifest["acknowledge_path"]
 
-            if nodeName == "" or RootName == "" or macAddr == "" or Devices is None:
+            if nodeName == "" or RootName == "" or macAddr == "" or ackPath == "" or Devices is None:
                 logger.error("invalid request form")
                 return
             self.deviceSyncInstance.updateNode(nodeManifest)
+            # notify the device of the success
+            baseResponse = {
+                "valid_types": self.deviceSyncInstance.getValidDeviceDataTypes(),
+                "result": "SUCCESS_ACK"
+            }
+            self.client.publish(topic = ackPath, payload = json.dumps(baseResponse))
 
         except Exception as e:
             logger.error("an error ocurred processing device registration request %s", e)
@@ -121,13 +128,20 @@ class deviceDataUpgrader():
             if nodeName == "" or nodeAcknowledgePath == "" or nodeMacAddress == "":
                 logger.error("invalid request validation form %s %s %s" % (nodeName, nodeAcknowledgePath, nodeMacAddress))
                 return
+            baseResponse = {
+                "valid_types": self.deviceSyncInstance.getValidDeviceDataTypes(),
+                "result": ""
+            }
             if not self.deviceSyncInstance.nodeAcknowledge(nodeName, nodeMacAddress):
                 # return a failure name adquisition if name already exists in the server instance
                 logger.error("Node name [%s, %s] in use " % (nodeName, nodeMacAddress))
-                self.client.publish(topic = nodeAcknowledgePath, payload = "ERR_ACK")
+                baseResponse["result"] = "ERR_ACK"
+                self.client.publish(topic = nodeAcknowledgePath, payload = json.dumps(baseResponse))
                 return
             logger.info("Node name %s successfully registered " % (nodeName))
-            self.client.publish(topic = nodeAcknowledgePath, payload = "SUCCESS_ACK")
+            # retrive current valid types from DB
+            baseResponse["result"] = "SUCCESS_ACK"
+            self.client.publish(topic = nodeAcknowledgePath, payload = json.dumps(baseResponse))
         except Exception as e:
             logger.error("an error ocurred processing device validation request %s", e)
         pass
