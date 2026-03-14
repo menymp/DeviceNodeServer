@@ -17,12 +17,19 @@ class dbNodesActions(dbConnectorBase):
         return result[0][0]
 
     def getNodes(self):
-        records =  self.dbConn.execute("SELECT nodestable.idNodesTable,nodestable.nodename,nodestable.nodepath,nodestable.connectionparameters,supportedprotocols.protocolname  FROM nodestable INNER JOIN supportedprotocols ON supportedprotocols.idsupportedprotocols = nodestable.iddeviceprotocol");
+        records =  self.dbConn.execute("SELECT nodestable.idNodesTable, nodestable.macaddr, nodestable.nodename,nodestable.nodepath,nodestable.connectionparameters,supportedprotocols.protocolname  FROM nodestable INNER JOIN supportedprotocols ON supportedprotocols.idsupportedprotocols = nodestable.iddeviceprotocol");
         return records
     
-    def addNewNode(self, nodeName, nodePath, idDeviceProtocol, idOwnerUser = 1):
-        insertResult = self.dbConn.execute("INSERT INTO nodestable (nodeName, nodePath, idDeviceProtocol, idOwnerUser, connectionParameters) VALUES (%s, %s, %s, %s, '') RETURNING idNodesTable", (nodeName, nodePath, idDeviceProtocol,idOwnerUser))
-        return insertResult[0]["idNodesTable"]
+    def addNewNode(self, nodeName, nodePath, macAddress, idDeviceProtocol, idOwnerUser = None):
+        owner_id = None
+        if idOwnerUser is None:
+             owner_id = default_user_id = self.getDefaultUser()
+        else:
+             owner_id = idOwnerUser
+             
+        self.dbConn.execute("INSERT INTO nodestable (nodeName, nodePath, macaddr, idDeviceProtocol, idOwnerUser, connectionParameters) VALUES (%s, %s, %s, %s, %s, '');", (nodeName, nodePath, macAddress, idDeviceProtocol,owner_id))
+        insertResult = self.dbConn.execute("SELECT LAST_INSERT_ID();")
+        return insertResult[0][0]
         
     def setNodeState(self):
         pass
@@ -31,7 +38,7 @@ class dbDevicesActions(dbConnectorBase):
 
     def deviceExists(self,deviceName,nodeId):
         flagFound = False
-        records = self.dbConn.execute("SELECT * FROM devices WHERE devices.name = %s AND idParentNode = %s",(deviceName,nodeId,));
+        records = self.dbConn.execute("SELECT * FROM devices WHERE devices.name = %s AND idParentNode = %s",(deviceName,nodeId,))
         if len(records) > 0:
             flagFound = True
         return flagFound
@@ -39,11 +46,14 @@ class dbDevicesActions(dbConnectorBase):
     def addNewDevice(self, deviceName, Mode, Type, channelPath, idParentNode):
         modeR = self.dbConn.execute("SELECT idDevicesModes FROM devicesmodes WHERE mode = %s",(Mode,))
         if len(modeR) != 1:
+            print("Unknown device Mode " + str(Mode))
             return "ERR"
         typeR = self.dbConn.execute("SELECT idDevicesType FROM devicestype WHERE type = %s",(Type,))
         if len(typeR) != 1:
+            print("Unknown device Type " + str(Type))
             return "ERR"
         if self.deviceExists(deviceName,idParentNode):
+            print("Device already exists ")
             return "ERR"
         records = self.dbConn.execute("INSERT INTO devices (name,idMode,idType,channelPath,idParentNode) VALUES (%s,%s,%s,%s,%s)",(deviceName,modeR[0][0],typeR[0][0],channelPath,idParentNode,));
         if self.deviceExists(deviceName,idParentNode):

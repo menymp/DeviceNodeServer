@@ -38,8 +38,8 @@ if __name__ == "__main__":
     nodeBridgeObj = node_bridge(node_name, broker, 1883, 60, 6)
     nodeBridgeObj.acknowledge()
     #acknowledge completed for our name, now adding devices
-    nodeBridgeObj.add_publisher_device("TempSensor", "NUMBER", get_temp_sensor_value)
-    nodeBridgeObj.add_publisher_device("InternalCounter", "NUMBER", get_counter_value)
+    nodeBridgeObj.add_publisher_device("TempSensor", "INT", get_temp_sensor_value)
+    nodeBridgeObj.add_publisher_device("InternalCounter", "INT", get_counter_value)
     nodeBridgeObj.add_subscriber_device("PumpMotor", "STRING", get_motor_command, set_motor_command  )
 
     nodeBridgeObj.start_server()

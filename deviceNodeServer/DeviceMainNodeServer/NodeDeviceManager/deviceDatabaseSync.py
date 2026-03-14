@@ -59,19 +59,29 @@ class deviceDatabaseSync():
         pass
 
     def getNodeFromName(self, name):
+        logger.info(self.CurrentNodes)
         for node in self.CurrentNodes:
-            if node.nodeName == name:
-                logger.info("found node %s" % node)
+            if node[2] == name:
+                logger.info("found node ")
                 return node
-        logger.info("node not found %s" % name)
+        logger.info("node not found %s" % (name))
         return None
+    
+    def nodeAcknowledge(self, name, mac_addr):
+        # attempts to check if a node name is already used, if so, check if it mac is same
+        node = self.getNodeFromName(name)
+        if node is None or node[1] == mac_addr:
+            return True
+        else:
+            return False
+        
     
     def getDeviceInfo(self, deviceId):
         for device in self.CurrentDevices:
-            if device.idDevice == deviceId:
-                logger.info("found device %s" % device)
+            if device[0] == deviceId:
+                logger.info("found device ")
                 return device
-        logger.info("device not found %s" % deviceId)
+        logger.info("device not found %s" % (deviceId))
         return None
     
     def isNodePending(self, name):
@@ -103,19 +113,23 @@ class deviceDatabaseSync():
     '''
 
     def updateNode(self, nodeData):
-        nodeId = self.getNodeFromName(nodeData["Name"])
+        nodeObj = self.getNodeFromName(nodeData["Name"])
+        nodeId = nodeObj[0]
+        logger.info('node ID: %s' % (nodeId))
         if not self.getNodeFromName(nodeData["Name"]) and not self.isNodePending(nodeData["Name"]):
             logger.info("adding new node %s", nodeData["Name"])
-            nodeId = self.dbNodesActions.addNewNode(nodeData["Name"], nodeData["RootName"], 2)
+            nodeId = self.dbNodesActions.addNewNode(nodeData["Name"], nodeData["RootName"], nodeData["mac_addr"], 2)
             self.pendingNodes.add(nodeData["Name"])
             pass
 
+        logger.info('Node id search: %s' % (nodeId))
+
         for device in nodeData["Devices"]:
-            logger.info("processing registered device %s" % device)
+            logger.info("processing registered device %s" % (device["Name"]))
             if self.dbDevicesActions.deviceExists(device["Name"], nodeId):
                 try:
                     result = self.dbDevicesActions.deviceChanged(device["Name"],device["Mode"],device["Type"],device["Channel"],nodeId)
-                    deviceId = self.dbDevicesActions.getDeviceByNameNode(nodeId, device["Name"])
+                    deviceId = self.dbDevicesActions.getDeviceByNameNode(nodeId, device["Name"])[0][0]
                     self._updateDeviceMeasure(device["Value"] , deviceId)
                     self.devicesValues[deviceId] = device["Value"]
                     if result[1]:

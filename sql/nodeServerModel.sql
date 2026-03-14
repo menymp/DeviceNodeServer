@@ -131,6 +131,7 @@ DROP TABLE IF EXISTS `nodestable`;
 CREATE TABLE `nodestable` (
   `idNodesTable` int NOT NULL AUTO_INCREMENT,
   `nodeName` varchar(45) DEFAULT NULL,
+  `macaddr` varchar(45) DEFAULT NULL,
   `nodePath` varchar(45) DEFAULT NULL,
   `idDeviceProtocol` int NOT NULL,
   `idOwnerUser` int NOT NULL,

@@ -21,7 +21,7 @@ from loggerUtils import get_logger
 logger = get_logger(__name__)
 
 def initMQServer(serverPath):
-    logger.info("MQ Server started path %s" % serverPath)
+    logger.info("MQ Server started path %s" % (serverPath))
     context = zmq.Context()
     socket = context.socket(zmq.REP)
     socket.bind(serverPath)
@@ -39,7 +39,7 @@ def taskLoadDevices(deviceManager, timeSleep, stopEvent):
     pass
 
 def startLoadDevices(deviceManager, add_time_poll):
-    logger.info("startLoadDevices with time %s" % add_time_poll)
+    logger.info("startLoadDevices with time %s" % (add_time_poll))
     stopEvent = Event()
     taskAddDevices = threading.Thread(target=taskLoadDevices, args=(deviceManager, add_time_poll, stopEvent, ))
     taskAddDevices.start()
@@ -53,7 +53,7 @@ def stopLoadDevices(stopEvent):
 def processIncommingMessage(deviceManager, message):
     #Process Incomming message request from different processes
     commandObj = json.loads(message)
-    logger.info("processIncommingMessage %s" % message)
+    logger.info("processIncommingMessage %s" % (message))
     try:
         if(commandObj["method"] == "executeCMDJson"):
             result = deviceManager.executeCMDJson(commandObj)
@@ -65,9 +65,9 @@ def processIncommingMessage(deviceManager, message):
             }
             result = json.dumps(error)
     except Exception as e:
-        logger.error("command obj: %s", commandObj)
+        logger.error("command obj: %s" % (commandObj))
         print("command error!" + str(e))
-        logger.error("command error %s" % e)
+        logger.error("command error %s" % (e))
         error = {
             "type":"command error!"
         }

@@ -31,7 +31,6 @@ class deviceDataUpgrader():
         self.mqttBrokerPath = broker
         self.port = port
         self.keepalive = keepalive
-        self.devicesAddedCount = 0
 
     def startMqttClient(self):
         logger.info("starting client mqtt")
@@ -98,9 +97,10 @@ class deviceDataUpgrader():
             # Integrity validation
             nodeName = nodeManifest["Name"]
             RootName = nodeManifest["RootName"]
+            macAddr = nodeManifest["mac_addr"]
             Devices = nodeManifest["Devices"]
 
-            if nodeName == "" or RootName == "" or Devices is None:
+            if nodeName == "" or RootName == "" or macAddr == "" or Devices is None:
                 logger.error("invalid request form")
                 return
             self.deviceSyncInstance.updateNode(nodeManifest)
@@ -111,20 +111,19 @@ class deviceDataUpgrader():
 
     def _handle_validation_request(self, msg):
         try:
-            # TODO: This may be better to implement an aditional name seek with device MAC to avoid suplantation
             m_decode=str(msg.payload.decode("utf-8","ignore"))
             logger.info("registration request %s" % (m_decode))
             nodeValidationRequest = json.loads(m_decode)
             # Integrity validation
             nodeName = nodeValidationRequest["Name"]
             nodeAcknowledgePath = nodeValidationRequest["AcknowledgePath"] #the path where the node is waiting confirmation
-
-            if nodeName == "" or nodeAcknowledgePath == "":
-                logger.error("invalid request validation form %s %s" % (nodeName, nodeAcknowledgePath))
+            nodeMacAddress = nodeValidationRequest["MacAddress"] #the path where the node is waiting confirmation
+            if nodeName == "" or nodeAcknowledgePath == "" or nodeMacAddress == "":
+                logger.error("invalid request validation form %s %s %s" % (nodeName, nodeAcknowledgePath, nodeMacAddress))
                 return
-            if self.deviceSyncInstance.getNodeFromName(nodeName) is not None:
+            if not self.deviceSyncInstance.nodeAcknowledge(nodeName, nodeMacAddress):
                 # return a failure name adquisition if name already exists in the server instance
-                logger.error("Node name %s in use " % (nodeName))
+                logger.error("Node name [%s, %s] in use " % (nodeName, nodeMacAddress))
                 self.client.publish(topic = nodeAcknowledgePath, payload = "ERR_ACK")
                 return
             logger.info("Node name %s successfully registered " % (nodeName))

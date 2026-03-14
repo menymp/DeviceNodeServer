@@ -64,7 +64,10 @@ class node_bridge(network_utils_hal):
     timeout_ack = 6 # acknowledge timeout in secs
     register_topic_path = "/inbound" # main server topic path for data update and device changes registration
     broker_validation_path = "/node_name_request"
-    VALID_TYPES = ["STRING", "NUMBER"]
+    VALID_TYPES = ["FLOAT", "STRING", "INT", "CAMERA"]
+    # TODO: build a way to dinamicaly retrive these types
+    # TODO: build a server heart beat that forces the node to re register
+    # TODO: Port to MicroPython and C++
 
     
     def __init__(self, name, broker, port = 1883, keepalive = 60, sampling_time = 6):
@@ -207,7 +210,8 @@ class node_bridge(network_utils_hal):
         self.ack_path = self.ip_addr + "/ack"
         register_request = {
             "Name": self.Name,
-            "AcknowledgePath": self.ack_path
+            "AcknowledgePath": self.ack_path,
+            "MacAddress": self.mac_addr
         }
         print("ack payload: %s" % register_request)
         self.client.subscribe(self.ack_path)

@@ -87,7 +87,7 @@ class deviceManager():
         self.availableDevices = self.dbActions.getDevices()
         for deviceInfo in self.availableDevices:
             if not self.deviceAlreadyInit(deviceInfo[1],deviceInfo[5]):
-                logger.info("integrating new device %s" % deviceInfo)
+                logger.info("integrating new device %s" % (deviceInfo[1]))
                 tmpDevice = device()
                 tmpDevice.init(deviceInfo, self.requestDeviceData, self.mqttBroker, self.mqttPort, self.mqttKeepalive)
                 self.Devices.append(tmpDevice)
@@ -112,12 +112,12 @@ class deviceManager():
                     flagExists = True
                     break
             if not flagExists:
-                logger.info("device '%s' from parent node id '%s' removed", deviceObj.name, deviceObj.idParentNode)
+                logger.info("device '%s' from parent node id '%s' removed" % (deviceObj.name, deviceObj.idParentNode))
                 deviceToDel = self.Devices.pop(index)
                 del deviceToDel
 
     def executeCMDJson(self, jsonArgs):
-        logger.info("running json command %s" % jsonArgs)
+        logger.info("running json command %s" % (jsonArgs))
         cmdArrayObj1 = json.loads(jsonArgs["args"])
         cmdArrayObj = json.loads(cmdArrayObj1)#ToDo: fix, for some weird reason, objects are stringified with dual quotes
         results = []
@@ -151,7 +151,7 @@ class deviceManager():
                     "state":state
                 }
                 results.append(cmdServerResult)
-                logger.info("command results %s" % cmdServerResult)
+                logger.info("command results %s" % (cmdServerResult))
                 continue
 
 
@@ -189,7 +189,7 @@ class deviceManager():
     
     #toDo: still in proof of concept expect for a better approach
     def execCommand(self, inputArgs):
-        logger.info("base command %s" % inputArgs)
+        logger.info("base command %s" % (inputArgs))
         #parses the command
         #list devices
         
@@ -213,7 +213,7 @@ class deviceManager():
 
 class device():
     def init(self, args, requestDeviceData, mqttBroker, mqttPort, mqttKeepalive):
-        logger.info("init new device %s" % args)
+        logger.info("init new device %s" % (args))
         self.initArgs = args
         self.mqttBroker = mqttBroker
         self.mqttPort = mqttPort
@@ -273,7 +273,7 @@ class device():
 
 class mqttDriver():
     def init(self, deviceTopic, mqttBroker, mqttPort, mqttKeepalive):
-        logger.info("starting an mqtt protocol driver %s" % deviceTopic)
+        logger.info("starting an mqtt protocol driver %s" % (deviceTopic))
         self.deviceTopic = deviceTopic
         self.lastSentCmd = ""
         self.mqttBroker = mqttBroker
