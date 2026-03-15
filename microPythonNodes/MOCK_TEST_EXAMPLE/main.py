@@ -52,5 +52,5 @@ if __name__ == "__main__":
             if counter > 100:
                 counter = 0
     except KeyboardInterrupt:
-        nodeBridgeObj.stop_server()
+        nodeBridgeObj.disable()
         print("Stopped cleanly")

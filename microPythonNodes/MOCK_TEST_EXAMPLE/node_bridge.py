@@ -67,13 +67,14 @@ class node_bridge(network_utils_hal):
     # TODO: Port to MicroPython and C++
 
     
-    def __init__(self, name, broker, port = 1883, keepalive = 60, sampling_time = 6):
+    def __init__(self, name, broker, port = 1883, keepalive = 60, sampling_time = 6, reconnect_time = 3):
         self.devices = []
         self.VALID_TYPES = [] # requested first with the ack
         self.mqtt_broker = broker
         self.mqtt_port = port
         self.mqtt_keepalive = keepalive
         self.sampling_time = sampling_time
+        self.reconnect_time = reconnect_time
         self.Name = name
         self.RootPath = "/%s/" % name
         self.ip_addr = self.get_ip()
@@ -84,6 +85,9 @@ class node_bridge(network_utils_hal):
         self.timeout_event = Event()
         self.stop_event = Event()
         self.reconnect_event = Event()
+        self.updt_event = Event()
+        self.client = None
+        self._backoff_time = self.reconnect_time
         pass
 
     def __init_mqtt_client__(self):
@@ -105,6 +109,13 @@ class node_bridge(network_utils_hal):
         self.error_event.clear()
         self.ack_event.clear()
         self.stop_event.set()
+        self.client = None
+        if self.tOut:
+            self.tOut.cancel()
+            self.tOut = None
+        if self.t_payload:
+            self.t_payload.cancel()
+            self.t_payload = None
         pass
     
     '''
@@ -113,10 +124,23 @@ class node_bridge(network_utils_hal):
     - no heart beat received from server
     '''
     def _reconnect(self):
+        if self.stop_event.is_set():
+            print("Stop event set, aborting reconnect")
+            return
+        print("reconnection starting...")
         self.ack_event.clear()
 
-        self._handle_init_acknowledge()
-        pass
+        backoff = self._backoff_time
+        while not self.stop_event.is_set() and not self._handle_init_acknowledge(True):
+            print(f"Retrying register in {backoff} seconds...")
+            for _ in range(backoff):
+                if self.stop_event.is_set() or self.ack_event.is_set():
+                    return
+                time.sleep(1)
+            self.ack_event.clear()
+            self._register_node()
+            backoff = min(backoff * 2, 60)
+            self._backoff_time = backoff
 
     '''
     starts the acknowledge protocol with server
@@ -127,25 +151,32 @@ class node_bridge(network_utils_hal):
         print("starting client mqtt")
         self.client.connect(self.mqtt_broker, self.mqtt_port, self.mqtt_keepalive)
         self.client.loop_start()
-
         self._handle_init_acknowledge()
         pass
 
-    def _handle_init_acknowledge(self):
+    def _handle_init_acknowledge(self, retry=False):
         # Start timeout timer
         self._start_timeout()
 
         # Wait until one of the events is set
         while True:
-            if self.timeout_event.is_set():
+            if self.stop_event.is_set():
+                return True
+            if self.timeout_event.is_set() and not retry:
+                self.timeout_event.clear()
                 raise RuntimeError("Took too long to acknowledge")
+            elif self.timeout_event.is_set() and retry:
+                self.timeout_event.clear()
+                print("Timeout with retry")
+                return False
             if self.error_event.is_set():
                 raise RuntimeError(f"Acknowledge error, or name {self.Name} already in use")
             if self.ack_event.is_set():
                 self.tOut.cancel()
                 self._resubscribe_devices()
                 print("Node successfully acknowledged, building payload")
-                break
+                self._backoff_time = self.reconnect_time
+                return True
             time.sleep(0.6)  # short sleep to avoid busy loop
         pass
     
@@ -153,19 +184,23 @@ class node_bridge(network_utils_hal):
     waits for server acknowledge response as a hearbeat
     '''
     def _handle_wait_update_acknowledge(self):
+        if self.ack_event.is_set():
+            return True   # <-- NEW
         # Start timeout timer
         self._start_timeout()
 
         # Wait until one of the events is set
         while True:
+            if self.stop_event.is_set():
+                break
             if self.timeout_event.is_set():
                 print("Took too long to acknowledge, schedule attempt to reconnect")
                 self.reconnect_event.set()
                 return False
-            if self.ack_event.is_set():
+            if self.updt_event.is_set():
                 self.tOut.cancel()
                 self._resubscribe_devices()
-                print("Node successfully acknowledged, building payload")
+                print("Node successfully acknowledged, exiting wait ack")
                 return True
             time.sleep(0.6)  # short sleep to avoid busy loop
         pass
@@ -174,6 +209,11 @@ class node_bridge(network_utils_hal):
     builds payload string request with current callback values
     '''
     def _build_and_send_payload_manifest(self):
+        if self.reconnect_event.is_set()  and not self.ack_event.is_set():
+            print("Waiting for reconnection")
+            self._reconnect()
+            pass
+
         if self.stop_event.is_set():
             print("Payload skipped, server stopped")
             return
@@ -181,10 +221,7 @@ class node_bridge(network_utils_hal):
         if not self.ack_event.is_set():
             print("ERROR: No acknowledge finished")
             return
-        if self.reconnect_event.is_set():
-            print("Waiting for reconnection")
-            self._reconnect()
-            pass
+
         manifest = {
             "Name": self.Name,
             "RootName": self.RootPath,
@@ -203,13 +240,19 @@ class node_bridge(network_utils_hal):
         manifest_payload = json.dumps(manifest)
 
         print(manifest_payload)
+        try:
+            self.client.publish(self.register_topic_path , manifest_payload)
+        except Exception as e:
+            print("Publish failed manifest:", e)
+        
+        self.updt_event.clear() # reset the ack update event
 
-        self.client.publish(self.register_topic_path , manifest_payload)
-
-        if self._handle_wait_update_acknowledge():
-            # reschedule itself
-            self.t_payload = Timer(self.sampling_time, self._build_and_send_payload_manifest)
-            self.t_payload.start()
+        self._handle_wait_update_acknowledge()
+        # reschedule itself
+        if self.t_payload:
+            self.t_payload.cancel() #Clean previous timer
+        self.t_payload = Timer(self.sampling_time, self._build_and_send_payload_manifest)
+        self.t_payload.start()
         pass
     
     '''
@@ -243,6 +286,7 @@ class node_bridge(network_utils_hal):
             print("Server is not started")
             return
         self.t_payload.cancel()
+        self.t_payload = None
 
         for device in self.devices:
             if device["Mode"] == "SUBSCRIBER":
@@ -268,8 +312,13 @@ class node_bridge(network_utils_hal):
     Now device will attempt to confirm its name is not already in use
     '''
     def _on_connect(self, client, userdata, flags, rc):
+        self._backoff_time = self.reconnect_time
+        self._register_node()
+        pass
+
+    def _register_node(self):
         print("connection established, attempting to register node")
-        self.ack_path = self.ip_addr + "/ack"
+        self.ack_path = self.ip_addr + "/" + self.Name + "/ack"
         register_request = {
             "Name": self.Name,
             "AcknowledgePath": self.ack_path,
@@ -281,15 +330,13 @@ class node_bridge(network_utils_hal):
         self.client.publish(self.broker_validation_path, register_request_payload)
         pass
 
+
     def _on_disconnect(self, client, userdata, rc):
         if rc != 0:
             print("Unexpected disconnection. rc =", rc)
-            # You can try to reconnect here
-            try:
-                if not self.stop_event.is_set():
-                    self.reconnect_event.set()
-            except Exception as e:
-                print("Reconnect failed:", e)
+            self.ack_event.clear()
+            self.updt_event.clear()
+            self.reconnect_event.set()
         else:
             print("Clean disconnect from broker")
     
@@ -306,11 +353,12 @@ class node_bridge(network_utils_hal):
     handles commands received from server
     '''
     def _on_message(self, client, userdata, msg):
+        self._backoff_time = self.reconnect_time   # <-- NEW
         messageValue=str(msg.payload.decode("utf-8","ignore"))
         print("registration response %s for %s" % (messageValue, msg.topic))
 
         if msg.topic == self.ack_path:
-            serverResponse = json.dumps(messageValue)
+            serverResponse = json.loads(messageValue)
             result = serverResponse["result"]
             self.VALID_TYPES = serverResponse["valid_types"] # array
             if len(self.VALID_TYPES) == 0:
@@ -320,6 +368,8 @@ class node_bridge(network_utils_hal):
             elif result == "SUCCESS_ACK":
                 self.ack_event.set()
                 self.reconnect_event.clear()
+                self.timeout_event.clear()
+                self.updt_event.set()
             return
         else:
             target_device = self._get_subscriber_callback(msg.topic)

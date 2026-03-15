@@ -36,18 +36,30 @@ class deviceDataUpgrader():
         logger.info("starting client mqtt")
         self.client = mqtt.Client()
         self.client.on_connect = self._on_connect
+        self.client.on_disconnect = self._on_disconnect
         self.client.on_message = self._handleIncomingMessage
-        self.client.connect(self.mqttBrokerPath, self.port, self.keepalive)
+        self.client.reconnect_delay_set(min_delay=3, max_delay=30)
+        try:
+            self.client.connect(self.mqttBrokerPath, self.port, self.keepalive)
+        except Exception as e:
+            logger.error(f"Failed to connect to broker {self.mqttBrokerPath}:{self.port} - {e}")
+            # Optionally retry after delay
+            #time.sleep(5)
+            return
         self.taskListen = threading.Thread(target=self._handle, args=())
         self.taskListen.start()
         pass
+
+    def _on_disconnect(self, client, userdata, rc):
+        if rc != 0:
+            logger.warning(f"Disconnected from broker (rc={rc}), will retry...")
     
     def _on_connect(self, client, userdata, flags, rc):
         logger.info("Server connected to broker")
         self.client.subscribe(self.broker_registration_path)
         self.client.subscribe(self.broker_validation_path)
         pass
-    
+
     # manages the main message threading
     def _handle(self):
         self.client.loop_forever()

@@ -44,17 +44,20 @@ class deviceDatabaseSync():
         try:
             self.CurrentNodes = self.dbNodesActions.getNodes() # first start
             self.DevicesDataTypes = self.dbDevicesActions.getValidDeviceTypes()
-            logger.info("Updated notes")
+            logger.info("Updated nodes")
         except Exception as e:
             self.CurrentNodes = []
             logger.error("Failed to request nodes, retrying %s" % (e))
 
     def _updateBaseDevices(self):
         while not self.stop_event.is_set():
-            self._requestNodes()
-            self.CurrentDevices = self.dbDevicesActions.getDevices()
-            self.pendingNodes = set()
-            time.sleep(1)
+            try:
+                self._requestNodes()
+                self.CurrentDevices = self.dbDevicesActions.getDevices()
+                self.pendingNodes = set()
+                time.sleep(1)
+            except:
+                print("Error attempting to retrive db data, retrying")
             pass
         self.dbDevicesActions.deinitConnector()
         self.dbNodesActions.deinitConnector()
