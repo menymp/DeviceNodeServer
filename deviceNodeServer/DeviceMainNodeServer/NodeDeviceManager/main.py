@@ -2,7 +2,6 @@ import sys
 import os
 import time
 import zmq
-import threading
 import json
 from threading import Event
 import signal

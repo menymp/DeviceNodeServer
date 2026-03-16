@@ -1,9 +1,5 @@
 import threading
-from threading import Event
-from threading import Timer
 import sys
-import queue
-import time
 import json
 import paho.mqtt.client as mqtt
 from os.path import dirname, realpath, sep, pardir
