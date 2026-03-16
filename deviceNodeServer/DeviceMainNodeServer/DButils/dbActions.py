@@ -23,7 +23,7 @@ class dbNodesActions(dbConnectorBase):
     def addNewNode(self, nodeName, nodePath, macAddress, idDeviceProtocol, idOwnerUser = None):
         owner_id = None
         if idOwnerUser is None:
-             owner_id = default_user_id = self.getDefaultUser()
+             owner_id = self.getDefaultUser()
         else:
              owner_id = idOwnerUser
              

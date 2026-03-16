@@ -133,6 +133,7 @@ class node_bridge(network_utils_hal):
                 self.reconnect_event = False
                 self.timeout_event = False
                 self.updt_event = True
+                self._resubscribe_devices()
                 # ensure immediate payload and reset timers
                 self.last_payload_time = time.ticks_ms()
         else:
@@ -280,9 +281,6 @@ class node_bridge(network_utils_hal):
             raise ValueError("must provide a valid function")
 
     def add_publisher_device(self, name, type, get_value_callback):
-        if not self.ack_event:
-            print("ERROR: No acknowledge finished")
-            return
         if self.device_exists(name):
             raise RuntimeError("Device name %s already exists" % name)
         self._validate_device(name, type, get_value_callback)
@@ -296,9 +294,6 @@ class node_bridge(network_utils_hal):
         self.devices.append(publisher)
 
     def add_subscriber_device(self, name, type, get_value_callback, command_callback):
-        if not self.ack_event:
-            print("ERROR: No acknowledge finished")
-            return
         if self.device_exists(name):
             raise RuntimeError("Device name %s already exists" % name)
         self._validate_device(name, type, get_value_callback)

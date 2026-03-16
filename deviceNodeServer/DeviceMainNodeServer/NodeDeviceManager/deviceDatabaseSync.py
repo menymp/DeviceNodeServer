@@ -58,6 +58,7 @@ class deviceDatabaseSync():
                 time.sleep(1)
             except:
                 print("Error attempting to retrive db data, retrying")
+                time.sleep(1)
             pass
         self.dbDevicesActions.deinitConnector()
         self.dbNodesActions.deinitConnector()
@@ -122,13 +123,14 @@ class deviceDatabaseSync():
 
     def updateNode(self, nodeData):
         nodeObj = self.getNodeFromName(nodeData["Name"])
-        nodeId = nodeObj[0]
-        logger.info('node ID: %s' % (nodeId))
-        if not self.getNodeFromName(nodeData["Name"]) and not self.isNodePending(nodeData["Name"]):
+        if not nodeObj and not self.isNodePending(nodeData["Name"]):
             logger.info("adding new node %s", nodeData["Name"])
             nodeId = self.dbNodesActions.addNewNode(nodeData["Name"], nodeData["RootName"], nodeData["mac_addr"], 2)
             self.pendingNodes.add(nodeData["Name"])
-            pass
+        else:
+            nodeId = nodeObj[0]
+            logger.info('already registered node ID')
+
 
         logger.info('Node id search: %s' % (nodeId))
 

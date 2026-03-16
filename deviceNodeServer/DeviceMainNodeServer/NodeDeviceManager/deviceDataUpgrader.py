@@ -116,12 +116,14 @@ class deviceDataUpgrader():
             if nodeName == "" or RootName == "" or macAddr == "" or ackPath == "" or Devices is None:
                 logger.error("invalid request form")
                 return
+            logger.info("Attempting to update db with device: " + str(nodeManifest))
             self.deviceSyncInstance.updateNode(nodeManifest)
             # notify the device of the success
             baseResponse = {
                 "valid_types": self.deviceSyncInstance.getValidDeviceDataTypes(),
                 "result": "SUCCESS_ACK"
             }
+            logger.info("Device successfuly updated, notifiying: " + str(nodeName))
             self.client.publish(topic = ackPath, payload = json.dumps(baseResponse))
 
         except Exception as e:
