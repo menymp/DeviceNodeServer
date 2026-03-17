@@ -268,6 +268,51 @@ class node_bridge(network_utils_hal):
             if device["Name"] == name:
                 return True
         return False
+    
+    '''
+    gets device from name, None if not found
+    '''
+    def get_device(self, name):
+        if not self.ack_event:
+            print("ERROR: No acknowledge finished")
+            return False
+        for device in self.devices:
+            if device["Name"] == name:
+                return device
+        return None
+    
+    '''
+    creates a quick event in mqtt instead of relying on the mqtt periodic manifest update
+    usefull for direct response oriented flows like rfid door scans
+    '''
+    def send_event(self, name, value):
+        if not self.ack_event:
+            print("ERROR: No acknowledge finished")
+            return False
+        if self.client is None:
+            print("ERROR: Client not available")
+            return False
+        
+        device = self.get_device(name)
+
+        if device is None:
+            print("ERROR: Device not found")
+            return False
+                
+        if device["Mode"] != "PUBLISHER":
+            print("ERROR: Device is not  a publiser")
+            return False
+
+        payload = {
+            "Name":name,
+            "Mode":"PUBLISHER",
+            "Type": device["Type"],
+            "Channel": device["Channel"], #not in use considered new approach, leaved for legacy compatibility
+            "Value": value
+        }
+
+        self.safe_publish(device["Channel"], payload)
+        return True
 
     def _validate_device(self, name, type, get_value_call):
         if not self.ack_event:

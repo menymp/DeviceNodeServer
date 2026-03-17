@@ -37,6 +37,8 @@ public:
   bool addSubscriber(const String &name, const String &type, ValueCallback cb, CommandCallback cmd);
   void removeDevice(const String &name);
   bool deviceExists(const String &name);
+  bool sendEvent(const String &name, const String & value);
+  bool getDevice(const String &name, Device * device);
 
   // Configuration helpers
   void setSamplingTimeSeconds(unsigned long s); // default 6

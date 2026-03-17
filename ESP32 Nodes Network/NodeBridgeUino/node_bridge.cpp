@@ -1,4 +1,4 @@
-#include "NodeBridge.h"
+#include "node_bridge.h"
 
 // If using ESP8266, include the correct header in your sketch before including NodeBridge
 // #include <ESP8266WiFi.h>
@@ -189,7 +189,6 @@ void NodeBridge::safePublish(const String &topic, const String &payload) {
 }
 
 bool NodeBridge::addPublisher(const String &name, const String &type, ValueCallback cb) {
-  if (!ackEvent) return false;
   if (deviceExists(name)) return false;
   if (!validateDeviceArgs(name, type, cb)) return false;
   if (deviceCount >= NODE_BRIDGE_MAX_DEVICES) return false;
@@ -198,7 +197,6 @@ bool NodeBridge::addPublisher(const String &name, const String &type, ValueCallb
 }
 
 bool NodeBridge::addSubscriber(const String &name, const String &type, ValueCallback cb, CommandCallback cmd) {
-  if (!ackEvent) return false;
   if (deviceExists(name)) return false;
   if (!validateDeviceArgs(name, type, cb)) return false;
   if (deviceCount >= NODE_BRIDGE_MAX_DEVICES) return false;
@@ -221,6 +219,41 @@ void NodeBridge::removeDevice(const String &name) {
 bool NodeBridge::deviceExists(const String &name) {
   for (int i = 0; i < deviceCount; ++i) if (devices[i].Name == name) return true;
   return false;
+}
+
+bool NodeBridge::getDevice(const String &name, Device * device) {
+  for (int i = 0; i < deviceCount; ++i) if (devices[i].Name == name) 
+  {
+    *device = devices[i];
+    return true;
+  }
+  return false;
+}
+
+bool NodeBridge::sendEvent(const String &name, const String & value) {
+  Device device;
+  if (!getDevice(&device))
+  {
+    return false;
+  }
+  if (devices[i].Mode == "SUBSCRIBER") 
+  {
+    return false;
+  }
+
+  DynamicJsonDocument devicePayload(1024);
+  devicePayload["Name"] = devices.Name;
+  devicePayload["Mode"] = devices.Mode;
+  devicePayload["Type"] = devices.Type;
+  devicePayload["Channel"] = devices.Channel;
+  devicePayload["Value"] = value;
+
+
+  String payload;
+  serializeJson(devicePayload, payload);
+
+  safePublish(devices.Channel, payload);
+  return true;
 }
 
 bool NodeBridge::validateDeviceArgs(const String &name, const String &type, ValueCallback cb) {
@@ -263,6 +296,7 @@ void NodeBridge::onMqttMessage(char* topic, byte* payload, unsigned int length) 
       reconnectEvent = false;
       timeoutEvent = false;
       updtEvent = true;
+      resubscribeDevices();
       lastPayloadMs = millis();
     }
     return;

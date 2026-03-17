@@ -19,6 +19,13 @@ import paho.mqtt.client as mqtt
 from network_utils_hal import network_utils_hal
 from threading import Timer, Event
 
+'''
+
+TODO: Pending to include a direct publish event for PUBLISHERS
+This will be returning a method from the creator callback
+
+'''
+
 
 '''
 message should have the following form
@@ -392,6 +399,51 @@ class node_bridge(network_utils_hal):
                 return True
             
         return False
+    
+    '''
+    gets device from name, None if not found
+    '''
+    def get_device(self, name):
+        if not self.ack_event.is_set():
+            print("ERROR: No acknowledge finished")
+            return False
+        for device in self.devices:
+            if device["Name"] == name:
+                return device
+        return None
+    
+    '''
+    creates a quick event in mqtt instead of relying on the mqtt periodic manifest update
+    usefull for direct response oriented flows like rfid door scans
+    '''
+    def send_event(self, name, value):
+        if not self.ack_event.is_set():
+            print("ERROR: No acknowledge finished")
+            return False
+        if self.client is None:
+            print("ERROR: Client not available")
+            return False
+        
+        device = self.get_device(name)
+
+        if device is None:
+            print("ERROR: Device not found")
+            return False
+                
+        if device["Mode"] != "PUBLISHER":
+            print("ERROR: Device is not  a publiser")
+            return False
+
+        payload = {
+            "Name":name,
+            "Mode":"PUBLISHER",
+            "Type": device["Type"],
+            "Channel": device["Channel"], #not in use considered new approach, leaved for legacy compatibility
+            "Value": value
+        }
+
+        self.client.publish(device["Channel"], payload)
+        return True
     
     '''
     validates device init args
