@@ -37,6 +37,9 @@ NodeBridge::NodeBridge(const String &nodeName, const String &mqttBroker, uint16_
 
   // configure mqtt client
   mqttClient.setServer(mqttBroker.c_str(), mqttPort);
+  // Set buffer size, TODO increase this dinamicaly???
+
+  mqttClient.setBufferSize(1024*5);
   // set callback using lambda capturing this pointer
   mqttClient.setCallback([this](char* topic, byte* payload, unsigned int length){
     this->onMqttMessage(topic, payload, length);
@@ -191,7 +194,7 @@ void NodeBridge::safePublish(const String &topic, const String &payload) {
 bool NodeBridge::addPublisher(const String &name, const String &type, ValueCallback cb) {
   if (deviceExists(name)) return false;
   if (!validateDeviceArgs(name, type, cb)) return false;
-  if (deviceCount >= NODE_BRIDGE_MAX_DEVICES) return false;
+  if (deviceCount >= NODEBRIDGE_MAX_DEVICES) return false;
   devices[deviceCount++] = {name, "PUBLISHER", type, RootPath + name + "/value", cb, nullptr};
   return true;
 }
@@ -199,7 +202,7 @@ bool NodeBridge::addPublisher(const String &name, const String &type, ValueCallb
 bool NodeBridge::addSubscriber(const String &name, const String &type, ValueCallback cb, CommandCallback cmd) {
   if (deviceExists(name)) return false;
   if (!validateDeviceArgs(name, type, cb)) return false;
-  if (deviceCount >= NODE_BRIDGE_MAX_DEVICES) return false;
+  if (deviceCount >= NODEBRIDGE_MAX_DEVICES) return false;
   devices[deviceCount++] = {name, "SUBSCRIBER", type, RootPath + name + "/value", cb, cmd};
   safeSubscribe(RootPath + name + "/value");
   return true;
@@ -232,27 +235,27 @@ bool NodeBridge::getDevice(const String &name, Device * device) {
 
 bool NodeBridge::sendEvent(const String &name, const String & value) {
   Device device;
-  if (!getDevice(&device))
+  if (!getDevice(name, &device))
   {
     return false;
   }
-  if (devices[i].Mode == "SUBSCRIBER") 
+  if (device.Mode == "SUBSCRIBER") 
   {
     return false;
   }
 
   DynamicJsonDocument devicePayload(1024);
-  devicePayload["Name"] = devices.Name;
-  devicePayload["Mode"] = devices.Mode;
-  devicePayload["Type"] = devices.Type;
-  devicePayload["Channel"] = devices.Channel;
+  devicePayload["Name"] = device.Name;
+  devicePayload["Mode"] = device.Mode;
+  devicePayload["Type"] = device.Type;
+  devicePayload["Channel"] = device.Channel;
   devicePayload["Value"] = value;
 
 
   String payload;
   serializeJson(devicePayload, payload);
 
-  safePublish(devices.Channel, payload);
+  safePublish(device.Channel, payload);
   return true;
 }
 
@@ -305,6 +308,12 @@ void NodeBridge::onMqttMessage(char* topic, byte* payload, unsigned int length) 
   Device* d = getSubscriberByTopic(t);
   if (d && d->command_callback) {
     d->command_callback(msg);
+  }
+}
+
+void NodeBridge::resubscribeDevices() {
+   for (int i = 0; i < deviceCount; i++) {
+    if (devices[i].Mode == "SUBSCRIBER") safeSubscribe(devices[i].Channel);
   }
 }
 

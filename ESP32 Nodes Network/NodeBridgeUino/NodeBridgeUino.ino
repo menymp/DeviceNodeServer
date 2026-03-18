@@ -1,9 +1,9 @@
 #include <WiFi.h>
-#include "NodeBridge.h"
+#include "node_bridge.h"
 
 #define WIFI_SSID "your_ssid"
 #define WIFI_PASS "your_pass"
-#define MQTT_BROKER "192.168.1.100"
+#define MQTT_BROKER "192.168.1.71"
 #define MQTT_PORT 1883
 
 // Mock callbacks

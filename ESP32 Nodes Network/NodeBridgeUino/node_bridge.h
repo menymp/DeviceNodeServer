@@ -66,6 +66,8 @@ private:
   bool errorEvent;
   bool reconnectEvent;
   bool stopEvent;
+  bool timeoutEvent;
+  bool updtEvent;
   unsigned long lastPayloadMs;
   unsigned long samplingTimeMs;
   unsigned long timeoutAckMs;
