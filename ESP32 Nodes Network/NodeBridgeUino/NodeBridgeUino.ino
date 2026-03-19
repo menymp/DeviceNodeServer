@@ -1,9 +1,9 @@
 #include <WiFi.h>
 #include "node_bridge.h"
 
-#define WIFI_SSID "your_ssid"
-#define WIFI_PASS "your_pass"
-#define MQTT_BROKER "192.168.1.71"
+#define WIFI_SSID ""
+#define WIFI_PASS ""
+#define MQTT_BROKER ""
 #define MQTT_PORT 1883
 
 // Mock callbacks
@@ -13,8 +13,10 @@ void pumpHandler(const String &payload) { Serial.println("Pump command: " + payl
 
 NodeBridge *bridge;
 
+int i = 0;
+
 void setup() {
-  Serial.begin(115200);
+  Serial.begin(9600);
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASS);
   unsigned long start = millis();
@@ -36,4 +38,10 @@ void setup() {
 void loop() {
   bridge->loop();
   delay(10);
+  if (i > 1000)
+  {
+    bridge->sendEvent("TempSensor", "69.69");
+    i = 0;
+  }
+  i++;
 }

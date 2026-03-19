@@ -38,6 +38,10 @@ def pump_command_handler(payload):
 # --- Main ---
 try:
     connect_wifi(WIFI_SSID, WIFI_PASS)
+    
+    halObj = network_utils_hal()
+    print(halObj.get_ip())
+    print(halObj.get_mac())
 
     # instantiate bridge (module must be on device filesystem)
     bridge = node_bridge(name="ESP32MockNode", broker=BROKER, port=BROKER_PORT,
@@ -65,10 +69,17 @@ try:
 
     # Main polling loop
     print("Entering main loop. Press Ctrl+C to stop.")
+    cnt = 0
     while True:
         bridge.loop()
         # small sleep to avoid tight loop; bridge.loop already yields, but keep safe
         time.sleep(0.05)
+        if cnt > 50:
+            cnt = 0
+            print("Event firing")
+            value = 70.70
+            bridge.send_event("TempSensor", str(value).encode('utf-8'))
+        cnt = cnt + 1
 
 except KeyboardInterrupt:
     print("Interrupted by user, shutting down")

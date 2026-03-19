@@ -433,7 +433,8 @@ class node_bridge(network_utils_hal):
         if device["Mode"] != "PUBLISHER":
             print("ERROR: Device is not  a publiser")
             return False
-
+        
+        '''
         payload = {
             "Name":name,
             "Mode":"PUBLISHER",
@@ -441,8 +442,9 @@ class node_bridge(network_utils_hal):
             "Channel": device["Channel"], #not in use considered new approach, leaved for legacy compatibility
             "Value": value
         }
+        '''
 
-        self.client.publish(device["Channel"], payload)
+        self.client.publish(device["Channel"], value)
         return True
     
     '''

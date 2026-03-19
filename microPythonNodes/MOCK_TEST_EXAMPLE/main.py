@@ -49,6 +49,7 @@ if __name__ == "__main__":
         while True:
             time.sleep(2)
             counter += 1
+            nodeBridgeObj.send_event("InternalCounter", str(counter))
             if counter > 100:
                 counter = 0
     except KeyboardInterrupt:
