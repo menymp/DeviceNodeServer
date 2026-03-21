@@ -69,10 +69,11 @@ class FrameServerConstructor():
 
 	def get_cameras_info(self):
 		return self.deviceDict
-	# TODO Implement a timer to update the info in the db for each device and set the device db id
-	# use for this purpose addVideoSource, updateVideoSource from dbActions in the top module
+
 	def updateDeviceId(self, deviceUID, dbId):
-		self.deviceDict[deviceUID]["dbId"] = dbId
+		camDevice = self.deviceDict[deviceUID]
+		if camDevice:
+			self.deviceDict[deviceUID]["dbId"] = dbId
 
 	def processCameraHeader(self, type, name, mac, client_ip):
 		cameraUID = mac + name
@@ -92,7 +93,8 @@ class FrameServerConstructor():
 				"name": name,
 				"ip": client_ip,
 				"videoHandler": BaseVideoHandler(resolution),
-				"dbId": -1
+				"dbId": -1,
+				"cameraUID": cameraUID
 			}
 			self.deviceDict[cameraUID] = newCam
 		else:
@@ -108,6 +110,14 @@ class FrameServerConstructor():
 			devIdArr.append(deviceD["dbId"])
 		logger.info("frame constructor found devices: " + str(devIdArr))
 		return devIdArr
+	
+	def getDeviceFromDbId(self, dbId):
+		for deviceD in self.deviceDict:
+			if deviceD["dbId"] == dbId:
+				logger.info("frame constructor found device: " + str(dbId))
+				return deviceD
+		logger.info("Device not found: " + str(dbId))
+		return None
 	
 	'''
 	argsObj={
@@ -126,7 +136,10 @@ class FrameServerConstructor():
 		frameRow = None
 		frame = None
 		for id in argsObj["idList"]:
-			flag, img = self.deviceDict[id].getImage()
+			device = self.getDeviceFromDbId(id)
+			if not device:
+				continue
+			flag, img = device["videoHandler"].getImage()
 			img = cv2.resize(img, (argsObj["height"], argsObj["width"]))
 			
 			if argsObj["idText"] == True:

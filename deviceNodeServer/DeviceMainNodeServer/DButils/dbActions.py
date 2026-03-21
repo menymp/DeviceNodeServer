@@ -126,16 +126,24 @@ class dbDevicesActions(dbConnectorBase):
         return records
 
 class dbVideoActions(dbConnectorBase):
+	def videoSourceExists_v2(self, name, mac_addr):
+		result = self.dbConn.execute("SELECT * FROM videosources WHERE name = %s AND JSON_UNQUOTE(JSON_EXTRACT(sourceParameters, '$.mac')) = %s", (name, mac_addr))
+		if len(result):
+			return True, result[0][0] #return found id
+		return False, None
+    
 	def getVideoSources(self):
 		records = self.dbConn.execute("SELECT * FROM videosources")
 		return records
 	
-	def addVideoSource(self, name, idCreator, parameterObject):
-		records = self.dbConn.execute("INSERT INTO videosources (name, idCreator, sourceParameters) VALUES (%s, %s, %s)")
-		return "OK"
+	def addVideoSource(self, name, parameterObject):
+		defaultUser = self.dbConn.execute("SELECT idUser FROM users WHERE username = 'default_user'")
+		records = self.dbConn.execute("INSERT INTO videosources (name, idCreator, sourceParameters) VALUES (%s, %s, %s)", (name, defaultUser, parameterObject))
+		insertResult = self.dbConn.execute("SELECT LAST_INSERT_ID();")
+		return insertResult[0][0]
 	
-	def updateVideoSource(self, parameterObject):
-		#not needed for now
+	def updateVideoSource_v2(self, name, mac, parameterObject):
+		records = self.dbConn.execute("UPDATE videosources SET sourceParameters = %s WHERE name = %s AND JSON_UNQUOTE(JSON_EXTRACT(sourceParameters, '$.mac')) = %s", (parameterObject, name, mac))
 		return "OK"
 	
 	def removeVideoSource(self, parameterObject):

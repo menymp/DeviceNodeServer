@@ -2,11 +2,7 @@ import time
 import tornado.ioloop
 import tornado.web
 import tornado.httpserver
-import tornado.process
-import tornado.template
-import gen
-import os
-from threading import Timer
+from threading import Timer, Event
 import json
 import asyncio
 import sys
@@ -61,11 +57,13 @@ class videoHandler():
 		self.dbName = args[1]
 		self.dbUser = args[2]
 		self.dbPass = args[3]
-		self.dbActions = dbVideoActions()
-		self.dbActions.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
+		self.dbCamActions = dbVideoActions()
+		self.dbCamActions.initConnector(self.dbUser,self.dbPass,self.dbHost,self.dbName)
 		
 		self.frameObjConstructor = FrameServerConstructor()
 		self.frameObjConstructor.start()
+
+		self.stop_event = Event()
 		self.app = self._make_app(self.frameObjConstructor)
 		pass
 	
@@ -93,8 +91,26 @@ class videoHandler():
 				return None
 		else:
 			return "unknown command"
+		
+	def _update_video_sources(self):
+		while self.stop_event.is_set() == False:
+			availableCameras = self.frameObjConstructor.get_cameras_info()
+			for camera in availableCameras:
+				cameraDbId = None
+				exists, id = self.dbCamActions.videoSourceExists_v2(camera["name"], camera["mac"])
+				if exists:
+					self.dbCamActions.updateVideoSource_v2(camera["name"], camera["mac"], camera)
+					logger.info("Updated device " + str(camera))
+					cameraDbId = id
+				else:
+					cameraDbId = self.dbCamActions.addVideoSource(camera["name"], camera)
+					logger.info("Created new device " + str(camera) + " " + str(cameraDbId))
+				self.frameObjConstructor.updateDeviceId(camera["cameraUID"] , cameraDbId)
+
+		pass
 
 	def stop(self):
+		self.stop_event()
 		self.frameObjConstructor().stop()
 		tornado.ioloop.IOLoop.current().stop()
 	
