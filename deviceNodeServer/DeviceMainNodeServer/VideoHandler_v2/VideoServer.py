@@ -32,9 +32,10 @@ GLOBAL_MEMORY_LIMIT = 500 * 1024 * 1024  # 500 MB global cap
 MAX_SINGLE_FRAME = 20 * 1024 * 1024  # 20 MB
 
 # Storage structures
-# camera_id -> deque of (timestamp_iso, header_dict, bytes)
-CameraFrames = Dict[str, Deque[Tuple[str, dict, bytes]]]
-camera_store: CameraFrames = {}
+# camera_store: cam_id -> (ts, hdr, bytes)
+camera_store: Dict[str, Tuple[str, dict, bytes]] = {}
+
+#camera_store: CameraFrames = {}
 camera_bytes: Dict[str, int] = {}  # bytes used per camera
 global_bytes = 0
 global_lock = asyncio.Lock()       # protect global_bytes and camera_bytes
@@ -96,7 +97,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             # Store in memory with limits
             cam_id = camera_id_from_header(hdr)
             ts = datetime.utcnow().isoformat(timespec="milliseconds") + "Z"
-            await store_frame(cam_id, ts, hdr, img_bytes)
+            await store_frame_latest(cam_id, ts, hdr, img_bytes)
 
     except asyncio.IncompleteReadError:
         logging.info("Client %s disconnected", peer)
@@ -110,50 +111,44 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             pass
         logging.info("Connection closed %s", peer)
 
-async def store_frame(cam_id: str, ts: str, hdr: dict, img_bytes: bytes):
+async def store_frame_latest(cam_id: str, ts: str, hdr: dict, img_bytes: bytes) -> bool:
     global global_bytes
     size = len(img_bytes)
     async with global_lock:
-        # enforce global cap
         if global_bytes + size > GLOBAL_MEMORY_LIMIT:
             logging.warning("Global memory cap reached: rejecting frame from %s (%d bytes)", cam_id, size)
-            return
-
-        # ensure camera structures exist
-        #print("meny cam id:" + str(cam_id)) 
-        if cam_id not in camera_store:
-            camera_store[cam_id] = deque(maxlen=MAX_FRAMES_PER_CAMERA)
-            camera_bytes[cam_id] = 0
-
-        # enforce per-camera bytes cap by popping oldest frames until it fits
-        while camera_bytes[cam_id] + size > MAX_BYTES_PER_CAMERA and len(camera_store[cam_id]) > 0:
-            old_ts, old_hdr, old_bytes = camera_store[cam_id].popleft()
-            old_size = len(old_bytes)
-            camera_bytes[cam_id] -= old_size
+            return False
+        old = camera_store.get(cam_id)
+        if old:
+            old_size = len(old[2])
             global_bytes -= old_size
-            logging.debug("Evicted %s frame %s (%d bytes) to free space", cam_id, old_ts, old_size)
-
-        # if still doesn't fit, drop this frame
-        if camera_bytes[cam_id] + size > MAX_BYTES_PER_CAMERA:
-            logging.warning("Per-camera memory cap reached for %s: dropping frame (%d bytes)", cam_id, size)
-            return
-
-        # store
-        camera_store[cam_id].append((ts, hdr, img_bytes))
-        camera_bytes[cam_id] += size
+        camera_store[cam_id] = (ts, hdr, img_bytes)
         global_bytes += size
-        #logging.info("Stored frame for %s (%d bytes). Camera bytes=%d Global bytes=%d", cam_id, size, camera_bytes[cam_id], global_bytes)
+        return True
+
 
 # Optional HTTP API to fetch latest frame for a camera (if aiohttp installed)
 async def http_latest_frame(request):
     cam = request.match_info.get("cam")
-    if cam not in camera_store or len(camera_store[cam]) == 0:
+    if cam not in camera_store:
         return web.Response(status=404, text="no frames")
-    ts, hdr, img = camera_store[cam][-1]
+
+    entry = camera_store[cam]
+
+    # support both shapes: deque of tuples or single tuple (ts, hdr, img)
+    if isinstance(entry, tuple) and len(entry) == 3:
+        ts, hdr, img = entry
+    else:
+        # assume deque-like
+        try:
+            ts, hdr, img = entry[-1]
+        except Exception:
+            return web.Response(status=500, text="invalid frame storage format")
+
     headers = {
         "X-Camera-TS": ts,
-        "X-Camera-Name": hdr.get("name",""),
-        "X-Camera-MAC": hdr.get("mac",""),
+        "X-Camera-Name": hdr.get("name", ""),
+        "X-Camera-MAC": hdr.get("mac", ""),
         "Content-Type": "image/jpeg"
     }
     return web.Response(body=img, headers=headers)
