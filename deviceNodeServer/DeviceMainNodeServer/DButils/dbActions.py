@@ -1,5 +1,6 @@
 #python db Wrapper for actions
 from mySqlConn import dbConn
+from aioMySqlConn import AsyncDB as dbConnAsync
 
 class dbConnectorBase():
     def initConnector(self, user, password, host, database, auth = 'mysql_native_password'):
@@ -9,6 +10,16 @@ class dbConnectorBase():
     
     def deinitConnector(self):
         self.dbConn.close()
+        pass
+
+class dbConnectorBaseAsync():
+    async def initConnector(self, user, password, host, database, auth = 'mysql_native_password'):
+        self.dbConn = dbConnAsync()
+        await self.dbConn.connect(user = user, password = password, host = host, database = database, auth = auth)
+        pass
+    
+    async def deinitConnector(self):
+        await self.dbConn.close()
         pass
 
 class dbNodesActions(dbConnectorBase):
@@ -124,6 +135,32 @@ class dbDevicesActions(dbConnectorBase):
     def getDeviceByNameNode(self, idParentNode, deviceName):
         records = self.dbConn.execute("SELECT devices.idDevices, devices.name, devicesmodes.mode, devicestype.type, devices.channelpath, devices.idParentNode, nodestable.nodeName, nodestable.nodePath, supportedprotocols.ProtocolName, nodestable.idOwnerUser, nodestable.connectionParameters FROM devices INNER JOIN devicesmodes ON devicesmodes.idDevicesModes = devices.idMode INNER JOIN devicestype ON devicestype.idDevicesType = devices.idType INNER JOIN nodestable ON devices.idParentNode = nodestable.idNodesTable INNER JOIN supportedprotocols ON nodestable.idDeviceProtocol = supportedprotocols.idSupportedProtocols WHERE devices.idParentNode = %s AND devices.name = %s",(idParentNode,deviceName,))
         return records
+
+
+class dbVideoActionsAsync(dbConnectorBaseAsync):
+	def videoSourceExists_v2(self, name, mac_addr):
+		result = self.dbConn.execute("SELECT * FROM videosources WHERE name = %s AND JSON_UNQUOTE(JSON_EXTRACT(sourceParameters, '$.mac')) = %s", (name, mac_addr))
+		if len(result):
+			return True, result[0][0] #return found id
+		return False, None
+    
+	def getVideoSources(self):
+		records = self.dbConn.execute("SELECT * FROM videosources")
+		return records
+	
+	def addVideoSource(self, name, parameterObject):
+		defaultUser = self.dbConn.execute("SELECT idUser FROM users WHERE username = 'default_user'")
+		records = self.dbConn.execute("INSERT INTO videosources (name, idCreator, sourceParameters) VALUES (%s, %s, %s)", (name, defaultUser, parameterObject))
+		insertResult = self.dbConn.execute("SELECT LAST_INSERT_ID();")
+		return insertResult[0][0]
+	
+	def updateVideoSource_v2(self, name, mac, parameterObject):
+		records = self.dbConn.execute("UPDATE videosources SET sourceParameters = %s WHERE name = %s AND JSON_UNQUOTE(JSON_EXTRACT(sourceParameters, '$.mac')) = %s", (parameterObject, name, mac))
+		return "OK"
+	
+	def removeVideoSource(self, parameterObject):
+		#not needed for now
+		return "OK"
 
 class dbVideoActions(dbConnectorBase):
 	def videoSourceExists_v2(self, name, mac_addr):
