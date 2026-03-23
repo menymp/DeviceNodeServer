@@ -6,7 +6,7 @@ const char* ssid = "";
 const char* password = "";
 
 const char* server_ip = ""; // ingest server IP
-const uint16_t server_port = 9000;
+const uint16_t server_port = 8072;
 
 const char* CAMERA_NAME = "MenyEspCam1";
 const char CAMERA_TYPE = '1'; // single digit char '0'..'9'
@@ -14,6 +14,7 @@ const unsigned long CAPTURE_INTERVAL_MS = 1000; // 1 fps
 // ----------------------------
 
 WiFiClient client;
+char ipStr[16];
 
 // Camera pins for AI Thinker (adjust if different module)
 #define PWDN_GPIO_NUM     32
@@ -81,6 +82,8 @@ void connectWiFi() {
   Serial.println("\nWiFi connected");
   Serial.print("IP: ");
   Serial.println(WiFi.localIP());
+  IPAddress ip = WiFi.localIP();
+  ip.toString().toCharArray(ipStr, 16); // Convert and store
 }
 
 bool connectServer() {
@@ -123,11 +126,12 @@ void sendFrame() {
   // Build JSON header (small, no external libs)
   // Example: {"name":"MenyEspCam1","camera_type":"1","mac":"AA:BB:CC:DD:EE:FF","frame_size":12345}
   String mac = getMac();
-  char headerBuf[256];
+  char headerBuf[300];
   
   int headerLen = snprintf(headerBuf, sizeof(headerBuf),
-                           "{\"name\":\"%s\",\"camera_type\":\"%c\",\"mac\":\"%s\",\"frame_size\":%u}",
-                           CAMERA_NAME, CAMERA_TYPE, mac.c_str(), (unsigned)fb->len);
+                           "{\"name\":\"%s\",\"camera_type\":\"%c\",\"mac\":\"%s\",\"ip_addr\":\"%s\",\"frame_size\":%u}",
+                           CAMERA_NAME, CAMERA_TYPE, mac.c_str(), ipStr, (unsigned)fb->len);
+  // Serial.println(headerBuf);
   if (headerLen <= 0 || headerLen >= (int)sizeof(headerBuf)) {
     Serial.println("Header build failed or too large");
     esp_camera_fb_return(fb);

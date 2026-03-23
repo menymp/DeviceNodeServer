@@ -1,3 +1,4 @@
 pyzmq>=25.1.0
 tornado==6.0.4
 mysql-connector-python==8.0.33
+aiomysql==0.3.2

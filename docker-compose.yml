@@ -135,6 +135,7 @@ services:
       - db_user_password
     ports:
       - "${VIDEO_SEED_PORT}:${VIDEO_SEED_PORT}"
+      - "${DEVICE_SOCKET_PORT}:${DEVICE_SOCKET_PORT}"
     depends_on:
       nodes-db:
         condition: service_healthy

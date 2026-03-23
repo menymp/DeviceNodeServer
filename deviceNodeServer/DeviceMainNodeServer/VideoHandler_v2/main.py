@@ -9,20 +9,17 @@ import argparse
 import io
 import os
 import signal
-
+import socket
+import time
 from FrameServerConstructor import FrameServerConstructor
 from zmqServerUtils import start_mq_thread
 from WebUtils import *
 from secretReader import get_secret
 from loggerUtils import get_logger
-logger = get_logger(__name__)
+from aiohttp import web
+AIOHTTP_AVAILABLE = True
 
-# Optional HTTP endpoint
-try:
-    from aiohttp import web
-    AIOHTTP_AVAILABLE = True
-except Exception:
-    AIOHTTP_AVAILABLE = False
+logger = get_logger(__name__)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -98,6 +95,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             # Store in memory with limits
             cam_id = camera_id_from_header(hdr)
             ts = datetime.now().isoformat(timespec="milliseconds") + "Z"
+            frameConstructor.processCameraHeader(hdr.get("type"), hdr.get("name"), hdr.get("mac"), hdr.get("ip_addr"))
             await store_frame_latest(cam_id, ts, hdr, img_bytes)
 
     except asyncio.IncompleteReadError:
@@ -130,6 +128,7 @@ async def store_frame_latest(cam_id: str, ts: str, hdr: dict, img_bytes: bytes) 
 
 # Optional HTTP API to fetch latest frame for a camera (if aiohttp installed)
 async def http_latest_frame(request):
+    logger.debug("Request arrived")
 
     cam = request.match_info.get("cam")
     if cam not in camera_store:
@@ -198,6 +197,7 @@ async def http_frame_Constructor(request: web.Request):
 
     return web.Response(body=img, headers=headers)
 
+# server helpers (tab indented)
 async def start_tcp_server(host: str, port: int):
     server = await asyncio.start_server(handle_client, host, port, backlog=200)
     addrs = ", ".join(str(sock.getsockname()) for sock in server.sockets)
@@ -276,10 +276,30 @@ async def main():
     logger.info(httpVideoPort)
     logger.info(deviceServerPort)
 
+    
     frameConstructor = FrameServerConstructor(args)
     await frameConstructor.init()
 
+    # start ZMQ thread (pass the running loop and async handler)
+    loop = asyncio.get_running_loop()
+    mq_context, mq_socket, mq_stop_event, mq_thread = start_mq_thread(zmqCfgConn, loop, handle_mq_request)
+    logger.info("ZMQ thread started")
 
+    stop_event = asyncio.Event()
+    # create the periodic updater task (preferred)
+    update_task = asyncio.create_task(frameConstructor.update_video_sources(stop_event, interval=2.0))
+    # start servers and keep references
+
+    tasks = [start_tcp_server(LISTEN_HOST, deviceServerPort)]
+    tasks.append(start_http_server(LISTEN_HOST, httpVideoPort))
+    #tasks.append(frameConstructor.update_video_sources(stop_event, interval=2.0))
+    await asyncio.gather(*tasks)
+
+if __name__ == "__main__":
+    logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
+    asyncio.run(main())
+
+'''
     # start ZMQ thread (pass the running loop and async handler)
     loop = asyncio.get_running_loop()
     mq_context, mq_socket, mq_stop_event, mq_thread = start_mq_thread(zmqCfgConn, loop, handle_mq_request)
@@ -287,21 +307,22 @@ async def main():
 
     # stop event for graceful shutdown
     stop_event = asyncio.Event()
+    logger.info("a")
 
     # create the periodic updater task (preferred)
     update_task = asyncio.create_task(frameConstructor.update_video_sources(stop_event, interval=2.0))
-
+    logger.info("B")
     # start servers and keep references
     tcp_server = await start_tcp_server(LISTEN_HOST, deviceServerPort)  # returns server object
+    # create a task to run the server loop
+    logger.info("B1")
+    tcp_task = asyncio.create_task(tcp_server.serve_forever())
+    logger.info("C")
     http_runner_site = None
     if AIOHTTP_AVAILABLE:
         runner, site = await start_http_server(LISTEN_HOST, httpVideoPort)
         http_runner_site = (runner, site)
-
-    # collect tasks you want to wait on (server serve_forever tasks, etc.)
-    # If start_tcp_server returns a server object, create a serve_forever task:
-    tcp_task = asyncio.create_task(tcp_server.serve_forever())
-
+    logger.info("D")
     # Now wait for shutdown signal
     loop = asyncio.get_running_loop()
     def _on_signal():
@@ -312,7 +333,7 @@ async def main():
         loop.add_signal_handler(signal.SIGTERM, _on_signal)
     except NotImplementedError:
         pass
-
+    logger.info("E")
     # Wait until stop_event is set
     await stop_event.wait()
     logging.info("shutting down")
@@ -354,7 +375,4 @@ async def main():
             await frameConstructor.dbCamActions.close()
     except Exception:
         logging.exception("Error closing DB connector")
-
-if __name__ == "__main__":
-    logging.getLogger("aiohttp.access").setLevel(logging.WARNING)
-    asyncio.run(main())
+'''

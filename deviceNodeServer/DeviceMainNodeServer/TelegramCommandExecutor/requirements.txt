@@ -4,3 +4,4 @@ opencv-python==4.6.0.66
 python-telegram-bot==22.5
 pyzmq>=25.1.0
 mysql-connector-python==8.0.33
+aiomysql==0.3.2
