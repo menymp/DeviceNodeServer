@@ -1,5 +1,3 @@
-//#include <Arduino_JSON.h>
-
 //MQTT Node Firmware for esp 32
 //
 //
@@ -8,16 +6,12 @@
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 //
-#include <ArduinoJson.h>
 #include "DHT.h"
 #include "EmonLib.h"
 #include <driver/adc.h>
 #include <LiquidCrystal.h>
-
+#include "node_bridge.h"
 #include <WiFi.h>
-#include <PubSubClient.h>
-
-//#include <Arduino_FreeRTOS.h>
 
 #define DHTPIN 15     // Digital pin connected to the DHT sensor
 #define ADC_INPUT 13
@@ -28,22 +22,14 @@
 
 const char* ssid = "";
 const char* password = "";
-const char* mqtt_server = "";
+const char* MQTT_BROKER = "";
+const int MQTT_PORT = 1883;
 
 LiquidCrystal My_LCD(14, 27, 26, 25, 33, 32);
 DHT dht(DHTPIN, DHTTYPE);
 EnergyMonitor emon1;
 WiFiClient espClient;
-PubSubClient client(espClient);
-
-char out[600];
-size_t cntBuff = 0;
-
-char S_out[600];
-size_t S_cntBuff = 0;
-
-StaticJsonDocument<600> manifest;
-
+NodeBridge *bridge;
 
 String messageTemp;
 float h;
@@ -61,7 +47,6 @@ void setup()
   analogReadResolution(10);
   
   My_LCD.begin(16, 2);
-  CreateManifest();
   setup_wifi();
 
 ArduinoOTA
@@ -92,8 +77,6 @@ ArduinoOTA
 
   ArduinoOTA.begin();
   
-  client.setServer(mqtt_server, 1883);
-  client.setCallback(callback);
   emon1.current(ADC_INPUT, 30);
     dht.begin();
     delay(2000);
@@ -122,19 +105,50 @@ ArduinoOTA
     ,  NULL );
 }
 
-void CreateManifest()
+String read_temp()
+{ 
+  return String(t,2);
+}
+
+String read_humidity()
 {
-  manifest["Name"] = "MenyNode1";
-  manifest["RootName"] = "/MenyNode1/";
-JsonArray Devices = manifest.createNestedArray("Devices");
+  return String(h,2);
+}
 
-Devices.add("Temp");
-Devices.add("Humidity");
-Devices.add("Irms");
-Devices.add("Pow");
-Devices.add("LCDMsg");
+String read_irms()
+{
+  return String(amps,2);
+}
 
-cntBuff =serializeJson(manifest, out);
+String read_pow()
+{
+  return String(watt,2);
+}
+
+String read_lcdmsg()
+{
+  return messageTemp;
+}
+
+void write_lcd_msg(const String &payload)
+{
+  Serial.println("Message arrived: '" + payload + "' ");
+  messageTemp = payload;
+}
+
+void init_device_node()
+{
+  bridge = new NodeBridge("SensorsNode1", MQTT_BROKER, MQTT_PORT);
+  bridge->begin();
+  
+  // Wait a bit for ack from server, or poll ackEvent in production
+  delay(2000);
+  bridge->addPublisher("Temp", "FLOAT", read_temp);
+  bridge->addPublisher("Humidity", "FLOAT", read_humidity);
+  bridge->addPublisher("Irms", "FLOAT", read_irms);
+  bridge->addPublisher("Pow", "FLOAT", read_pow);
+  bridge->addSubscriber("LCDMsg", "STRING", read_lcdmsg, write_lcd_msg);
+  Serial.println("Node init");
 }
 
 void setup_wifi() {
@@ -165,50 +179,6 @@ void setup_wifi() {
   My_LCD.setCursor(0, 1);
   My_LCD.print(WiFi.localIP());
 }
-
-void callback(char* topic, byte* message, unsigned int length) {
-
-  if (String(topic) == "/MenyNode1/LCDMsg/print") 
-  {
-    Serial.print("Message arrived on topic: ");
-    Serial.print(topic);
-    Serial.print(". Message: ");
-    messageTemp = "";
-    for (int i = 0; i < length; i++) 
-    {
-      Serial.print((char)message[i]);
-      messageTemp += (char)message[i];
-    }
-    Serial.println();
-    //pending
-  }
-}
-
-void reconnect() 
-{
-  // Loop until we're reconnected
-  while (!client.connected()) 
-  {
-    Serial.print("Attempting MQTT connection...");
-    // Attempt to connect
-    if (client.connect("MenySensorNode1_MechLab")) 
-    {
-      Serial.println("connected");
-      // Subscribe
-      client.subscribe("/MenyNode1/LCDMsg/print");
-    } 
-    else 
-    {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
-  }
-}
-
-
 
 void TaskLCDDisplay(void *pvParameters)
 {
@@ -298,46 +268,10 @@ void TaskSensorRead(void *pvParameters)
   Serial.print("Watts: ");
   Serial.println(watt);
 
-  StaticJsonDocument<200> Device1;
-  Device1["Name"] = "Temperature";
-  Device1["Mode"] = "PUBLISHER";
-  Device1["Type"] = "FLOAT";
-  Device1["Channel"] = "/MenyNode1/Temp";
-  Device1["Value"] = "NOTHING";
-  S_cntBuff =serializeJson(Device1, S_out);
-  client.publish("/MenyNode1/Temp", S_out,S_cntBuff);
-
-  Device1["Name"] = "Humidity";
-  Device1["Mode"] = "PUBLISHER";
-  Device1["Type"] = "FLOAT";
-  Device1["Channel"] = "/MenyNode1/Humidity";
-  Device1["Value"] = String(h,2);
-  S_cntBuff =serializeJson(Device1, S_out);
-  client.publish("/MenyNode1/Humidity", S_out,S_cntBuff);
-
-  Device1["Name"] = "Irms";
-  Device1["Mode"] = "PUBLISHER";
-  Device1["Type"] = "FLOAT";
-  Device1["Channel"] = "/MenyNode1/Irms";
-  Device1["Value"] = String(amps,2);
-  S_cntBuff =serializeJson(Device1, S_out);
-  client.publish("/MenyNode1/Irms", S_out,S_cntBuff);
-
-  Device1["Name"] = "Power";
-  Device1["Mode"] = "PUBLISHER";
-  Device1["Type"] = "FLOAT";
-  Device1["Channel"] = "/MenyNode1/Pow";
-  Device1["Value"] = String(watt,2);
-  S_cntBuff =serializeJson(Device1, S_out);
-  client.publish("/MenyNode1/Pow", S_out,S_cntBuff);
-
-  Device1["Name"] = "LCDMsg";
-  Device1["Mode"] = "SUBSCRIBER";
-  Device1["Type"] = "STRING";
-  Device1["Channel"] = "/MenyNode1/LCDMsg/print";
-  Device1["Value"] = messageTemp;
-  S_cntBuff =serializeJson(Device1, S_out);
-  client.publish("/MenyNode1/LCDMsg", S_out,S_cntBuff);
+  bridge->sendEvent("Temp", read_temp());
+  bridge->sendEvent("Humidity", read_humidity());
+  bridge->sendEvent("Irms", read_irms());
+  bridge->sendEvent("Pow", read_pow());
   
   delay(3000);
   }
@@ -347,15 +281,10 @@ void TaskSensorRead(void *pvParameters)
 void TaskPublishData(void *pvParameters)
 {
   (void) pvParameters;
-  //pinMode(LED_BUILTIN, OUTPUT);
+  init_device_node();
   while(true)
   {
-    Serial.println();
-    Serial.print("num:");
-    Serial.println(cntBuff);
-    Serial.print(out);
-    
-    client.publish("/MenyNode1/manifest", out, cntBuff );//
+    bridge->loop();
     delay(3000);
   }
   vTaskDelete( NULL );
@@ -364,9 +293,5 @@ void TaskPublishData(void *pvParameters)
 void loop()
 {
   ArduinoOTA.handle(); 
-  if (!client.connected()) {
-    reconnect();
-  }
-  client.loop();
   delay(500);
 }
