@@ -6,10 +6,8 @@
 #include <ESPmDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
-//communication libraries
-#include <ArduinoJson.h>
 #include <WiFi.h>
-#include <PubSubClient.h>
+#include "node_bridge.h"
 
 #include <SPI.h>
 #include <MFRC522.h>
@@ -21,24 +19,19 @@
 
 const char* ssid = "";
 const char* password = "";
-const char* mqtt_server = "";
+const char* MQTT_BROKER = "";
+const int MQTT_PORT = 1883;
 
 MFRC522 rfid(SS_PIN, RST_PIN);
 
 WiFiClient espClient;
 PubSubClient client(espClient);
+NodeBridge *bridge;
 
-char out[600];
-size_t cntBuff = 0;
-
-char S_out[600];
-size_t S_cntBuff = 0;
-
-StaticJsonDocument<600> manifest;
+char last_rfid_id[50] = {0};  /* last scanned rfid */
 
 byte readCard[4];
-int lockState = 1;
-String messageTemp;
+int lockState = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -46,13 +39,9 @@ void setup() {
   rfid.PCD_Init(); // init MFRC522
 
   Serial.println("Tap an RFID/NFC tag on the RFID-RC522 reader");
-  //adc2_config_channel_atten(ADC2_CHANNEL_4, ADC_ATTEN_DB_11);
-  //analogReadResolution(10);
 
   pinMode(LOCK_PIN,OUTPUT); //check for availability pin
   digitalWrite(LOCK_PIN, LOW); 
-  
-  CreateManifest();
   setup_wifi();
 
   ArduinoOTA
@@ -82,9 +71,6 @@ void setup() {
     });
 
   ArduinoOTA.begin();
-  
-  client.setServer(mqtt_server, 1883);
-  client.setCallback(callback);
 
   delay(2000);
 
@@ -107,23 +93,59 @@ void setup() {
 
 void loop() {
   ArduinoOTA.handle(); 
-  if (!client.connected()) {
-    reconnect();
-  }
-  client.loop();
   delay(500);
 }
 
-void CreateManifest()
+String read_last_scan()
 {
-  manifest["Name"] = "MenyNodeRF1";
-  manifest["RootName"] = "/MenyNodeRF1/";
-  JsonArray Devices = manifest.createNestedArray("Devices");
+   return String(last_rfid_id);
+}
 
-  Devices.add("Rfid");
-  Devices.add("Lock");
+String read_lock_state()
+{
+   return String(lockState);
+}
 
-  cntBuff =serializeJson(manifest, out);
+void lock_command_callback(const String &payload)
+{
+  Serial.println("Lock command received: " + payload);
+  if(payload == "OPEN")
+  {
+      lockState = 1;
+      digitalWrite(LOCK_PIN, HIGH); 
+      delay(3000);
+      digitalWrite(LOCK_PIN, LOW); 
+      lockState = 0;
+  }
+  else
+  {
+      digitalWrite(LOCK_PIN, LOW); 
+      lockState = 0;
+  }
+}
+
+void array_to_string(byte a[],unsigned int len,char buffer[])
+{
+  for(unsigned int i=0;i<len;i++)
+  {
+    byte nib1=(a[i]>>4)&0x0F;
+    byte nib2=(a[i]>>0)&0x0F;
+    buffer[i*2+0]=nib1 < 0x0A ? '0' + nib1 : 'A'+ nib1 - 0x0A;
+    buffer[i*2+1]=nib2 < 0x0A ? '0' + nib2 : 'A'+ nib2 - 0x0A;
+  }
+  buffer[len*2]='\0';
+}
+
+void init_device_node()
+{
+  bridge = new NodeBridge("MenyNodeRF1", MQTT_BROKER, MQTT_PORT);
+  bridge->begin();
+  
+  // Wait a bit for ack from server, or poll ackEvent in production
+  delay(2000);
+  bridge->addPublisher("Rfid", "STRING", read_last_scan);
+  bridge->addSubscriber("Lock", "STRING", read_lock_state, lock_command_callback);
+  Serial.println("Node init");
 }
 
 void setup_wifi() {
@@ -146,58 +168,9 @@ void setup_wifi() {
   Serial.println(WiFi.localIP());
 }
 
-void callback(char* topic, byte* message, unsigned int length) {
-
-  if (String(topic) == "/MenyNodeRF1/Lock/open") 
-  {
-    Serial.print("Message arrived on topic: ");
-    Serial.print(topic);
-    Serial.print(". Message: ");
-    messageTemp = "";
-    for (int i = 0; i < length; i++) 
-    {
-      Serial.print((char)message[i]);
-      messageTemp += (char)message[i];
-    }
-    if(messageTemp == "OPEN")
-    {
-      lockState = 0;
-      digitalWrite(LOCK_PIN, HIGH); 
-      delay(3000);
-      digitalWrite(LOCK_PIN, LOW); 
-      lockState = 1;
-    }
-  }
-}
-
-void reconnect() 
-{
-  // Loop until we're reconnected
-  while (!client.connected()) 
-  {
-    Serial.print("Attempting MQTT connection...");
-    // Attempt to connect
-    if (client.connect("MenyNodeRF1")) 
-    {
-      Serial.println("connected");
-      // Subscribe
-      client.subscribe("/MenyNodeRF1/Lock/open");
-    } 
-    else 
-    {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
-  }
-}
-
 void TaskRfidRead(void *pvParameters)
 {
   (void) pvParameters;
-  int cnt = 0;
   while(true)
   {
     
@@ -211,12 +184,6 @@ void TaskRfidRead(void *pvParameters)
 
         // print UID in Serial Monitor in the hex format
         Serial.print("UID:");
-
-        //Expect to add a buffer as a signal in the future
-        //digitalWrite(buzzer,HIGH);
-        //delay(500);
-        //digitalWrite(buzzer,LOW);
-        
         for (int i = 0; i < rfid.uid.size; i++) 
         {  
           readCard[i] = rfid.uid.uidByte[i];   
@@ -225,78 +192,30 @@ void TaskRfidRead(void *pvParameters)
         char msg[50];
         msg[0]='\0';
         array_to_string(readCard,4,msg);
-        //byte mac[6];
-        //WiFi.macAddress(mac);
-        //char msg1[50];
-        //msg1[0]='\0';
-        //array_to_string(mac,6,msg1);
-        //char mid[]=",";
-        char finalMsg[50];
-        finalMsg[0]='\0';
-        strcat(finalMsg,msg);
-        //strcat(finalMsg,mid);
-        //strcat(finalMsg,msg1);
-        Serial.print("final msg:");
-        Serial.println(finalMsg);
-        //Serial.print("MAC: ");
-        //Serial.println(WiFi.macAddress());
-        //client.publish(pubtopic2,finalMsg);
-   
-        StaticJsonDocument<200> Device1;
-        Device1["Name"] = "Rfid";
-        Device1["Mode"] = "PUBLISHER";
-        Device1["Type"] = "STRING";
-        Device1["Channel"] = "/MenyNodeRF1/Rfid";
-        Device1["Value"] = finalMsg;
-        S_cntBuff =serializeJson(Device1, S_out);
-        client.publish("/MenyNodeRF1/Rfid", S_out,S_cntBuff);
+        
+        strcat(last_rfid_id,msg);
+        Serial.print("New Scanned Id:");
+        Serial.println(last_rfid_id);
+        bridge->sendEvent("Rfid", read_last_scan());
 
         rfid.PICC_HaltA(); // halt PICC
         rfid.PCD_StopCrypto1(); // stop encryption on PCD
       }
     }
-    if(cnt == 15)
-    {
-        StaticJsonDocument<200> Device1;
-        Device1["Name"] = "Lock";
-        Device1["Mode"] = "SUBSCRIBER";
-        Device1["Type"] = "STRING";
-        Device1["Channel"] = "/MenyNodeRF1/Lock/open";
-        Device1["Value"] = String(lockState,2);
-        S_cntBuff =serializeJson(Device1, S_out);
-        client.publish("/MenyNodeRF1/Rfid", S_out,S_cntBuff);
-    }
-    cnt++;
     delay(200);
   }
   vTaskDelete( NULL );
 }
 
-void array_to_string(byte a[],unsigned int len,char buffer[])
-{
-  for(unsigned int i=0;i<len;i++)
-  {
-    byte nib1=(a[i]>>4)&0x0F;
-    byte nib2=(a[i]>>0)&0x0F;
-    buffer[i*2+0]=nib1 < 0x0A ? '0' + nib1 : 'A'+ nib1 - 0x0A;
-    buffer[i*2+1]=nib2 < 0x0A ? '0' + nib2 : 'A'+ nib2 - 0x0A;
-  }
-  buffer[len*2]='\0';
-}
-
 void TaskPublishData(void *pvParameters)
 {
   (void) pvParameters;
-  //pinMode(LED_BUILTIN, OUTPUT);
+   init_device_node();
+ 
   while(true)
   {
-    Serial.println();
-    Serial.print("num:");
-    Serial.println(cntBuff);
-    Serial.print(out);
-    
-    client.publish("/MenyNodeRF1/manifest", out, cntBuff );//
-    delay(3000);
+    bridge->loop();
+    delay(10);
   }
   vTaskDelete( NULL );
 }
