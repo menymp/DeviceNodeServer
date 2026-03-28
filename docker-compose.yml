@@ -208,6 +208,7 @@ services:
 
 
   reactor-service:
+    container_name: nodes_reactor_service
     build:
       context: ./deviceNodeServer/DeviceMainNodeServer/event_reactor
       dockerfile: Dockerfile
@@ -229,10 +230,13 @@ services:
       # Reactor runtime options
       REACTOR_LOG_LEVEL: ${REACTOR_LOG_LEVEL:-INFO}
       REACTOR_HANDLER_PATH: /app/handlers
+      REACTOR_NETWORK: ${REACTOR_NETWORK:-${COMPOSE_PROJECT_NAME}_default}
+      REACTOR_CONTAINER_NAME: nodes_reactor_service
     volumes:
       - ./reactor:/app:ro
       - ./reactor/handlers:/app/handlers:ro
       - ./reactor/config.ini:/app/config.ini:ro
+      - /var/run/docker.sock:/var/run/docker.sock   # << required: allow reactor to create containers
     secrets:
       - db_user_password
     depends_on:

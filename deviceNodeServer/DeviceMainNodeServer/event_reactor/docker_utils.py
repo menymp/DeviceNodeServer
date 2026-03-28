@@ -66,6 +66,36 @@ class DockerRunner:
             logger.exception("unexpected error running container %s", name)
             return None
 
+    def get_self_network_name(self, self_container_name=None):
+        """
+        Return a user network name that the reactor container is attached to.
+        If self_container_name is provided, inspect that container; otherwise
+        try to find a container with the same hostname or labels (best-effort).
+        """
+        try:
+            # If caller provided the container name, use it
+            if self_container_name:
+                me = self.client.containers.get(self_container_name)
+            else:
+                # fallback: try to find a container with the same PID/hostname
+                # Best-effort: find containers with label 'com.docker.compose.service=reactor-service'
+                containers = self.client.containers.list(all=True, filters={"label": "com.docker.compose.service=reactor-service"})
+                me = containers[0] if containers else None
+
+            if not me:
+                return None
+
+            nets = me.attrs.get("NetworkSettings", {}).get("Networks", {})
+            # prefer non-bridge networks (user networks)
+            for net_name in nets.keys():
+                if not net_name.startswith("bridge"):
+                    return net_name
+            # fallback to any network
+            return next(iter(nets.keys()), None)
+        except Exception:
+            logger.exception("failed to detect self network")
+            return None
+
     def stop_and_remove(self, name, timeout=5):
         try:
             c = self.client.containers.get(name)

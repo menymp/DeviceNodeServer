@@ -116,6 +116,7 @@ class Reactor:
                     env = {}
                     # pass DB and MQTT envs to worker
                     env.update({
+                        "INSTANCE_ID": str(instance_id),
                         "DB_HOST": DB_HOST,
                         "DB_NAME": DB_NAME,
                         "DB_USER": DB_USER,
@@ -141,7 +142,23 @@ class Reactor:
                             rp = {"Name": "no"}
                     # run container
                     name = self._container_name(instance_id)
-                    container = self.docker.run_container(name=name, image=image, env=env, restart_policy=rp)
+                    # compute network name (prefer env, fallback to auto-detect)
+                    network_name = os.environ.get("REACTOR_NETWORK")
+                    if not network_name:
+                        try:
+                            # attempt to auto-detect network from reactor container
+                            network_name = self.docker.get_self_network_name(os.environ.get("REACTOR_CONTAINER_NAME"))
+                        except Exception:
+                            network_name = None
+
+                    # run container and attach to network
+                    container = self.docker.run_container(
+                        name=name,
+                        image=image,
+                        env=env,
+                        restart_policy=rp,
+                        network=network_name
+                    )
                     if container:
                         logger.info("started container %s for instance %s", name, instance_id)
                         self.running_containers[instance_id] = container
