@@ -52,6 +52,7 @@ import json
 import _thread
 from jsonConfigs import jsonfile
 import micropython_ota
+from unode_bridge import node_bridge  # replace with actual module name
 
 FW_VERSION = 1.0
 
@@ -73,6 +74,9 @@ GENERIC_OUTPUT1_PIN = 0
 GENERIC_OUTPUT2_PIN = 0
 GENERIC_OUTPUT3_PIN = 0
 
+analogSensors = {}
+GPIOs = {}
+
 def initI2c():
     i2c1 = I2C(0 ,sda=Pin(I2C1_SDA_PIN), scl=Pin(I2C1_SCL_PIN), freq=I2C1_CLK_F)
     i2c2 = I2C(1 ,sda=Pin(I2C2_SDA_PIN), scl=Pin(I2C2_SCL_PIN), freq=I2C2_CLK_F)
@@ -83,39 +87,20 @@ def initDS1307(i2c):
     dsclk.halt(0)
     return dsclk
 
+bmpSensorObj = None
+
 def initBmp(i2c):
+    global bmpSensorObj
     bmp180 = BMP180(i2c)
     bmp180.oversample_sett = 2
     bmp180.baseline = 101325
-    return bmp180
+    pass
 
 def initOLED(i2c):
     oled = SSD1306_I2C(128, 32, i2c)
     oled.fill(0)
     oled.show()
     return oled
-
-manifest = {
-        "Name":"MenyGarden2",
-        "RootName":"/MenyGarden2/",
-        "Devices":["waterLowLevel",
-                   "photoResistor",
-                   "moistureSensor",
-                   "temperature",
-                   "presure",
-                   "altitude",
-                   "waterTemperature",
-                   "state",
-                   "waterPump",
-                   "timeOn",
-                   "timeOff",
-                   "dateTime",
-                   "outputRelay1",
-                   "outputRelay2",
-                   "outputRelay3"
-                   ]
-}
-jsonManifest = json.dumps(manifest)
 
 configsS = None
 dsClock = None
@@ -178,9 +163,6 @@ def writeOLEDMsgs(oled, msgList):
         oled.text(msgList[index][0] + " : "+msgList[index][1], 0, 10*index)
     oled.show()
 
-def readBmp180(bmpSensor):
-    return bmpSensor.temperature, bmpSensor.pressure, bmpSensor.altitude
-
 def initGPIOS():
     #outputs
     waterPump = Pin(WATER_PUMP_PIN, mode=Pin.OUT)
@@ -203,21 +185,34 @@ def initGPIOS():
     return GPIOs
 
 def initADCs():
+    global analogSensors
     photoResistor = ADC(PHOTORESISTOR_PIN)
     moistureSensor = ADC(MOISTURE_SENSOR_PIN)
     analogSensors = {
         "photoResistor":photoResistor,
         "moistureSensor":moistureSensor
     }
-    return analogSensors
+    pass
 
-def readPhotoresistor(analogSensors):
+def readPhotoresistor():
     #ToDo: if a conversion is needed, this is the place
     return analogSensors["photoResistor"].read_u16()  
 
-def readMoisture(analogSensors):
+def readMoisture():
     #ToDo: if a conversion is needed, this is the place
-    return analogSensors["moistureSensor"].read_u16()  
+    return analogSensors["moistureSensor"].read_u16() 
+
+def getWaterTemp():
+    return readDS18X20(dsSensor, dsDevices, 0)
+
+def readTemp():
+    bmpSensorObj.temperature
+
+def readPressure():
+    bmpSensorObj.pressure
+
+def readAltitude():
+    bmpSensorObj.altitude
 
 def setPump(value):
     GPIOs["waterPump"].value(value)
@@ -262,219 +257,45 @@ def wlanConnect(ssid, password):
     print('network config:', wlan.ifconfig())
     return wlan
 
-#NOTE: strings must be byte string
-def connectMQTT(client_id, brokerServer, callback):
-    client = MQTTClient(client_id=client_id,
-    server=brokerServer,
-    port=0,
-    #user=b"mydemoclient",
-    #password=b"passowrd",
-    keepalive=7200,
-    #ssl=True,
-    #ssl_params={'server_hostname':'8fbadaf843514ef286a2ae29e80b15a0.s1.eu.hivemq.cloud'}
-    )
-    client.connect()
-    client.set_callback(callback)
-    return client
+#a proper data validation should be performed in each callback
+def setState(value):
+    configObj = configsS.get_data()
+    configObj["state"] = value.decode("utf-8")
+    print('state updated')
+    configsS.update_data_dict(configObj)
+    configsS.store_data()
 
-def publish(client, topic, value):
-    client.publish(topic, value)
+def setTimeOn(value):
+    configObj = configsS.get_data()
+    configObj["timeOn"] = value.decode("utf-8")
+    configsS.update_data_dict(configObj)
+    configsS.store_data()
 
-def subscribe(client, topic):
-    client.subscribe(topic)
+def setTimeOff(value):
+    configObj = configsS.get_data()
+    configObj["timeOff"] = value.decode("utf-8")
+    configsS.update_data_dict(configObj)
+    configsS.store_data()
 
-def initSubscribers(client):
-    subscribe(client, "/MenyGarden2/state/value")
-    subscribe(client, "/MenyGarden2/timeOn/value")
-    subscribe(client, "/MenyGarden2/timeOff/value")
-    subscribe(client, "/MenyGarden2/waterPump/value")
-    subscribe(client, "/MenyGarden2/dateTime/value")
-    subscribe(client, "/MenyGarden2/outputRelay1/value")
-    subscribe(client, "/MenyGarden2/outputRelay2/value")
-    subscribe(client, "/MenyGarden2/outputRelay3/value")
-    
+def setWaterPump(value):
+    configObj = configsS.get_data()
+    if configObj["state"] == "manual":
+        setPump(int(value))
 
-def baseMQTTCallback(topic, msg):
-    #this callback is to be called when message arrived to subscribed topics
-    configsS = jsonfile("./configs.json")
-    configsS.get_data()
-    #a proper data validation should be performed here
-    print('received from: ' + str(topic) + 'msg: ' + str(msg))
-    
-    if topic == b'/MenyGarden2/state/value':
-        configObj = configsS.get_data()
-        configObj["state"] = msg.decode("utf-8")
-        print('state updated')
-        configsS.update_data_dict(configObj)
-        configsS.store_data()
-    if topic == b'/MenyGarden2/timeOn/value':
-        configObj = configsS.get_data()
-        configObj["timeOn"] = msg.decode("utf-8")
-        configsS.update_data_dict(configObj)
-        configsS.store_data()
-    if topic == b'/MenyGarden2/timeOff/value':
-        configObj = configsS.get_data()
-        configObj["timeOff"] = msg.decode("utf-8")
-        configsS.update_data_dict(configObj)
-        configsS.store_data()
-    if topic == b'/MenyGarden2/waterPump/value':
-        configObj = configsS.get_data()
-        if configObj["state"] == "manual":
-            setPump(int(msg))
-    if topic == b'/MenyGarden2/dateTime/value':
-        setDateTime(dsClock, msg.decode("utf-8"))
-    if topic == b'/MenyGarden2/outputRelay1/value':
-        setOutput("outputRelay1", int(msg))
-    if topic == b'/MenyGarden2/outputRelay2/value':
-        setOutput("outputRelay2", int(msg))
-    if topic == b'/MenyGarden2/outputRelay3/value':
-        setOutput("outputRelay3", int(msg))
-    pass
+def setDateTimeRtc(value):
+    setDateTime(dsClock, value.decode("utf-8"))
 
-#    my_jsonfile = jsonfile("./test.json", default_data = {"a": "porty", "b": "portx"})
-#    print(my_jsonfile.get_data())
-#    update_data = {"c": "portc", "b": "portb"}
-#    my_jsonfile.update_data_dict(update_data)
-#    print(my_jsonfile.get_data())
-#    my_jsonfile.store_data()
+def setOutputRelay1(value):
+    setOutput("outputRelay1", int(value))
 
-def publishData(client, gpiosObj, bmpSensorObj, analogSensors, dsSensor, dsDevices, data):
-    publish(client, manifest["RootName"]+"manifest",manifest)
-    mqx_tmp =  {
-        "Name":"waterLowLevel",
-        "Mode":"PUBLISHER",
-        "Type":"STRING",
-        "Channel":manifest["RootName"] + "waterLowLevel",
-        "Value":str(getLowLevelState())
-    }
-    jsonMsg = json.dumps(mqx_tmp)
-    publish(client, manifest["RootName"] + "waterLowLevel", jsonMsg)
+def setOutputRelay2(value):
+    setOutput("outputRelay2", int(value))
 
-    
-    mqx_tmp =  {
-        "Name":"photoResistor",
-        "Mode":"PUBLISHER",
-        "Type":"STRING",
-        "Channel":manifest["RootName"] + "photoResistor",
-        "Value":str(readPhotoresistor(analogSensors))
-    }
-    jsonMsg = json.dumps(mqx_tmp)
-    publish(client, manifest["RootName"] + "photoResistor", jsonMsg)
+def setOutputRelay3(value):
+    setOutput("outputRelay3", int(value))
 
-    mqx_tmp =  {
-        "Name":"moistureSensor",
-        "Mode":"PUBLISHER",
-        "Type":"STRING",
-        "Channel":manifest["RootName"] + "moistureSensor",
-        "Value":str(readMoisture(analogSensors))
-    }
-    jsonMsg = json.dumps(mqx_tmp)
-    publish(client, manifest["RootName"] + "moistureSensor", jsonMsg)
-
-    temp, press, alt = readBmp180(bmpSensorObj)
-    mqx_tmp =  {
-        "Name":"temperature",
-        "Mode":"PUBLISHER",
-        "Type":"STRING",
-        "Channel":manifest["RootName"] + "temperature",
-        "Value":str(temp)
-    }
-    jsonMsg = json.dumps(mqx_tmp)
-    publish(client, manifest["RootName"] + "temperature", jsonMsg)
-    mqx_tmp =  {
-        "Name":"pressure",
-        "Mode":"PUBLISHER",
-        "Type":"STRING",
-        "Channel":manifest["RootName"] + "pressure",
-        "Value":str(press)
-    }
-    jsonMsg = json.dumps(mqx_tmp)
-    publish(client, manifest["RootName"] + "pressure", jsonMsg)
-    mqx_tmp =  {
-        "Name":"altitude",
-        "Mode":"PUBLISHER",
-        "Type":"STRING",
-        "Channel":manifest["RootName"] + "altitude",
-        "Value":str(alt)
-    }
-    jsonMsg = json.dumps(mqx_tmp)
-    publish(client, manifest["RootName"] + "altitude", jsonMsg)
-    
-    mqx_tmp =  {
-        "Name":"water temperature",
-        "Mode":"PUBLISHER",
-        "Type":"STRING",
-        "Channel":manifest["RootName"] + "waterTemperature",
-        "Value":str(readDS18X20(dsSensor, dsDevices, 0))
-    }
-    jsonMsg = json.dumps(mqx_tmp)
-    publish(client, manifest["RootName"] + "waterTemperature", jsonMsg)
-    
-    mqx_tmp =  {
-        "Name":"water Pump",
-        "Mode":"SUBSCRIBER",
-        "Type":"STRING",
-        "Channel":"/MenyGarden2/waterPump/value",
-        "Value":str(getPump())
-    }
-    jsonMsg = json.dumps(mqx_tmp)
-    publish(client, manifest["RootName"] + "waterPump", jsonMsg)
-
-    mqx_tmp =  {
-        "Name":"state",
-        "Mode":"SUBSCRIBER",
-        "Type":"STRING",
-        "Channel":"/MenyGarden2/state/value",
-        "Value":data["state"]
-    }
-    jsonMsg = json.dumps(mqx_tmp)
-    publish(client, manifest["RootName"] + "state", jsonMsg)
-    mqx_tmp =  {
-        "Name":"time on",
-        "Mode":"SUBSCRIBER",
-        "Type":"STRING",
-        "Channel":"/MenyGarden2/timeOn/value",
-        "Value":data["timeOn"]
-    }
-    jsonMsg = json.dumps(mqx_tmp)
-    publish(client, manifest["RootName"] + "timeOn", jsonMsg)
-    mqx_tmp =  {
-        "Name":"time off",
-        "Mode":"SUBSCRIBER",
-        "Type":"STRING",
-        "Channel": manifest["RootName"] + "timeOff" + "/value",
-        "Value":data["timeOff"]
-    }
-    jsonMsg = json.dumps(mqx_tmp)
-    publish(client, manifest["RootName"] + "timeOff", jsonMsg)    
-    mqx_tmp =  {
-        "Name":"outputRelay1",
-        "Mode":"SUBSCRIBER",
-        "Type":"STRING",
-        "Channel": manifest["RootName"] + "outputRelay1" + "/value",
-        "Value":str(getOutput("outputRelay1"))
-    }
-    jsonMsg = json.dumps(mqx_tmp)
-    publish(client, manifest["RootName"] + "outputRelay1", jsonMsg)    
-    mqx_tmp =  {
-        "Name":"outputRelay2",
-        "Mode":"SUBSCRIBER",
-        "Type":"STRING",
-        "Channel": manifest["RootName"] + "outputRelay2" + "/value",
-        "Value":str(getOutput("outputRelay2"))
-    }
-    jsonMsg = json.dumps(mqx_tmp)
-    publish(client, manifest["RootName"] + "outputRelay2", jsonMsg)   
-    mqx_tmp =  {
-        "Name":"outputRelay3",
-        "Mode":"SUBSCRIBER",
-        "Type":"STRING",
-        "Channel": manifest["RootName"] + "outputRelay3" + "/value",
-        "Value":str(getOutput("outputRelay3"))
-    }
-    jsonMsg = json.dumps(mqx_tmp)
-    publish(client, manifest["RootName"] + "outputRelay3", jsonMsg)   
-    pass
+def setOutput(output, value):
+    GPIOs[output] = value
 
 printIndexCount = 7
 
@@ -490,18 +311,16 @@ def printStates(lcdObj, wlan, gpiosObj, bmpSensorObj, analogSensors, data, dsClo
         lcdObj.text('P/O:'+ str(getPump()), 0, 10)
         lcdObj.text('L/I:'+ str(getLowLevelState()), 0, 20)
     elif printIndex == 2:
-        temp, press, alt = readBmp180(bmpSensorObj)
         lcdObj.text('Sensors 1/3', 0, 0)
         lcdObj.text('Tw:'+ str(readDS18X20(dsSensor, dsDevices, 0)), 0, 10)
-        lcdObj.text('T:'+ str(temp), 0, 20)
+        lcdObj.text('T:'+ str(bmpSensorObj.temperature), 0, 20)
     elif printIndex == 3:
         lcdObj.text('Sensors 2/3', 0, 0)
         lcdObj.text('Ms:'+ str(readMoisture(analogSensors)), 0, 10)
         lcdObj.text('Pr:'+ str(readPhotoresistor(analogSensors)), 0, 20)
     elif printIndex == 4:
-        temp, press, alt = readBmp180(bmpSensorObj)
         lcdObj.text('Sensors 3/3', 0, 0)
-        lcdObj.text('P:'+ str(press), 0, 10)
+        lcdObj.text('P:'+ str(bmpSensorObj.pressure), 0, 10)
     elif printIndex == 5:
         lcdObj.text('Flags 1/1', 0, 0)
         lcdObj.text('S:' + data["state"], 0, 10)
@@ -539,7 +358,7 @@ if __name__ == "__main__":
 	ds = initDS1307(i2c1)
 	setGlobals(configsS, ds, gpiosObj) 
 	
-	bmpSensorObj = initBmp(i2c1)
+	initBmp(i2c1)
 	oled = initOLED(i2c2)
 	analogSensors = initADCs()
 	gpiosObj = initGPIOS()
@@ -547,68 +366,71 @@ if __name__ == "__main__":
 	oled.text("connecting...", 0, 0)
 	oled.show()
 	wlanObj = wlanConnect(data["wifi_ssid"], data["wifi_pwd"])
-	client = connectMQTT(data["mqtt_client_id"], data["mqtt_broker"], baseMQTTCallback)
-	initSubscribers(client)
-	printIndex = 0
-    # OTA Block update
-    filenames = ["main.py","micropython_ota.py","simple.py","bmp180.py","ds1307.py","ssd1306.py","jsonConfigs.py"]
-    micropython_ota.ota_update(data["ota_host_url"], data["ota_project_name"], filenames, use_version_prefix=False, hard_reset_device=True, soft_reset_device=False, timeout=5)
-    networkLock = _thread.allocate_lock()
-    _thread.start_new_thread(update_task, (data,networkLock,)) #start second core thread
-    wdt = WDT(timeout=7700) # is this a good approach
-    # if no updates, proceed to the main routine
+	
+	bridge = node_bridge(name="MenyGarden2", broker=data["mqtt_broker"], port=data["mqtt_port"],
+	                     keepalive=60, sampling_time=6)
+	time.sleep(3)
 
+	bridge.add_publisher_device("waterLowLevel", "FLOAT", getLowLevelState)  # Event needed
+	bridge.add_publisher_device("photoResistor", "FLOAT", readPhotoresistor)
+	bridge.add_publisher_device("moistureSensor", "FLOAT", readMoisture)
+	bridge.add_publisher_device("temperature", "FLOAT", readTemp)
+	bridge.add_publisher_device("pressure", "FLOAT", readPressure)
+	bridge.add_publisher_device("altitude", "FLOAT", readAltitude)
+	bridge.add_publisher_device("waterTemperature", "FLOAT", getWaterTemp)
+
+	def getState():
+		data["state"]
+
+	def getTimeOn():
+		data["timeOn"]
+
+	def getTimeOff():
+		data["timeOff"]
+
+	def getRelay1():
+		getOutput("outputRelay1")
+
+	def getRelay2():
+		getOutput("outputRelay2")
+
+	def getRelay3():
+		getOutput("outputRelay3")
+
+	bridge.add_subscriber_device("dateTime", "STRING", dsClock.datetime, setDateTimeRtc)
+	bridge.add_subscriber_device("waterPump", "STRING", getPump, setWaterPump)
+	bridge.add_subscriber_device("state", "STRING", getState, setState)
+	bridge.add_subscriber_device("timeOn", "STRING", getTimeOn, setTimeOn)
+	bridge.add_subscriber_device("timeOff", "STRING", getTimeOff, setTimeOff)
+	bridge.add_subscriber_device("outputRelay1", "STRING", getRelay1, setOutputRelay1)
+	bridge.add_subscriber_device("outputRelay2", "STRING", getRelay2, setOutputRelay2)
+	bridge.add_subscriber_device("outputRelay3", "STRING", getRelay3, setOutputRelay3)
+
+	printIndex = 0
+	# OTA Block update
+	filenames = ["main.py","micropython_ota.py","simple.py","bmp180.py","ds1307.py","ssd1306.py","jsonConfigs.py"]
+	micropython_ota.ota_update(data["ota_host_url"], data["ota_project_name"], filenames, use_version_prefix=False, hard_reset_device=True, soft_reset_device=False, timeout=5)
+	networkLock = _thread.allocate_lock()
+	_thread.start_new_thread(update_task, (data,networkLock,)) #start second core thread
+	wdt = WDT(timeout=7700) # is this a good approach
+	# if no updates, proceed to the main routine
+	cnt = 0
 	while True:
-        configsS.load_file()
+		configsS.load_file()
 		data = configsS.get_data()
-        networkLock.acquire()
-		client.check_msg()
-		publishData(client, gpiosObj, bmpSensorObj, analogSensors, dsSensor, dsDevices, data)
-        networkLock.release()
+		networkLock.acquire()
+		if getLowLevelState():
+			cnt = 0
+			print("Event firing")
+			bridge.send_event("waterLowLevel",getLowLevelState().encode('utf-8'))
+		bridge.loop()
+		networkLock.release()
 		printStates(oled, wlanObj, gpiosObj, bmpSensorObj, analogSensors, data, ds, dsSensor, dsDevices, printIndex)
 		printIndex  = printIndex + 1
+		cnt = cnt + 1
 		if printIndex > printIndexCount:
 			printIndex = 0
-        wdt.feed()
-		time.sleep(5)
+		wdt.feed()
+		time.sleep(0.05)
 	pass
 
-'''
-if __name__ == "__main__":
-    idState = 0
-    global configs
-    global dsClock
-    configs = jsonfile("./configs.json")
-    configs.get_data()
-
-    oledI2c = initOLED(LCD_SDA_PIN,LCD_SCL_PIN)
-    bmpSensorObj = initBmp(BMP_180_I2C_ID, BMP_180_I2C_BAUD)
-    gpiosObj = initGPIOS()
-    dsSensor = initDS18X20(DS18X20_SENSOR_PIN)
-    analogSensors = initADCs()
-    dsClock = initDS3231(DS_CLOCK_SDA_PIN, DS_CLOCK_SCL_PIN)
-
-    wlanObj = wlanConnect(ssid, password)
-    client = connectMQTT(client_id, broker_server, baseMQTTCallback)
-    initSubscribers(client)
-
-    while True:
-        printIndex  = printIndex + 1
-        if printIndex > printIndexCount:
-            printIndex = 0
-        client.check_msg()
-    pass
-
-        configs.load_file()
-        data = configs.get_data()
-        publishData(client, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data)
-
-        printStates(oledI2c, wlanObj, gpiosObj, bmpSensorObj, dsSensor, analogSensors, data, dsClock, printIndex)
-
-        if data["state"] == "auto" and getLowLevelState(gpiosObj) and timeInRange(dsClock.datetime(),data["timeOn"],data["timeOff"]):
-            setPump(gpiosObj, True)
-        else:
-            setPump(gpiosObj, False)
-        utime.sleep(4)
-    pass
-'''

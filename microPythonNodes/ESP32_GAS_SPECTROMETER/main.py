@@ -1,15 +1,17 @@
 from machine import Pin, ADC 
 import utime
 import time
-import json
+from unode_bridge import node_bridge  # replace with actual module name
 import _thread
 from jsonConfigs import jsonfile
-from simple import MQTTClient
 import network
 import micropython_ota
 
 #Global constants
 FW_VERSION = 1.0
+BROKER = "192.168.1.100"   # or broker hostname reachable from device
+BROKER_PORT = 1883
+
 '''
 MQ2_PIN = 32
 MQ3_PIN = 33
@@ -32,14 +34,7 @@ MQ8_PIN = 36
 #MQ9_PIN = 26
 MQ135_PIN = 39
 
-manifest = {
-        "Name":"MenyGasNode1",
-        "RootName":"/MenyGasNode1/",
-        "Devices":["MQ3","MQ4","MQ6","MQ7","MQ8","MQ135"] #
-}
-jsonManifest = json.dumps(manifest)
-
-
+analogSensors = {}
 max_wait = 10
 
 def wlanConnect(ssid, password):
@@ -64,32 +59,8 @@ def wlanConnect(ssid, password):
         print('Connected\nIP: %s\nSUBNET: %s\nGATEWAY: %s\nDNS: %s' % wlan.ifconfig()[0:4])
     return wlan
 
-#NOTE: strings must be byte string
-def connectMQTT(client_id, brokerServer, callback):
-    client = MQTTClient(client_id=client_id,
-    server=brokerServer,
-    port=0,
-    #user=b"mydemoclient",
-    #password=b"passowrd",
-    keepalive=7200,
-    #ssl=True,
-    #ssl_params={'server_hostname':'8fbadaf843514ef286a2ae29e80b15a0.s1.eu.hivemq.cloud'}
-    )
-    client.connect()
-    client.set_callback(callback)
-    return client
-
-def publish(client, topic, value):
-    client.publish(topic, value)
-
-def subscribe(client, topic):
-    client.subscribe(topic)
-
-def baseMQTTCallback(topic, msg):
-    #this callback is to be called when message arrived to subscribed topics
-    pass
-
 def initADCs():
+    global analogSensors
     mq3 = ADC(Pin(MQ3_PIN))
     mq3.atten(ADC.ATTN_11DB)
     mq4 = ADC(Pin(MQ4_PIN))
@@ -111,57 +82,27 @@ def initADCs():
         "MQ8":mq8,
         "MQ135":mq135
     }
-    return analogSensors
-
-def readMQSensor(analogSensors, name):
-    #ToDo: if a conversion is needed, this is the place
-    return analogSensors[name].read()  
-
-'''
-{
-    "Name":"MenyGardenNode1",
-    "RootName":"/MenyGardenNode1/",
-    "ip": "x.x.x.x"
-    "Devices": [
-        {
-            "Name":"PirSensor",
-            "Mode":"PUBLISHER",
-            "Type":"STRING",
-            "Channel": "/MenyGardenNode1/PirSensor",
-            "Value": "69.69"
-        },
-        {
-            "Name":"WaterPump",
-            "Mode":"SUBSCRIBER",
-            "Type":"STRING",
-            "Channel":""/MenyNode1/WatterSolenoid/state"",
-            "Value": "ON"
-        }
-    ]
-
-}
-'''
-
-def buildMQMsg(Name, Channel, value):
-    mqx_tmp =  {
-        "Name":Name,
-        "Mode":"PUBLISHER",
-        "Type":"STRING",
-        "Channel":Channel,
-        "Value":str(value)
-    }
-    jsonMsg = json.dumps(mqx_tmp)
-    return jsonMsg
-
-def publishData(client ,analogSensors):
-    publish(client, manifest["RootName"] + "manifest", jsonManifest)
-
-    for mqSensor in manifest["Devices"]:
-        baseChanel = manifest["RootName"] + mqSensor
-        read = readMQSensor(analogSensors, mqSensor)
-        jsonObj = buildMQMsg(mqSensor, manifest["RootName"] + mqSensor, read)
-        publish(client, baseChanel, jsonObj)
     pass
+
+
+# If there is a need for special conversions, each function is the place
+def readMQ3():
+    analogSensors["MQ3"].read()
+
+def readMQ4():
+    analogSensors["MQ4"].read() 
+
+def readMQ6():
+    analogSensors["MQ6"].read() 
+
+def readMQ7():
+    analogSensors["MQ7"].read() 
+
+def readMQ8():
+    analogSensors["MQ8"].read() 
+
+def readMQ135():
+    analogSensors["MQ135"].read()
 
 #this task checks for available updates
 # ToDo: add sync for the wifi shared UI   OK
@@ -177,11 +118,25 @@ def update_task(configs, networkLock):
 if __name__ == "__main__":
     configsS = jsonfile("./configs.json")
     data = configsS.get_data()
-    #analogSensors = initADCs()
     print("connecting...")
     wlanObj = wlanConnect(data["wifi_ssid"], data["wifi_pwd"])
-    client = connectMQTT(data["mqtt_client_id"], data["mqtt_broker"], baseMQTTCallback)
     print("successfuly connected!")
+    # instantiate bridge (module must be on device filesystem)
+    bridge = node_bridge(name="MenyGasNode1", broker=data["mqtt_broker"], port=data["mqtt_port"],
+                         keepalive=60, sampling_time=6)
+    
+    bridge.acknowledge()
+
+    # add mock devices after ack (the module enforces ack_event before adding)
+    # if your implementation requires ack_event True before add, wait a short time
+    time.sleep(3)
+    bridge.add_publisher_device("MQ3", "STRING", readMQ3)
+    bridge.add_publisher_device("MQ4", "STRING", readMQ4)
+    bridge.add_publisher_device("MQ6", "STRING", readMQ6)
+    bridge.add_publisher_device("MQ7", "STRING", readMQ7)
+    bridge.add_publisher_device("MQ8", "STRING", readMQ8)
+    bridge.add_publisher_device("MQ135", "STRING", readMQ135)
+
     # OTA Block update
     filenames = ["main.py","micropython_ota.py","simple.py","jsonConfigs.py"]
     micropython_ota.ota_update(data["ota_host_url"], data["ota_project_name"], filenames, use_version_prefix=False, hard_reset_device=True, soft_reset_device=False, timeout=5)
@@ -189,11 +144,20 @@ if __name__ == "__main__":
     networkLock = _thread.allocate_lock()
     _thread.start_new_thread(update_task, (data,networkLock,)) #start second core thread
     # if no updates, proceed to the main routine
-    analogSensors = initADCs()
+    initADCs()
+    cnt = 0
     while True:
+        time.sleep(0.05)
         networkLock.acquire()
-        client.check_msg()
-        publishData(client, analogSensors)
+        
+        bridge.loop()
+        if cnt > 50:
+            cnt = 0
+            bridge.send_event("MQ3", str(readMQ3()).encode('utf-8'))
+            bridge.send_event("MQ4", str(readMQ4()).encode('utf-8'))
+            bridge.send_event("MQ6", str(readMQ6()).encode('utf-8'))
+            bridge.send_event("MQ7", str(readMQ7()).encode('utf-8'))
+            bridge.send_event("MQ8", str(readMQ8()).encode('utf-8'))
+            bridge.send_event("MQ135", str(readMQ135()).encode('utf-8'))
         networkLock.release()
-        utime.sleep(6)
     pass
