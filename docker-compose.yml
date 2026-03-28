@@ -206,6 +206,41 @@ services:
   #     mqtt-broker:
   #       condition: service_started
 
+
+  reactor-service:
+    build:
+      context: ./deviceNodeServer/DeviceMainNodeServer/event_reactor
+      dockerfile: Dockerfile
+    restart: always
+    environment:
+      # Database
+      DB_HOST: nodes-db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD_FILE: /run/secrets/db_user_password
+      DB_NAME: ${DB_NAME}
+      # MQTT
+      MQTT_BROKER_HOST: mqtt-broker
+      MQTT_BROKER_PORT: ${MQTT_BROKER_PORT}
+      MQTT_CLIENT_KEEPALIVE: ${MQTT_CLIENT_KEEPALIVE}
+      # Local integration endpoints (optional)
+      WEBSOCKET_PORT: ${WEBSOCKET_PORT}
+      DEVICE_MANAGER_LOCAL_CONN: ${DEVICE_MANAGER_LOCAL_CONN}
+      VIDEO_HANDLER_LOCAL_CONN: ${VIDEO_HANDLER_LOCAL_CONN}
+      # Reactor runtime options
+      REACTOR_LOG_LEVEL: ${REACTOR_LOG_LEVEL:-INFO}
+      REACTOR_HANDLER_PATH: /app/handlers
+    volumes:
+      - ./reactor:/app:ro
+      - ./reactor/handlers:/app/handlers:ro
+      - ./reactor/config.ini:/app/config.ini:ro
+    secrets:
+      - db_user_password
+    depends_on:
+      - node-device-manager-service
+      - device-manager-service
+      - video-composer-service
+      - websocket-service
+
   php-ota-service:
     build:
       context: ./phpMpyOta

@@ -211,6 +211,64 @@ CREATE TABLE `videosources` (
   KEY `fk_VideoSources_users1_idx` (`idCreator`),
   CONSTRAINT `fk_VideoSources_users1` FOREIGN KEY (`idCreator`) REFERENCES `users` (`idUser`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb3;
+
+-- Add table to bind RFIDs to users
+CREATE TABLE IF NOT EXISTS user_rfids (
+  id INT NOT NULL AUTO_INCREMENT,
+  user_id INT NOT NULL,
+  rfid_id VARCHAR(128) NOT NULL,
+  label VARCHAR(255) DEFAULT NULL,
+  enabled TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY ux_user_rfid (user_id, rfid_id),
+  KEY idx_rfid_id (rfid_id),
+  CONSTRAINT fk_user_rfids_users FOREIGN KEY (user_id) REFERENCES users(idUser) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Create scripts table
+DROP TABLE IF EXISTS `scripts`;
+CREATE TABLE `scripts` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(255) NOT NULL UNIQUE,        -- human friendly unique name
+  `entry_point` VARCHAR(512) NOT NULL,        -- e.g. handlers.rfid_handler:main or ./handlers/rfid_handler.py:main
+  `runtime` ENUM('inprocess','subprocess','container') NOT NULL DEFAULT 'subprocess',
+  `version` VARCHAR(64) DEFAULT NULL,
+  `description` TEXT DEFAULT NULL,
+  `author` VARCHAR(128) DEFAULT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_scripts_runtime` (`runtime`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+
+-- Create script_instances table (idempotent)
+DROP TABLE IF EXISTS `script_instances`;
+CREATE TABLE `script_instances` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `script_id` INT NOT NULL,                       -- FK to scripts table
+  `instance_name` VARCHAR(255) NOT NULL,         -- human friendly name
+  `enabled` TINYINT(1) NOT NULL DEFAULT 1,       -- enable/disable instance
+  `start_mode` ENUM('always','on_event','scheduled') NOT NULL DEFAULT 'always',
+  `runtime` ENUM('inprocess','subprocess','container') NOT NULL DEFAULT 'subprocess',
+  `config_json` JSON DEFAULT NULL,                -- runtime arguments (camera, topics, etc.)
+  `restart_policy` JSON DEFAULT JSON_OBJECT('max_restarts',3,'backoff_seconds',5),
+  `resources` JSON DEFAULT NULL,                  -- resource hints: cpus, memory_mb, gpu, ulimits
+  `last_start_at` TIMESTAMP NULL DEFAULT NULL,
+  `last_exit_at` TIMESTAMP NULL DEFAULT NULL,
+  `last_exit_code` INT NULL DEFAULT NULL,
+  `restarts_count` INT NOT NULL DEFAULT 0,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_script_instances_script_id` (`script_id`),
+  KEY `idx_script_instances_enabled` (`enabled`),
+  KEY `idx_script_instances_start_mode` (`start_mode`),
+  KEY `idx_script_instances_runtime` (`runtime`),
+  CONSTRAINT `fk_script_instances_scripts` FOREIGN KEY (`script_id`) REFERENCES `scripts`(`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
