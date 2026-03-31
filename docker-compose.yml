@@ -1,6 +1,32 @@
 
 services:
-
+  registry:
+    image: registry:2
+    restart: always
+    ports:
+      - "5000:5000"
+    volumes:
+      - registry_data:/var/lib/registry
+  
+  generic-builder:
+    build:
+      context: ./docker_base_image
+      dockerfile: Dockerfile
+    image: registry:5000/local/docker_base_image:dev
+    command: >
+      /bin/sh -c "
+        set -e;
+        docker build -t registry:5000/local/docker_base_image:dev . || exit 1;
+        docker push registry:5000/local/docker_base_image:dev || exit 1;
+        echo BUILT > /tmp/built;
+        sleep 1
+      "
+    # The builder needs access to the host docker daemon to build and push
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - registry
+  
   # react-device-manager-ui:
   #   build:
   #     context: .
@@ -233,6 +259,7 @@ services:
       REACTOR_HANDLER_PATH: /app/handlers
       REACTOR_NETWORK: ${REACTOR_NETWORK:-${COMPOSE_PROJECT_NAME}_default}
       REACTOR_CONTAINER_NAME: nodes_reactor_service
+      REACTOR_WAIT_IMAGES: registry:5000/local/docker_base_image:dev
     volumes:
       - ./:/host_repo:ro
       - ./reactor:/app:ro
@@ -242,6 +269,7 @@ services:
     secrets:
       - db_user_password
     depends_on:
+      - registry
       - node-device-manager-service
       - device-manager-service
       - video-composer-service

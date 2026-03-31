@@ -1,15 +1,11 @@
 # event_reactor/handlers/rfid/Dockerfile
-FROM python:3.11-slim
+FROM registry.local/docker_base_image:latest
 
-WORKDIR /app
 
-# system deps for mysql / mqtt if needed
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+# Copy shared modules from inside DeviceMainNodeServer
+COPY ./deviceNodeServer/DeviceMainNodeServer/ConfigsUtils ./ConfigsUtils
+COPY ./deviceNodeServer/DeviceMainNodeServer/DButils ./DButils
+COPY ./deviceNodeServer/DeviceMainNodeServer/DockerUtils ./DockerUtils
 
 # copy handler code
 COPY worker.py /app/worker.py
@@ -17,4 +13,4 @@ COPY worker.py /app/worker.py
 ENV PYTHONUNBUFFERED=1
 USER root
 
-ENTRYPOINT ["python", "worker.py"]
+ENTRYPOINT ["python", "app/worker.py"]
