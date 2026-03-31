@@ -20,6 +20,11 @@ DB_NAME = os.environ.get("DB_NAME", "")
 DB_USER = os.environ.get("DB_USER", "")
 DB_PASSWORD_FILE = os.environ.get("DB_PASSWORD_FILE", "/run/secrets/db_user_password")
 
+# Optional services integration
+WEBSOCKET_PORT = os.environ.get("WEBSOCKET_PORT", "")
+DEVICE_MANAGER_LOCAL_CONN = os.environ.get("DEVICE_MANAGER_LOCAL_CONN", "")
+VIDEO_HANDLER_LOCAL_CONN = os.environ.get("VIDEO_HANDLER_LOCAL_CONN", "")
+
 # Docker socket (optional override)
 DOCKER_BASE_URL = os.environ.get("DOCKER_BASE_URL", None)  # e.g., unix://var/run/docker.sock
 
@@ -40,6 +45,7 @@ class Reactor:
         self.docker = DockerRunner(base_url=DOCKER_BASE_URL)
         self.running_containers = {}  # instance_id -> container object
         self.poll_thread = None
+        self.repo_root = os.environ.get("REACTOR_REPO_ROOT", "/host_repo")
 
     def init(self):
         pw = read_secret(DB_PASSWORD_FILE)
@@ -96,19 +102,57 @@ class Reactor:
                     # determine image from scripts.entry_point via dbEvents interface
                     # convention: scripts.entry_point for container runtime is the image name
                     # use db_client to fetch script entry (db_client uses dbEvents)
-                    script_rows = self.db._db.get_script_by_name  # not used; instead call fetch via dbScriptActions directly
-                    # we will call the underlying dbScriptActions to get entry_point
+                    # fetch script row to determine canonical image
+                    script_row = None
                     try:
-                        script_row = self.db._db.get_script_by_name  # placeholder to keep no-SQL policy
+                        # db_client._db is the underlying dbScriptActions instance
+                        # use the appropriate method your dbScriptActions exposes; common names:
+                        # get_script_by_id, get_script, or get_script_by_name
+                        script_row = self.db._db.get_script_by_id(script_id)
                     except Exception:
-                        pass
-                    # fallback: expect image in config under "image"
-                    image = cfg.get("image") or cfg.get("container_image")
+                        logger.debug("could not fetch script row for script_id %s; will fallback to config_json", script_id)
+
+                    # normalize script_row to dict
+                    script = {}
+                    if script_row:
+                        if isinstance(script_row, dict):
+                            script = script_row
+                        elif isinstance(script_row, (list, tuple)):
+                            # adjust indices to your schema; example mapping:
+                            try:
+                                script = {
+                                    "id": script_row[0],
+                                    "name": script_row[1],
+                                    "entry_point": script_row[2],
+                                    "runtime": script_row[3],
+                                    "description": script_row[4],
+                                    "build_context": script_row[5] if len(script_row) > 5 else None,
+                                    "dockerfile": script_row[6] if len(script_row) > 6 else None,
+                                    "image_tag": script_row[7] if len(script_row) > 7 else None
+                                }
+                            except Exception:
+                                script = {}
+                    
+                    # canonical image: prefer image_tag, then entry_point
+                    image = script.get("image_tag") or script.get("entry_point")
                     if not image:
-                        logger.error("no image specified for instance %s; skipping", instance_id)
-                        continue
-                    # ensure image available
-                    ok = self.docker.ensure_image(image)
+                        logger.error("no image specified for script_id %s; skipping instance %s", script_id, instance_id)
+                        continue            
+
+                    # prepare build_info if build_context present
+                    build_info = None
+                    if script.get("build_context"):
+                        # build_context is relative to repo root; make absolute path inside reactor container
+                        ctx_rel = script.get("build_context")
+                        context_path = os.path.join(self.repo_root, ctx_rel)
+                        build_info = {
+                            "build_context": context_path,
+                            "dockerfile": script.get("dockerfile") or "Dockerfile",
+                            "image_tag": script.get("image_tag") or image
+                        }
+
+                    # ensure image exists (pull or build)
+                    ok = self.docker.ensure_image(image, build_info=build_info)
                     if not ok:
                         logger.error("image %s not available for instance %s", image, instance_id)
                         continue
@@ -123,6 +167,9 @@ class Reactor:
                         "DB_PASSWORD_FILE": DB_PASSWORD_FILE,
                         "MQTT_BROKER_HOST": os.environ.get("MQTT_BROKER_HOST", "mqtt-broker"),
                         "MQTT_BROKER_PORT": os.environ.get("MQTT_BROKER_PORT", "1883"),
+                        "WEBSOCKET_PORT": WEBSOCKET_PORT,
+                        "DEVICE_MANAGER_LOCAL_CONN": DEVICE_MANAGER_LOCAL_CONN,
+                        "VIDEO_HANDLER_LOCAL_CONN": VIDEO_HANDLER_LOCAL_CONN
                     })
                     # merge instance config into env with prefix HANDLER_CFG_
                     for k, v in (cfg or {}).items():

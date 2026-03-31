@@ -13,17 +13,45 @@ class DockerRunner:
         # base_url e.g. 'unix://var/run/docker.sock' or None to use env
         self.client = DockerClient(base_url=base_url) if base_url else DockerClient.from_env()
 
-    def ensure_image(self, image):
+    def build_image(self, context_path, dockerfile="Dockerfile", tag=None, rm=True, pull=False):
+        """
+        Build an image from a local context directory accessible to the reactor process.
+        context_path: absolute path inside reactor container (e.g., /host_repo/event_reactor/handlers/rfid)
+        tag: image tag to apply (e.g., local/rfid-worker:dev)
+        """
+        try:
+            logger.info("building image from %s dockerfile=%s tag=%s", context_path, dockerfile, tag)
+            image, logs = self.client.images.build(path=context_path, dockerfile=dockerfile, tag=tag, rm=rm, pull=pull)
+            # optional: stream logs for debugging
+            for chunk in logs:
+                if isinstance(chunk, dict) and 'stream' in chunk:
+                    logger.debug(chunk['stream'].strip())
+            return True
+        except Exception:
+            logger.exception("unexpected error building image from %s", context_path)
+            return False
+
+    def ensure_image(self, image, build_info=None):
+        """
+        Ensure image exists locally. If not found, try pull; if pull fails and build_info provided, attempt build.
+        build_info: dict {build_context, dockerfile, image_tag}
+        """
         try:
             self.client.images.get(image)
             return True
         except NotFound:
-            logger.info("pulling image %s", image)
+            logger.info("image %s not found locally; attempting pull", image)
             try:
                 self.client.images.pull(image)
                 return True
             except APIError:
                 logger.exception("failed to pull image %s", image)
+                if build_info:
+                    ctx = build_info.get("build_context")
+                    df = build_info.get("dockerfile") or "Dockerfile"
+                    tag = build_info.get("image_tag") or image
+                    # context_path must be accessible to reactor (mounted)
+                    return self.build_image(ctx, dockerfile=df, tag=tag)
                 return False
         except Exception:
             logger.exception("error checking image %s", image)

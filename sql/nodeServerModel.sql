@@ -238,6 +238,9 @@ CREATE TABLE `scripts` (
   `author` VARCHAR(128) DEFAULT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `build_context` VARCHAR(512) NULL,
+  `dockerfile` VARCHAR(255) NULL,
+  `image_tag` VARCHAR(255) NULL,
   PRIMARY KEY (`id`),
   KEY `idx_scripts_runtime` (`runtime`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;

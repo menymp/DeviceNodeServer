@@ -1,10 +1,13 @@
 -- 1) Create the script record (container runtime)
-INSERT INTO scripts (name, entry_point, runtime, description)
+INSERT INTO scripts (name, entry_point, runtime, description, build_context, dockerfile, image_tag)
 VALUES (
   'rfid-handler',
   'local/rfid-worker:dev',
   'container',
-  'RFID handler image that subscribes to RFID topics and routes open commands'
+  'RFID handler image that subscribes to RFID topics and routes open commands',
+  'event_reactor/handlers/rfid',
+  'Dockerfile',
+  'local/rfid-worker:dev'
 );
 SET @script_id = LAST_INSERT_ID();
 
@@ -15,7 +18,6 @@ VALUES (
   'rfid-instance-1',
   'container',
   '{
-    "image": "local/rfid-worker:dev",
     "locks": [
       {
         "name": "front_door",

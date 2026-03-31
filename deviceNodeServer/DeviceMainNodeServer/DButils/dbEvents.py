@@ -33,6 +33,9 @@ class dbScriptActions(dbConnectorBaseSimple):
     def get_script_by_name(self, name):
         return self.dbConn.execute("SELECT * FROM scripts WHERE name = %s", (name,))
 
+    def get_script_by_id(self, id):
+        return self.dbConn.execute("SELECT * FROM scripts WHERE id = %s", (id,))
+
     # --- script_instances CRUD ---
     def create_instance(self, script_id, instance_name, config_json=None,
                         start_mode='always', runtime='subprocess',
