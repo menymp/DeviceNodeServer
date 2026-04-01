@@ -19,9 +19,10 @@ COPY ./deviceNodeServer/DeviceMainNodeServer/ConfigsUtils ./ConfigsUtils
 COPY ./deviceNodeServer/DeviceMainNodeServer/DButils ./DButils
 COPY ./deviceNodeServer/DeviceMainNodeServer/DockerUtils ./DockerUtils
 
-RUN chmod +x ./event_reactor/wait_for_images.sh
 # Copy the service code itself
 COPY ./deviceNodeServer/DeviceMainNodeServer/event_reactor ./event_reactor
+
+RUN chmod +x ./event_reactor/wait_for_images.sh
 
 #CMD ["python", "event_reactor/main.py"]
 ENTRYPOINT ["/usr/local/bin/wait_for_images.sh", "&&", "python", "event_reactor/main.py"]

@@ -9,21 +9,18 @@ services:
       - registry_data:/var/lib/registry
   
   generic-builder:
-    build:
-      context: ./docker_base_image
-      dockerfile: Dockerfile
-    image: registry:5000/local/docker_base_image:dev
-    command: >
+    image: docker:26
+    entrypoint: >
       /bin/sh -c "
         set -e;
-        docker build -t registry:5000/local/docker_base_image:dev . || exit 1;
-        docker push registry:5000/local/docker_base_image:dev || exit 1;
+        docker build -t registry:5000/local/docker_base_image:dev /build;
+        docker push registry:5000/local/docker_base_image:dev;
         echo BUILT > /tmp/built;
         sleep 1
       "
-    # The builder needs access to the host docker daemon to build and push
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./docker_base_image:/build:ro
     depends_on:
       - registry
   
@@ -236,8 +233,8 @@ services:
   reactor-service:
     container_name: nodes_reactor_service
     build:
-      context: ./deviceNodeServer/DeviceMainNodeServer/event_reactor
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./deviceNodeServer/DeviceMainNodeServer/event_reactor/Dockerfile
     restart: always
     environment:
       # Database
@@ -270,6 +267,7 @@ services:
       - db_user_password
     depends_on:
       - registry
+      - generic-builder
       - node-device-manager-service
       - device-manager-service
       - video-composer-service
@@ -338,6 +336,7 @@ services:
          condition: service_healthy
 
 volumes:
+  registry_data:
   db_data:
 
 secrets:
