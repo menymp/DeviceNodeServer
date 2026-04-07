@@ -9,18 +9,15 @@ services:
       - registry_data:/var/lib/registry
   
   generic-builder:
-    image: docker:26
-    entrypoint: >
-      /bin/sh -c "
-        set -e;
-        docker build -t registry:5000/local/docker_base_image:dev /build;
-        docker push registry:5000/local/docker_base_image:dev;
-        echo BUILT > /tmp/built;
-        sleep 1
-      "
+    image: gcr.io/kaniko-project/executor:latest
+    command:
+      - "--context=/workspace"
+      - "--dockerfile=/workspace/Dockerfile"
+      - "--destination=registry:5000/local/docker_base_image:dev"
+      - "--insecure"            # allow HTTP registry (use only for internal/VPN)
+      - "--insecure-registry=registry:5000"
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./docker_base_image:/build:ro
+      - ./docker_base_image:/workspace:ro
     depends_on:
       - registry
   
