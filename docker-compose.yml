@@ -167,10 +167,9 @@ services:
       REACTOR_HANDLER_PATH: /app/handlers
       REACTOR_NETWORK: ${REACTOR_NETWORK:-${COMPOSE_PROJECT_NAME}_default}
       REACTOR_CONTAINER_NAME: nodes_reactor_service
-      REACTOR_WAIT_IMAGES: registry:5000/local/docker_base_image:dev
+      REACTOR_WAIT_IMAGES: local/docker_base_image:dev
     volumes:
       - ./:/host_repo:ro
-      - ./reactor:/app:ro
       - ./reactor/handlers:/app/handlers:ro
       - ./reactor/config.ini:/app/config.ini:ro
       - /var/run/docker.sock:/var/run/docker.sock   # << required: allow reactor to create containers
