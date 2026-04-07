@@ -90,26 +90,27 @@ services:
       mqtt-broker:
         condition: service_started
 
-  telegram-executor-service:
-    build:
-      context: .
-      dockerfile: ./deviceNodeServer/DeviceMainNodeServer/TelegramCommandExecutor/Dockerfile
-    restart: always
-    environment:
-      DB_HOST: nodes-db
-      DB_USER: ${DB_USER}
-      DB_PASSWORD_FILE: /run/secrets/db_user_password
-      DB_NAME: ${DB_NAME}
-      WEBSOCKET_PORT: ${WEBSOCKET_PORT}
-      DEVICE_MANAGER_LOCAL_CONN: ${DEVICE_MANAGER_LOCAL_CONN}
-      VIDEO_HANDLER_LOCAL_CONN: ${VIDEO_HANDLER_LOCAL_CONN}
-    volumes:
-      - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
-    secrets:
-      - db_user_password
-    depends_on:
-      - device-manager-service
-      - video-composer-service
+  # TODO: ENABLE THIS WHEN END TESTING
+  # telegram-executor-service:
+  #   build:
+  #     context: .
+  #     dockerfile: ./deviceNodeServer/DeviceMainNodeServer/TelegramCommandExecutor/Dockerfile
+  #   restart: always
+  #   environment:
+  #     DB_HOST: nodes-db
+  #     DB_USER: ${DB_USER}
+  #     DB_PASSWORD_FILE: /run/secrets/db_user_password
+  #     DB_NAME: ${DB_NAME}
+  #     WEBSOCKET_PORT: ${WEBSOCKET_PORT}
+  #     DEVICE_MANAGER_LOCAL_CONN: ${DEVICE_MANAGER_LOCAL_CONN}
+  #     VIDEO_HANDLER_LOCAL_CONN: ${VIDEO_HANDLER_LOCAL_CONN}
+  #   volumes:
+  #     - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
+  #   secrets:
+  #     - db_user_password
+  #   depends_on:
+  #     - device-manager-service
+  #     - video-composer-service
 
   ##   OUTDATED LEGACY Video service
   # video-composer-service:
