@@ -246,18 +246,19 @@ CREATE TABLE `scripts` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
 
 
--- Create script_instances table (idempotent)
+-- Drop and recreate script_instances (idempotent)
 DROP TABLE IF EXISTS `script_instances`;
+
 CREATE TABLE `script_instances` (
   `id` INT NOT NULL AUTO_INCREMENT,
-  `script_id` INT NOT NULL,                       -- FK to scripts table
-  `instance_name` VARCHAR(255) NOT NULL,         -- human friendly name
-  `enabled` TINYINT(1) NOT NULL DEFAULT 1,       -- enable/disable instance
+  `script_id` INT NOT NULL,
+  `instance_name` VARCHAR(255) NOT NULL,
+  `enabled` TINYINT(1) NOT NULL DEFAULT 1,
   `start_mode` ENUM('always','on_event','scheduled') NOT NULL DEFAULT 'always',
   `runtime` ENUM('inprocess','subprocess','container') NOT NULL DEFAULT 'subprocess',
-  `config_json` JSON DEFAULT NULL,                -- runtime arguments (camera, topics, etc.)
-  `restart_policy` JSON DEFAULT JSON_OBJECT('max_restarts',3,'backoff_seconds',5),
-  `resources` JSON DEFAULT NULL,                  -- resource hints: cpus, memory_mb, gpu, ulimits
+  `config_json` JSON DEFAULT NULL,
+  `restart_policy` JSON DEFAULT NULL,
+  `resources` JSON DEFAULT NULL,
   `last_start_at` TIMESTAMP NULL DEFAULT NULL,
   `last_exit_at` TIMESTAMP NULL DEFAULT NULL,
   `last_exit_code` INT NULL DEFAULT NULL,
@@ -271,6 +272,23 @@ CREATE TABLE `script_instances` (
   KEY `idx_script_instances_runtime` (`runtime`),
   CONSTRAINT `fk_script_instances_scripts` FOREIGN KEY (`script_id`) REFERENCES `scripts`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
+-- Populate existing rows with the intended JSON default
+UPDATE `script_instances`
+SET `restart_policy` = JSON_OBJECT('max_restarts', 3, 'backoff_seconds', 5)
+WHERE `restart_policy` IS NULL;
+
+-- Create a trigger to ensure new rows get the JSON default when omitted
+DELIMITER $$
+CREATE TRIGGER `trg_script_instances_before_insert`
+BEFORE INSERT ON `script_instances`
+FOR EACH ROW
+BEGIN
+  IF NEW.restart_policy IS NULL THEN
+    SET NEW.restart_policy = JSON_OBJECT('max_restarts', 3, 'backoff_seconds', 5);
+  END IF;
+END$$
+DELIMITER ;
 
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
