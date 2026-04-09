@@ -42,5 +42,5 @@ SET @instance_id = LAST_INSERT_ID();
 -- 3) Seed example user_rfids bindings (ensure user_id values exist in your users table)
 INSERT INTO user_rfids (user_id, rfid_id, label, enabled)
 VALUES
-  (10, 'A1B2C3D4', 'personal tag', 1),
-  (11, 'E5F6G7H8', 'Maintenance tag', 1);
+  (3, 'A1B2C3D4', 'personal tag', 1),
+  (3, 'E5F6G7H8', 'Maintenance tag', 1);

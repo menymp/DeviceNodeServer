@@ -76,29 +76,35 @@ class Reactor:
     def _poll_loop(self):
         while not self.stop_event.is_set():
             try:
+                logger.info("polling for script instances")
                 rows = self.db.get_instances_to_start()
                 if not rows:
                     time.sleep(POLL_SECONDS)
                     continue
+                logger.info(rows)
                 for row in rows:
                     # row may be tuple or dict; support both
                     instance_id = row.get("id") if isinstance(row, dict) else row[0]
                     script_id = row.get("script_id") if isinstance(row, dict) else (row[1] if len(row) > 1 else None)
                     runtime = row.get("runtime") if isinstance(row, dict) else (row[4] if len(row) > 4 else None)
                     cfg_raw = row.get("config_json") if isinstance(row, dict) else (row[6] if len(row) > 6 else None)
+                    logger.info("checking instance id" + str(instance_id))
                     cfg = {}
                     if cfg_raw:
                         try:
                             cfg = json.loads(cfg_raw) if isinstance(cfg_raw, str) else cfg_raw
+                            logger.info("cnfg " + str(cfg))
                         except Exception:
                             logger.exception("invalid config_json for %s", instance_id)
                     # only handle container runtime in this simplified model
-                    if runtime != "container":
-                        logger.debug("instance %s runtime %s ignored (reactor runs containers only)", instance_id, runtime)
-                        continue
+                    # if runtime != "container":
+                    #     logger.info("instance %s runtime %s ignored (reactor runs containers only)", instance_id, runtime)
+                    #     continue
                     if instance_id in self.running_containers:
+                        logger.info("already running id")
                         # optionally check container health
                         continue
+                    logger.info("script entry ")
                     # determine image from scripts.entry_point via dbEvents interface
                     # convention: scripts.entry_point for container runtime is the image name
                     # use db_client to fetch script entry (db_client uses dbEvents)
@@ -110,15 +116,17 @@ class Reactor:
                         # get_script_by_id, get_script, or get_script_by_name
                         script_row = self.db._db.get_script_by_id(script_id)
                     except Exception:
-                        logger.debug("could not fetch script row for script_id %s; will fallback to config_json", script_id)
+                        logger.info("could not fetch script row for script_id %s; will fallback to config_json", script_id)
 
                     # normalize script_row to dict
                     script = {}
                     if script_row:
                         if isinstance(script_row, dict):
+                            logger.info("dict instance")
                             script = script_row
                         elif isinstance(script_row, (list, tuple)):
                             # adjust indices to your schema; example mapping:
+                            logger.info("list tupple")
                             try:
                                 script = {
                                     "id": script_row[0],
@@ -130,10 +138,12 @@ class Reactor:
                                     "dockerfile": script_row[6] if len(script_row) > 6 else None,
                                     "image_tag": script_row[7] if len(script_row) > 7 else None
                                 }
+                                logger.info("script parameters " + str(script))
                             except Exception:
                                 script = {}
                     
                     # canonical image: prefer image_tag, then entry_point
+                    logger.info("entry point " + str(script.get("entry_point")))
                     image = script.get("image_tag") or script.get("entry_point")
                     if not image:
                         logger.error("no image specified for script_id %s; skipping instance %s", script_id, instance_id)
@@ -171,6 +181,7 @@ class Reactor:
                         "DEVICE_MANAGER_LOCAL_CONN": DEVICE_MANAGER_LOCAL_CONN,
                         "VIDEO_HANDLER_LOCAL_CONN": VIDEO_HANDLER_LOCAL_CONN
                     })
+                    logger.info("sub container event" + str(env))
                     # merge instance config into env with prefix HANDLER_CFG_
                     for k, v in (cfg or {}).items():
                         try:
@@ -189,6 +200,7 @@ class Reactor:
                             rp = {"Name": "no"}
                     # run container
                     name = self._container_name(instance_id)
+                    logger.info("container name" + str(name))
                     # compute network name (prefer env, fallback to auto-detect)
                     network_name = os.environ.get("REACTOR_NETWORK")
                     if not network_name:
@@ -197,6 +209,8 @@ class Reactor:
                             network_name = self.docker.get_self_network_name(os.environ.get("REACTOR_CONTAINER_NAME"))
                         except Exception:
                             network_name = None
+                    
+                    logger.info("running container")
 
                     # run container and attach to network
                     container = self.docker.run_container(
