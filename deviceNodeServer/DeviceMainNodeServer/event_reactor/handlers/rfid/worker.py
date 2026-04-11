@@ -8,7 +8,13 @@ import time
 from threading import Event
 import paho.mqtt.client as mqtt
 
-from dbEvents import dbRfidActions
+from os.path import dirname, realpath, sep, pardir
+# Get current main.py directory
+#sys.path.append(dirname(realpath(__file__)) + sep + pardir)
+#sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DButils")
+#sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
+from DButils.dbEvents import dbRfidActions
+from DButils.dbEvents import dbScriptActions
 
 logging.basicConfig(level=os.environ.get("WORKER_LOG_LEVEL", "INFO"))
 logger = logging.getLogger("rfid_worker")
@@ -60,7 +66,6 @@ def fetch_config_from_db(instance_id):
     try:
         pw = read_secret(DB_PASSWORD_FILE)
         # import dbEvents helper
-        from dbEvents import dbScriptActions
         db = dbScriptActions()
         db.initConnector(user=DB_USER, password=pw, host=DB_HOST, database=DB_NAME)
         row = db.get_instance(instance_id)

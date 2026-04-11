@@ -85,6 +85,19 @@ class DockerRunner:
         - restart_policy: dict like {"Name":"on-failure","MaximumRetryCount":3}
         """
         try:
+            # before creating a new container, check existing container state
+            try:
+                existing = self.client.containers.get(name)
+                # if it's running, reuse it and return
+                if existing.status == "running":
+                    logger.info("container %s already running; reusing", name)
+                    return existing
+                # if it's exited and you want to replace it, remove it
+                logger.info("removing existing container %s (status=%s)", name, existing.status)
+                existing.remove(force=True)
+            except NotFound:
+                pass
+
             # remove existing container if present
             try:
                 existing = self.client.containers.get(name)

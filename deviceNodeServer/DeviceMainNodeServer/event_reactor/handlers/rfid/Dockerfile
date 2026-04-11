@@ -10,4 +10,10 @@ COPY worker.py /app/worker.py
 ENV PYTHONUNBUFFERED=1
 USER root
 
-ENTRYPOINT ["python", "/app/worker.py"]
+# Dockerfile approach: keep container alive after script fails
+ENTRYPOINT ["top"]
+
+#
+# docker compose build --no-cache reactor-service
+# docker compose up -d --force-recreate reactor-service
+#
