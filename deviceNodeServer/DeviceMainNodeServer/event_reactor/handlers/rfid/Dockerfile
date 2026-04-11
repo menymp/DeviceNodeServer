@@ -1,11 +1,8 @@
 # event_reactor/handlers/rfid/Dockerfile
-FROM registry.local/docker_base_image:latest
+FROM localhost:5000/local/docker_base_image:dev
 
 
-# Copy shared modules from inside DeviceMainNodeServer
-COPY ./deviceNodeServer/DeviceMainNodeServer/ConfigsUtils ./ConfigsUtils
-COPY ./deviceNodeServer/DeviceMainNodeServer/DButils ./DButils
-COPY ./deviceNodeServer/DeviceMainNodeServer/DockerUtils ./DockerUtils
+# Shared modules are mounted at runtime by the docker utils file
 
 # copy handler code
 COPY worker.py /app/worker.py
@@ -13,4 +10,4 @@ COPY worker.py /app/worker.py
 ENV PYTHONUNBUFFERED=1
 USER root
 
-ENTRYPOINT ["python", "app/worker.py"]
+ENTRYPOINT ["python", "/app/worker.py"]

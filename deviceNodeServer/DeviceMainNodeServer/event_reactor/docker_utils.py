@@ -5,12 +5,30 @@ event_reactor/docker_utils.py
 import logging
 from docker import DockerClient
 from docker.errors import NotFound, APIError
+from docker.types import Mount
 
 logger = logging.getLogger("docker_utils")
+
+# If more shared modules added in the future, include the directory here 
+mounts = [
+    Mount(target="/app/ConfigsUtils",
+          source="/app/ConfigsUtils",
+          type="bind",
+          read_only=True),
+    Mount(target="/app/DButils",
+          source="/app/DButils",
+          type="bind",
+          read_only=True),
+    Mount(target="/app/DockerUtils",
+          source="/app/DockerUtils",
+          type="bind",
+          read_only=True),
+]
 
 class DockerRunner:
     def __init__(self, base_url=None):
         # base_url e.g. 'unix://var/run/docker.sock' or None to use env
+        logger.info("base URL:" + str(base_url))
         self.client = DockerClient(base_url=base_url) if base_url else DockerClient.from_env()
 
     def build_image(self, context_path, dockerfile="Dockerfile", tag=None, rm=True, pull=False):
@@ -21,7 +39,7 @@ class DockerRunner:
         """
         try:
             logger.info("building image from %s dockerfile=%s tag=%s", context_path, dockerfile, tag)
-            image, logs = self.client.images.build(path=context_path, dockerfile=dockerfile, tag='runner', rm=rm, pull=pull)
+            image, logs = self.client.images.build(path=context_path, dockerfile=dockerfile, tag=tag, rm=rm, pull=pull)
             # optional: stream logs for debugging
             for chunk in logs:
                 if isinstance(chunk, dict) and 'stream' in chunk:
@@ -86,7 +104,8 @@ class DockerRunner:
                 detach=detach,
                 labels=labels or {},
                 restart_policy=rp,
-                network=network
+                network=network,
+                mounts=mounts
             )
             return container
         except APIError:

@@ -170,9 +170,14 @@ services:
       REACTOR_WAIT_IMAGES: local/docker_base_image:dev
     volumes:
       - ./:/host_repo:ro
+      - ./deviceNodeServer/DeviceMainNodeServer/event_reactor:/app/event_reactor:rw  # mount source for live edits
+      - ./deviceNodeServer/DeviceMainNodeServer/ConfigsUtils:/app/ConfigsUtils:rw
+      - ./deviceNodeServer/DeviceMainNodeServer/DButils:/app/DButils:rw
+      - ./deviceNodeServer/DeviceMainNodeServer/DockerUtils:/app/DockerUtils:rw
       - ./reactor/handlers:/app/handlers:ro
       - ./reactor/config.ini:/app/config.ini:ro
       - /var/run/docker.sock:/var/run/docker.sock   # << required: allow reactor to create containers
+      - ~/.cache/pip:/root/.cache/pip:rw                  # optional: speed pip installs in container
     secrets:
       - db_user_password
     depends_on:

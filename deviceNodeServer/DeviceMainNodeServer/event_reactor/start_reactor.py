@@ -138,7 +138,7 @@ class Reactor:
                                     "description": script_row[4],
                                     "build_context": script_row[9],
                                     "dockerfile": script_row[10],
-                                    "image_tag": str(script_row[8])
+                                    "image_tag": str(script_row[11])
                                 }
                                 logger.info("script parameters " + str(script))
                             except Exception:

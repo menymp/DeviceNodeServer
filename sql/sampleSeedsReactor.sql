@@ -2,12 +2,12 @@
 INSERT INTO scripts (name, entry_point, runtime, description, build_context, dockerfile, image_tag)
 VALUES (
   'rfid-handler',
-  'local/rfid-worker:dev',
+  'localhost:5000/local/rfid-worker:dev',
   'container',
   'RFID handler image that subscribes to RFID topics and routes open commands',
   'rfid',
   'Dockerfile',
-  'local/rfid-worker:dev'
+  'localhost:5000/local/rfid-worker:dev'
 );
 SET @script_id = LAST_INSERT_ID();
 
