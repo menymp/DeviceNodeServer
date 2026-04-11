@@ -163,7 +163,7 @@ services:
       VIDEO_HANDLER_LOCAL_CONN: ${VIDEO_HANDLER_LOCAL_CONN}
       # Reactor runtime options
       REACTOR_LOG_LEVEL: ${REACTOR_LOG_LEVEL:-INFO}
-      REACTOR_REPO_ROOT: /host_repo
+      REACTOR_REPO_ROOT: /app/event_reactor/handlers/
       REACTOR_HANDLER_PATH: /app/handlers
       REACTOR_NETWORK: ${REACTOR_NETWORK:-${COMPOSE_PROJECT_NAME}_default}
       REACTOR_CONTAINER_NAME: nodes_reactor_service

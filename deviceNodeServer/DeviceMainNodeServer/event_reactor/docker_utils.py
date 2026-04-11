@@ -21,14 +21,15 @@ class DockerRunner:
         """
         try:
             logger.info("building image from %s dockerfile=%s tag=%s", context_path, dockerfile, tag)
-            image, logs = self.client.images.build(path=context_path, dockerfile=dockerfile, tag=tag, rm=rm, pull=pull)
+            image, logs = self.client.images.build(path=context_path, dockerfile=dockerfile, tag='runner', rm=rm, pull=pull)
             # optional: stream logs for debugging
             for chunk in logs:
                 if isinstance(chunk, dict) and 'stream' in chunk:
                     logger.debug(chunk['stream'].strip())
             return True
-        except Exception:
+        except Exception as e:
             logger.exception("unexpected error building image from %s", context_path)
+            logger.exception(e)
             return False
 
     def ensure_image(self, image, build_info=None):
@@ -50,6 +51,7 @@ class DockerRunner:
                     ctx = build_info.get("build_context")
                     df = build_info.get("dockerfile") or "Dockerfile"
                     tag = build_info.get("image_tag") or image
+                    logger.info("build info: '" + str(ctx) + "' '"+ str(df) + "' '" + str(tag) + "'")
                     # context_path must be accessible to reactor (mounted)
                     return self.build_image(ctx, dockerfile=df, tag=tag)
                 return False

@@ -5,7 +5,7 @@ VALUES (
   'local/rfid-worker:dev',
   'container',
   'RFID handler image that subscribes to RFID topics and routes open commands',
-  'event_reactor/handlers/rfid',
+  'rfid',
   'Dockerfile',
   'local/rfid-worker:dev'
 );

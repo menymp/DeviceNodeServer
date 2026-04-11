@@ -114,7 +114,9 @@ class Reactor:
                         # db_client._db is the underlying dbScriptActions instance
                         # use the appropriate method your dbScriptActions exposes; common names:
                         # get_script_by_id, get_script, or get_script_by_name
-                        script_row = self.db._db.get_script_by_id(script_id)
+                        logger.info("id script: "  + str(script_id))
+                        script_row = self.db._db.get_script_by_id(script_id)[0]
+                        logger.info("script entry" + str(script_row))
                     except Exception:
                         logger.info("could not fetch script row for script_id %s; will fallback to config_json", script_id)
 
@@ -134,17 +136,18 @@ class Reactor:
                                     "entry_point": script_row[2],
                                     "runtime": script_row[3],
                                     "description": script_row[4],
-                                    "build_context": script_row[5] if len(script_row) > 5 else None,
-                                    "dockerfile": script_row[6] if len(script_row) > 6 else None,
-                                    "image_tag": script_row[7] if len(script_row) > 7 else None
+                                    "build_context": script_row[9],
+                                    "dockerfile": script_row[10],
+                                    "image_tag": str(script_row[8])
                                 }
                                 logger.info("script parameters " + str(script))
                             except Exception:
+                                logger.error("script info could not be loaded")
                                 script = {}
                     
                     # canonical image: prefer image_tag, then entry_point
                     logger.info("entry point " + str(script.get("entry_point")))
-                    image = script.get("image_tag") or script.get("entry_point")
+                    image = script.get("entry_point")
                     if not image:
                         logger.error("no image specified for script_id %s; skipping instance %s", script_id, instance_id)
                         continue            
