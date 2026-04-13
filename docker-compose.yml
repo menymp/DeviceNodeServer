@@ -249,6 +249,50 @@ services:
       nodes-db:
          condition: service_healthy
 
+  # handlers-test-env:
+  #   container_name: handler_test_env
+  #   build:
+  #     context: .
+  #     dockerfile: ./deviceNodeServer/DeviceMainNodeServer/handler_test_env/Dockerfile
+  #   restart: always
+  #   environment:
+  #     # Database
+  #     DB_HOST: nodes-db
+  #     DB_USER: ${DB_USER}
+  #     DB_PASSWORD_FILE: /run/secrets/db_user_password
+  #     DB_NAME: ${DB_NAME}
+  #     # MQTT
+  #     MQTT_BROKER_HOST: mqtt-broker
+  #     MQTT_BROKER_PORT: ${MQTT_BROKER_PORT}
+  #     MQTT_CLIENT_KEEPALIVE: ${MQTT_CLIENT_KEEPALIVE}
+  #     # Local integration endpoints (optional)
+  #     WEBSOCKET_PORT: ${WEBSOCKET_PORT}
+  #     DEVICE_MANAGER_LOCAL_CONN: ${DEVICE_MANAGER_LOCAL_CONN}
+  #     VIDEO_HANDLER_LOCAL_CONN: ${VIDEO_HANDLER_LOCAL_CONN}
+  #     # Reactor runtime options
+  #     REACTOR_LOG_LEVEL: ${REACTOR_LOG_LEVEL:-INFO}
+  #     REACTOR_NETWORK: ${REACTOR_NETWORK:-${COMPOSE_PROJECT_NAME}_default}
+  #     REACTOR_CONTAINER_NAME: nodes_reactor_service
+  #     REACTOR_WAIT_IMAGES: local/docker_base_image:dev
+  #   volumes:
+  #     - ./:/host_repo:ro
+  #     - ./deviceNodeServer/DeviceMainNodeServer/handler_test_env:/app/handler_test_env:rw  # mount source for live edits
+  #     - ./deviceNodeServer/DeviceMainNodeServer/ConfigsUtils:/app/ConfigsUtils:rw
+  #     - ./deviceNodeServer/DeviceMainNodeServer/DButils:/app/DButils:rw
+  #     - ./deviceNodeServer/DeviceMainNodeServer/DockerUtils:/app/DockerUtils:rw
+  #     - ./reactor/handlers:/app/handlers:ro
+  #     - ./reactor/config.ini:/app/config.ini:ro
+  #     - /var/run/docker.sock:/var/run/docker.sock   # << required: allow reactor to create containers
+  #     - ~/.cache/pip:/root/.cache/pip:rw                  # optional: speed pip installs in container
+  #   secrets:
+  #     - db_user_password
+  #   depends_on:
+  #     - registry
+  #     - node-device-manager-service
+  #     - device-manager-service
+  #     - video-composer-service
+  #     - websocket-service
+
   # xbee-coordinator-service:
   #   build:
   #     context: .
