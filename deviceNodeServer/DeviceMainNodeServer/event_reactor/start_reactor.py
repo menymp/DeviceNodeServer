@@ -157,12 +157,17 @@ class Reactor:
                     if script.get("build_context"):
                         # build_context is relative to repo root; make absolute path inside reactor container
                         ctx_rel = script.get("build_context")
-                        context_path = os.path.join(self.repo_root, ctx_rel)
+                        context_path = "/app"
+                        dockerfile_name = script.get("dockerfile") or "Dockerfile"
+                        logger.info("docker name" + str(dockerfile_name))
+                        logger.info("path "  + str(os.path.join(self.repo_root, ctx_rel)))
+                        dockerfile = os.path.join(self.repo_root, ctx_rel) + "/" + dockerfile_name
                         build_info = {
                             "build_context": context_path,
-                            "dockerfile": script.get("dockerfile") or "Dockerfile",
+                            "dockerfile": dockerfile,
                             "image_tag": script.get("image_tag") or image
                         }
+                        logger.info("build info for image" + str(build_info))
 
                     # ensure image exists (pull or build)
                     ok = self.docker.ensure_image(image, build_info=build_info)

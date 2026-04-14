@@ -9,22 +9,6 @@ from docker.types import Mount
 
 logger = logging.getLogger("docker_utils")
 
-# If more shared modules added in the future, include the directory here 
-mounts = [
-    Mount(target="/app/ConfigsUtils",
-          source="/app/ConfigsUtils",
-          type="bind",
-          read_only=True),
-    Mount(target="/app/DButils",
-          source="/app/DButils",
-          type="bind",
-          read_only=True),
-    Mount(target="/app/DockerUtils",
-          source="/app/DockerUtils",
-          type="bind",
-          read_only=True),
-]
-
 class DockerRunner:
     def __init__(self, base_url=None):
         # base_url e.g. 'unix://var/run/docker.sock' or None to use env
@@ -89,6 +73,7 @@ class DockerRunner:
             try:
                 existing = self.client.containers.get(name)
                 # if it's running, reuse it and return
+                logger.info("Checking container status " + str(existing.status))
                 if existing.status == "running":
                     logger.info("container %s already running; reusing", name)
                     return existing
@@ -110,6 +95,7 @@ class DockerRunner:
             host_config = {}
             rp = restart_policy or {}
             # docker-py accepts restart_policy as dict
+            
             container = self.client.containers.run(
                 image,
                 name=name,
