@@ -13,6 +13,7 @@ from os.path import dirname, realpath, sep, pardir
 #sys.path.append(dirname(realpath(__file__)) + sep + pardir)
 #sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DButils")
 #sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
+sys.path.append("/app/DButils")
 from DButils.dbEvents import dbRfidActions
 from DButils.dbEvents import dbScriptActions
 
@@ -28,6 +29,14 @@ DB_HOST = os.getenv("DB_HOST", "nodes-db")
 DB_NAME = os.getenv("DB_NAME", "")
 DB_USER = os.getenv("DB_USER", "")
 DB_PASSWORD_FILE = os.getenv("DB_PASSWORD_FILE", "/run/secrets/db_user_password")
+
+logger.info("instance id: " + str(INSTANCE_ID))
+logger.info("host mqtt: " + str(MQTT_HOST))
+logger.info("mqtt port: " + str(MQTT_PORT))
+logger.info("db host: " + str(DB_HOST))
+logger.info("db name: " + str(DB_NAME))
+logger.info("db user: " + str(DB_USER))
+logger.info("db pass: " + str(DB_PASSWORD_FILE))
 
 STOP = Event()
 
@@ -196,6 +205,7 @@ class RfidDB:
         """
         Return user row(s) for given rfid_id. Uses dbEvents if available, otherwise runs a simple query.
         """
+        logger.info("getting user by rfid: " + str(rfid_id))
         try:
             if self.using_db_events:
                 res = self.client.get_user_by_rfid(rfid_id)

@@ -13,6 +13,7 @@ from os.path import dirname, realpath, sep, pardir
 #sys.path.append(dirname(realpath(__file__)) + sep + pardir)
 #sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DButils")
 #sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
+sys.path.append("/app/DButils")
 from DButils.dbEvents import dbRfidActions
 from DButils.dbEvents import dbScriptActions
 
@@ -28,6 +29,15 @@ DB_HOST = os.getenv("DB_HOST", "nodes-db")
 DB_NAME = os.getenv("DB_NAME", "")
 DB_USER = os.getenv("DB_USER", "")
 DB_PASSWORD_FILE = os.getenv("DB_PASSWORD_FILE", "/run/secrets/db_user_password")
+DB_PASSWORD = os.getenv("DB_PASSWORD","")
+
+logger.info("instance id: " + str(INSTANCE_ID))
+logger.info("host mqtt: " + str(MQTT_HOST))
+logger.info("mqtt port: " + str(MQTT_PORT))
+logger.info("db host: " + str(DB_HOST))
+logger.info("db name: " + str(DB_NAME))
+logger.info("db user: " + str(DB_USER))
+logger.info("db pass: " + str(DB_PASSWORD))
 
 STOP = Event()
 
@@ -64,11 +74,13 @@ def fetch_config_from_db(instance_id):
     and parse config_json. Returns dict or None.
     """
     try:
-        pw = read_secret(DB_PASSWORD_FILE)
+        pw = DB_PASSWORD
+        logger.info("pass db: " + str(pw))
         # import dbEvents helper
         db = dbScriptActions()
         db.initConnector(user=DB_USER, password=pw, host=DB_HOST, database=DB_NAME)
         row = db.get_instance(instance_id)
+        logger.info("instance info: " + str(row))
         # db.get_instance may return list/tuple/dict depending on implementation
         cfg_raw = None
         if not row:
@@ -150,7 +162,7 @@ class RfidDB:
         self.using_db_events = False
 
     def connect(self):
-        pw = read_secret(DB_PASSWORD_FILE)
+        pw = DB_PASSWORD
         # try to import dbEvents (preferred)
         try:
             # ensure parent paths if packaged differently
@@ -196,6 +208,7 @@ class RfidDB:
         """
         Return user row(s) for given rfid_id. Uses dbEvents if available, otherwise runs a simple query.
         """
+        logger.info("getting user by rfid: " + str(rfid_id))
         try:
             if self.using_db_events:
                 res = self.client.get_user_by_rfid(rfid_id)
@@ -360,9 +373,76 @@ def _sigterm(signum, frame):
 signal.signal(signal.SIGTERM, _sigterm)
 signal.signal(signal.SIGINT, _sigterm)
 
+'''
+
+issue
+
+
+INFO:rfid_worker:instance id: 1
+
+INFO:rfid_worker:host mqtt: mqtt-broker
+
+INFO:rfid_worker:mqtt port: 1883
+
+INFO:rfid_worker:db host: nodes-db
+
+INFO:rfid_worker:db name: mechlabenviroment
+
+INFO:rfid_worker:db user: web_client
+
+INFO:rfid_worker:db pass: asdf12345
+
+INFO:rfid_worker:pass db: asdf12345
+
+INFO:rfid_worker:instance info: [(1, 1, 'rfid-instance-1', 1, 'always', 'container', '{"locks": [{"name": "front_door", "event_topic": "/NodeRfid1/rifd_sensor/value", "open_command": "OPEN", "open_lock_topic": "/NodeRelays1/front_door_output/"}, {"name": "garage_door", "event_topic": "/NodeRfid3/rifd_sensor/value", "open_command": "OPEN", "open_lock_topic": "/NodeRelays1/garage_door_output/"}], "restart_policy": {"max_restarts": 5, "backoff_seconds": 10}}', '{"max_restarts": 3, "backoff_seconds": 5}', None, datetime.datetime(2026, 4, 15, 1, 41, 55), datetime.datetime(2026, 4, 15, 1, 41, 49), 137, 0, datetime.datetime(2026, 4, 9, 2, 55, 43), datetime.datetime(2026, 4, 15, 1, 41, 55))]
+
+INFO:rfid_worker:loaded config from HANDLER_CFG_LOCKS env
+
+INFO:rfid_worker:Configs: [{'name': 'front_door', 'event_topic': '/NodeRfid1/rifd_sensor/value', 'open_command': 'OPEN', 'open_lock_topic': '/NodeRelays1/front_door_output/'}, {'name': 'garage_door', 'event_topic': '/NodeRfid3/rifd_sensor/value', 'open_command': 'OPEN', 'open_lock_topic': '/NodeRelays1/garage_door_output/'}]
+
+ERROR:rfid_worker:Could not get configs
+
+Traceback (most recent call last):
+
+  File "/app/worker.py", line 380, in main
+
+    locks = cfg.get("locks") or []
+
+            ^^^^^^^
+
+AttributeError: 'list' object has no attribute 'get'
+
+INFO:rfid_worker:received stop signal
+
+Traceback (most recent call last):
+
+  File "/app/worker.py", line 397, in <module>
+
+    main()
+
+  File "/app/worker.py", line 384, in main
+
+    logger.info("starting rfid handler with %d locks", len(locks))
+
+                                                           ^^^^^
+
+UnboundLocalError: cannot access local variable 'locks' where it is not associated with a value
+
+Connected to DB on attempt 1
+
+
+
+'''
+
+
 def main():
     cfg = load_instance_config()
-    locks = cfg.get("locks") or []
+    logger.info("Configs: " + str(cfg))
+    try:
+        locks = cfg.get("locks") or []
+    except:
+        logger.exception("Could not get configs")
+        time.sleep(10)
     logger.info("starting rfid handler with %d locks", len(locks))
     handler = RfidHandler(locks)
     handler.start()

@@ -183,6 +183,7 @@ class Reactor:
                         "DB_NAME": DB_NAME,
                         "DB_USER": DB_USER,
                         "DB_PASSWORD_FILE": DB_PASSWORD_FILE,
+                        "DB_PASSWORD": read_secret(DB_PASSWORD_FILE), # not the brightest idea tbh
                         "MQTT_BROKER_HOST": os.environ.get("MQTT_BROKER_HOST", "mqtt-broker"),
                         "MQTT_BROKER_PORT": os.environ.get("MQTT_BROKER_PORT", "1883"),
                         "WEBSOCKET_PORT": WEBSOCKET_PORT,
