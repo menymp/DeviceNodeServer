@@ -302,7 +302,7 @@ class node_bridge(network_utils_hal):
         if device["Mode"] != "PUBLISHER":
             print("ERROR: Device is not  a publiser")
             return False
-        '''
+        
         payload = {
             "Name":name,
             "Mode":"PUBLISHER",
@@ -310,9 +310,9 @@ class node_bridge(network_utils_hal):
             "Channel": device["Channel"], #not in use considered new approach, leaved for legacy compatibility
             "Value": value
         }
-        '''
+        
 
-        self.safe_publish(device["Channel"], value)
+        self.safe_publish(device["Channel"], str(value))
         return True
 
     def _validate_device(self, name, type, get_value_call):

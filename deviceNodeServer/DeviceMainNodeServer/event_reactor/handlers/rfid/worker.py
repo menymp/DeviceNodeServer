@@ -292,15 +292,16 @@ class RfidHandler:
                 logger.exception("subscribe failed for %s", topic)
 
     def _extract_rfid(self, payload):
+        logger.info("Got payload: " + str(payload))
         # payload may be dict or string
         if isinstance(payload, dict):
-            return payload.get("id") or payload.get("rfid")
+            return payload.get("value") or payload.get("value")
         if isinstance(payload, str):
             # try parse JSON string
             try:
                 obj = json.loads(payload)
                 if isinstance(obj, dict):
-                    return obj.get("id") or obj.get("rfid")
+                    return obj.get("value") or obj.get("value")
             except Exception:
                 pass
             # fallback: raw string is rfid
@@ -314,7 +315,7 @@ class RfidHandler:
             payload = json.loads(raw)
         except Exception:
             payload = raw
-        logger.debug("message on %s payload=%s", topic, payload)
+        logger.info("message on %s payload=%s", topic, payload)
         # find matching locks (exact topic match). If you need wildcard matching, extend here.
         locks = self.topic_map.get(topic, [])
         if not locks:
@@ -439,7 +440,7 @@ def main():
     cfg = load_instance_config()
     logger.info("Configs: " + str(cfg))
     try:
-        locks = cfg.get("locks") or []
+        locks = cfg
     except:
         logger.exception("Could not get configs")
         time.sleep(10)
