@@ -8,4 +8,3 @@ tornado==6.0.4
 mysql-connector-python==8.0.33
 paho_mqtt==1.6.1
 docker>=6.0.0
-requests==2.31.0
