@@ -62,7 +62,7 @@ VALUES (
   'camera-frontdoor-1',
   'container',
   '{
-    "url":"http://192.168.1.16:8089/feed/mycapture.jpg",
+    "url":"http://localhost:9090/latest/841FE8701120MenyEspCam1",
     "mqtt_topic":"/cameras/frontdoor/motion",
     "sensitivity":30,
     "poll_interval":1.0,
