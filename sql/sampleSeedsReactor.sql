@@ -40,6 +40,8 @@ VALUES (
 SET @instance_id = LAST_INSERT_ID();
 
 
+
+
 -- 1) Create the camera script record (container runtime)
 INSERT INTO scripts (name, entry_point, runtime, description, build_context, dockerfile, image_tag)
 VALUES (
@@ -77,3 +79,30 @@ INSERT INTO user_rfids (user_id, rfid_id, label, enabled)
 VALUES
   (3, 'A1B2C3D4', 'personal tag', 1),
   (3, 'E5F6G7H8', 'Maintenance tag', 1);
+
+
+INSERT INTO user_rfids (user_id, rfid_id, label, enabled)
+VALUES (3, 'B1222A1D', 'personal tag', 1);
+  
+
+  UPDATE script_instances SET 
+  config_json = 
+  '
+  {
+    "locks": [
+      {
+        "name": "front_door",
+        "event_topic": "/MenyNodeRF1/Rfid/value",
+        "open_command": "OPEN",
+        "open_lock_topic": "/MenyNodeRF1/Lock/value"
+      },
+      {
+        "name": "garage_door",
+        "event_topic": "/NodeRfid3/rifd_sensor/value",
+        "open_command": "OPEN",
+        "open_lock_topic": "/NodeRelays1/garage_door_output/"
+      }
+    ]
+  }
+  '
+  ;

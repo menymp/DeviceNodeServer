@@ -295,13 +295,13 @@ class RfidHandler:
         logger.info("Got payload: " + str(payload))
         # payload may be dict or string
         if isinstance(payload, dict):
-            return payload.get("value") or payload.get("value")
+            return payload.get("Value") or payload.get("value")
         if isinstance(payload, str):
             # try parse JSON string
             try:
                 obj = json.loads(payload)
                 if isinstance(obj, dict):
-                    return obj.get("value") or obj.get("value")
+                    return obj.get("Value") or obj.get("value")
             except Exception:
                 pass
             # fallback: raw string is rfid
@@ -349,7 +349,7 @@ class RfidHandler:
                 "timestamp": int(time.time())
             }
             try:
-                client.publish(out_topic, json.dumps(out_payload))
+                client.publish(out_topic, cmd)
                 logger.info("published open command to %s for rfid %s", out_topic, rfid)
             except Exception:
                 logger.exception("failed to publish open command to %s", out_topic)

@@ -192,7 +192,7 @@ void TaskRfidRead(void *pvParameters)
         char msg[50];
         msg[0]='\0';
         array_to_string(readCard,4,msg);
-        
+        last_rfid_id[0] = '\0';
         strcat(last_rfid_id,msg);
         Serial.print("New Scanned Id:");
         Serial.println(last_rfid_id);
