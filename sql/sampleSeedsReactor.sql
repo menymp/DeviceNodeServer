@@ -62,7 +62,7 @@ VALUES (
   'camera-frontdoor-1',
   'container',
   '{
-    "url":"http://localhost:9090/latest/841FE8701120MenyEspCam1",
+    "url":"http://video-composer-service:9090/latest/841FE8701120MenyEspCam1",
     "mqtt_topic":"/cameras/frontdoor/motion",
     "sensitivity":30,
     "poll_interval":1.0,
@@ -73,6 +73,15 @@ VALUES (
   1
 );
 SET @camera_instance_id = LAST_INSERT_ID();
+
+UPDATE script_instances SET config_json =   '{
+    "url":"http://video-composer-service:9090/latest/841FE8701120MenyEspCam1",
+    "mqtt_topic":"/cameras/frontdoor/motion",
+    "sensitivity":30,
+    "poll_interval":1.0,
+    "last_event": null,
+    "restart_policy": {"max_restarts": 5, "backoff_seconds": 10}
+  }' WHERE id = 2;
 
 -- 3) Seed example user_rfids bindings (ensure user_id values exist in your users table)
 INSERT INTO user_rfids (user_id, rfid_id, label, enabled)

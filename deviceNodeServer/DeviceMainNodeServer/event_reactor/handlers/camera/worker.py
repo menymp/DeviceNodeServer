@@ -8,8 +8,12 @@ import cv2
 import numpy as np
 import requests
 import paho.mqtt.client as mqtt
+import sys
 
 # DButils package imports (DButils must be a package)
+from os.path import dirname, realpath, sep, pardir
+sys.path.append("/app/DButils")
+
 from DButils.dbEvents import dbScriptActions
 
 logging.basicConfig(level=os.environ.get("WORKER_LOG_LEVEL", "INFO"))
@@ -21,6 +25,7 @@ DB_HOST = os.environ.get("DB_HOST", "nodes-db")
 DB_NAME = os.environ.get("DB_NAME", "mechlabenviroment")
 DB_USER = os.environ.get("DB_USER", "web_client")
 DB_PASSWORD_FILE = os.environ.get("DB_PASSWORD_FILE", "/run/secrets/db_user_password")
+DB_PASSWORD = os.getenv("DB_PASSWORD","")
 MQTT_HOST = os.environ.get("MQTT_BROKER_HOST", "mqtt-broker")
 MQTT_PORT = int(os.environ.get("MQTT_BROKER_PORT", "1883"))
 
@@ -82,7 +87,7 @@ def update_instance_last_event(db_actions, instance_id, cfg, event):
 
 def main():
     # read DB password
-    db_password = read_secret(DB_PASSWORD_FILE)
+    db_password = DB_PASSWORD
     if not db_password:
         logger.error("DB password not available; exiting")
         return
@@ -131,6 +136,7 @@ def main():
 
     while True:
         try:
+            logger.info("fetching URL image" + str(cfg["url"]))
             img_bytes = fetch_image_bytes(cfg["url"], timeout=5)
             img = decode_image(img_bytes)
             if img is None:
