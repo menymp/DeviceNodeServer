@@ -30,7 +30,7 @@ import sys
 import os
 
 sys.path.append('../Libraries')
-from NodeMqttClient import NodeMqttClient
+from NodeMqttClient import NodeMqttClient    #replace this with the improved version of the mqtt client for debug
 from XbeeNetMqttCoordinator import XbeeNetMqttCoordinator
 import signal
 

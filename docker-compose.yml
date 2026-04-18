@@ -249,6 +249,26 @@ services:
       nodes-db:
          condition: service_healthy
 
+  xbee-bridge-service:
+    build:
+      context: .
+      dockerfile: ./deviceNodeServer/xbeeNetwork/Dockerfile
+    restart: always
+    privileged: true # Grants the container the necessary permissions
+    environment:
+      XBEE_COORDINATOR_NAME: ${XBEE_COORDINATOR_NAME}
+      XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY: ${XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY}
+      XBEE_COORDINATOR_TTY_PORT: ${XBEE_COORDINATOR_TTY_PORT}
+      XBEE_COORDINATOR_BAUDRATE: ${XBEE_COORDINATOR_BAUDRATE}
+      MQTT_BROKER_HOST: mqtt-broker
+      MQTT_BROKER_PORT: ${MQTT_BROKER_PORT}
+    devices:
+      # Map the host's serial device to a name inside the container
+      - "${XBEE_TTY_PORT}:${XBEE_TTY_PORT}" 
+    depends_on:
+      mqtt-broker:
+        condition: service_started
+
   # handlers-test-env:
   #   container_name: handler_test_env
   #   build:
@@ -292,26 +312,6 @@ services:
   #     - device-manager-service
   #     - video-composer-service
   #     - websocket-service
-
-  # xbee-coordinator-service:
-  #   build:
-  #     context: .
-  #     dockerfile: ./deviceNodeServer/xbeeNetwork/Dockerfile
-  #   restart: always
-  #   privileged: true # Grants the container the necessary permissions
-  #   environment:
-  #     XBEE_COORDINATOR_NAME: ${XBEE_COORDINATOR_NAME}
-  #     XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY: ${XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY}
-  #     XBEE_COORDINATOR_TTY_PORT: ${XBEE_COORDINATOR_TTY_PORT}
-  #     XBEE_COORDINATOR_BAUDRATE: ${XBEE_COORDINATOR_BAUDRATE}
-  #     MQTT_BROKER_HOST: mqtt-broker
-  #     MQTT_BROKER_PORT: ${MQTT_BROKER_PORT}
-  #   devices:
-  #     # Map the host's serial device to a name inside the container
-  #     - "${XBEE_TTY_PORT}:${XBEE_TTY_PORT}" 
-  #   depends_on:
-  #     mqtt-broker:
-  #       condition: service_started
 
   # react-device-manager-ui:
   #   build:
