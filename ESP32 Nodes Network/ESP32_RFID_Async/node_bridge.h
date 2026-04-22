@@ -3,7 +3,8 @@
 
 #include <Arduino.h>
 #include <WiFi.h>            // use <ESP8266WiFi.h> on ESP8266
-#include <PubSubClient.h>
+#include <AsyncMqttClient.h>
+#include <AsyncTCP.h>
 #include <ArduinoJson.h>
 
 #define NODEBRIDGE_MAX_DEVICES 16
@@ -39,8 +40,10 @@ public:
   bool deviceExists(const String &name);
   bool sendEvent(const String &name, const String & value);
   bool getDevice(const String &name, Device * device);
+  void onAsyncMqttConnect(bool sessionPresent);
+  void onAsyncMqttDisconnect(AsyncMqttClientDisconnectReason reason);
+  void onAsyncMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total);
   String getMacNoDots();
-  String macLowerFromString();
 
   // Configuration helpers
   void setSamplingTimeSeconds(unsigned long s); // default 6
@@ -54,11 +57,8 @@ private:
   uint16_t mqttPort;
   unsigned long keepaliveSeconds;
   unsigned long samplingTimeSeconds;
-  // acknowledge retry state
-  unsigned int ackAttempts;
-  unsigned long lastAckAttemptMs;
-  unsigned long ackRetryIntervalMs;
-  unsigned int maxAckAttempts;
+  unsigned long reconnectBackoffMs;
+  unsigned long lastReconnectAttemptMs;
 
   // runtime
   Device devices[NODEBRIDGE_MAX_DEVICES];
@@ -80,8 +80,8 @@ private:
   unsigned long timeoutAckMs;
 
   // networking
-  WiFiClient wifiClient;
-  PubSubClient mqttClient;
+  //WiFiClient wifiClient;
+  AsyncMqttClient mqttClient;
 
   // internal helpers
   void initClient();

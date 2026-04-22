@@ -8,7 +8,6 @@ NodeBridge::NodeBridge(const String &nodeName, const String &mqttBroker, uint16_
     RootPath("/" + nodeName + "/"),
     mqttBroker(mqttBroker),
     mqttPort(mqttPort),
-    mqttClient(wifiClient),
     deviceCount(0),
     ackEvent(false),
     errorEvent(false),
@@ -21,30 +20,32 @@ NodeBridge::NodeBridge(const String &nodeName, const String &mqttBroker, uint16_
   samplingTimeMs = samplingTimeSeconds * 1000UL;
   lastPayloadMs = millis();
 
-  // ack retry defaults
-  ackAttempts = 0;
-  lastAckAttemptMs = 0;
-  ackRetryIntervalMs = 6000UL; // retry every 6 seconds (tune as needed)
-  maxAckAttempts = 5;          // after 5 failed attempts, force reconnect
-
   // get IP and MAC if WiFi already connected; otherwise leave empty
   if (WiFi.status() == WL_CONNECTED) {
     ipAddr = WiFi.localIP().toString();
-    macAddr = macLowerFromString();
+    macAddr = getMacNoDots();
   } else {
     ipAddr = "";
     macAddr = "";
   }
 
-  // configure mqtt client
-  mqttClient.setServer(IPAddress(192,168,1,71), mqttPort);
-  // Set buffer size, TODO increase this dinamicaly???
+  // configure mqtt client server (AsyncMqttClient uses setServer)
+  // configure mqtt client (Async)
+  mqttClient.setServer(mqttBroker.c_str(), mqttPort);
+  mqttClient.setClientId(Name.c_str());
+  mqttClient.setCleanSession(true);
 
-  mqttClient.setBufferSize(1024*5);
-  // set callback using lambda capturing this pointer
-  mqttClient.setCallback([this](char* topic, byte* payload, unsigned int length){
-    this->onMqttMessage(topic, payload, length);
+  // set callbacks
+  mqttClient.onConnect([this](bool sessionPresent){ this->onAsyncMqttConnect(sessionPresent); });
+  mqttClient.onDisconnect([this](AsyncMqttClientDisconnectReason reason){ this->onAsyncMqttDisconnect(reason); });
+  mqttClient.onMessage([this](char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total){
+    this->onAsyncMqttMessage(topic, payload, properties, len, index, total);
   });
+  Serial.println("NodeBridge constructed; MQTT callbacks set");
+
+  // backoff init
+  reconnectBackoffMs = 2000;
+  lastReconnectAttemptMs = 0;
 }
 
 // returns MAC as 12 hex chars (e.g. "AABBCCDDEEFF")
@@ -58,12 +59,6 @@ String NodeBridge::getMacNoDots() {
   return String(buf);
 }
 
-String NodeBridge::macLowerFromString() {
-  String m = WiFi.macAddress(); // may return "B8:D6:1A:6A:26:84" on some cores
-  m.toLowerCase();
-  return m;
-}
-
 void NodeBridge::setSamplingTimeSeconds(unsigned long s) {
   samplingTimeSeconds = s;
   samplingTimeMs = s * 1000UL;
@@ -74,29 +69,57 @@ void NodeBridge::setKeepaliveSeconds(unsigned long k) {
 }
 
 void NodeBridge::begin() {
-  // Ensure WiFi is active; user sketch should connect WiFi before calling begin
   if (WiFi.status() == WL_CONNECTED) {
     ipAddr = WiFi.localIP().toString();
-    macAddr = macLowerFromString();
+    macAddr = getMacNoDots();
   }
   initClient();
-  // attempt immediate connect and register
-  acknowledge();
-}
-
-void NodeBridge::initClient() {
-  // mqttClient already configured in constructor; nothing else required here
+  Serial.println("NodeBridge begin: calling mqttClient.connect()");
+  if (WiFi.status() == WL_CONNECTED) {
+    mqttClient.connect(); // non-blocking
+  } else {
+    reconnectEvent = true;
+  }
 }
 
 void NodeBridge::acknowledge() {
+  // start async connect; registration will be done in onAsyncMqttConnect
   if (!mqttClient.connected()) {
-    if (!mqttClient.connect(Name.c_str())) {
-      reconnectEvent = true;
-      return;
-    }
+    mqttClient.connect();
+    reconnectEvent = true;
+    return;
   }
+  // if already connected, register immediately
   registerNode();
 }
+
+void NodeBridge::initClient() {
+  // Async client already configured in constructor
+}
+
+void NodeBridge::onAsyncMqttConnect(bool sessionPresent) {
+  Serial.println("AsyncMqtt: connected");
+  // register node and resubscribe only after connection
+  registerNode();
+  resubscribeDevices();
+  reconnectEvent = false;
+  lastPayloadMs = millis();
+}
+
+void NodeBridge::onAsyncMqttDisconnect(AsyncMqttClientDisconnectReason reason) {
+  Serial.print("AsyncMqtt: disconnected reason=");
+  Serial.println("AsyncMqtt: disconnected, scheduling reconnect");
+  Serial.println((int)reason);
+  reconnectEvent = true;
+  lastReconnectAttemptMs = millis(); // record when we last attempted/observed disconnect
+}
+
+void NodeBridge::onAsyncMqttMessage(char* topic, char* payload, AsyncMqttClientMessageProperties properties, size_t len, size_t index, size_t total) {
+  // Build a temporary byte buffer if your existing onMqttMessage expects byte*
+  // Here we call your existing onMqttMessage which expects (char* topic, byte* payload, unsigned int length)
+  onMqttMessage(topic, (byte*)payload, (unsigned int)len);
+}
+
 
 void NodeBridge::registerNode() {
   ackPath = ipAddr + "/" + Name + "/ack";
@@ -107,30 +130,14 @@ void NodeBridge::registerNode() {
   String payload;
   serializeJson(doc, payload);
 
-  // subscribe to ack path first so we can receive the ack
   safeSubscribe(ackPath);
-
-  // publish registration request
   safePublish("/node_name_request", payload);
-
-  // record attempt time and increment attempts
-  lastAckAttemptMs = millis();
-  ackAttempts++;
   lastPayloadMs = millis();
 }
 
 void NodeBridge::loop() {
-  if (stopEvent) {
-    return;
-  }
+  if (stopEvent) return;
 
-  // Always print a heartbeat for debugging
-  static unsigned long lastDebug = 0;
-  if (millis() - lastDebug > 5000) {
-    lastDebug = millis();
-  }
-
-  // If WiFi is down, mark reconnect and skip MQTT work
   if (WiFi.status() != WL_CONNECTED) {
     reconnectEvent = true;
     delay(500);
@@ -138,47 +145,14 @@ void NodeBridge::loop() {
   }
 
   if (!mqttClient.connected()) {
-    if (!reconnectEvent) {
-      reconnectEvent = true;
-    }
-    // tryReconnect will handle backoff internally
-    tryReconnect(6);
+    if (reconnectEvent) tryReconnect(0);
     delay(200);
     return;
   }
 
-  // If connected but no ack yet, retry registration periodically
-  if (mqttClient.connected() && !ackEvent) {
-    unsigned long now = millis();
-
-    // If never attempted yet, do an initial register
-    if (ackAttempts == 0 && lastAckAttemptMs == 0) {
-      registerNode();
-    } else if (now - lastAckAttemptMs >= ackRetryIntervalMs) {
-      // time to retry
-      if (ackAttempts < maxAckAttempts) {
-        registerNode();
-      } else {
-        // exceeded attempts: escalate to reconnect
-        ackAttempts = 0;
-        lastAckAttemptMs = 0;
-        reconnectEvent = true;
-        // optionally force immediate reconnect attempt
-        tryReconnect(0);
-      }
-    }
-  }
-
-
-  // process incoming messages
-  mqttClient.loop();
-
-  // check ack timeout
+  // Async client handles I/O; still call checkAckTimeout and scheduled manifest
   checkAckTimeout();
-
-  // scheduled manifest
   if (ackEvent && !stopEvent) {
-
     unsigned long now = millis();
     if ((now - lastPayloadMs) >= samplingTimeMs) {
       buildAndSendManifest();
@@ -188,24 +162,18 @@ void NodeBridge::loop() {
 }
 
 void NodeBridge::tryReconnect(int maxAttempts) {
-  for (int attempt = 1; attempt <= maxAttempts; ++attempt) {
-    if (WiFi.status() != WL_CONNECTED) {
-      delay(2000);
-      continue;
-    }
-    if (mqttClient.connect(Name.c_str())) {
-      registerNode();
-      resubscribeDevices();
-      reconnectEvent = false;
-      lastPayloadMs = millis();
-      return;
-    } else {
-      unsigned long backoff = min(5000UL + attempt * 2000UL, 30000UL);
-      unsigned long jitter = random(0, 1000);
-      delay(backoff + jitter);
-    }
-  }
-  // leave reconnectEvent true so caller can retry later
+  // Async connect is non-blocking; call connect() with backoff
+  if (!reconnectEvent) return;
+  if (WiFi.status() != WL_CONNECTED) return;
+
+  unsigned long now = millis();
+  if (now - lastReconnectAttemptMs < reconnectBackoffMs) return;
+
+  Serial.println("tryReconnect: calling mqttClient.connect()");
+  mqttClient.connect();
+  lastReconnectAttemptMs = now;
+  // exponential backoff up to 30s
+  reconnectBackoffMs = min(reconnectBackoffMs * 2, 30000UL);
 }
 
 void NodeBridge::checkAckTimeout() {
@@ -244,19 +212,19 @@ void NodeBridge::buildAndSendManifest() {
 }
 
 void NodeBridge::safeSubscribe(const String &topic) {
-  if (!mqttClient.connected()){
-    return;
-  }
-  if (!mqttClient.subscribe(topic.c_str())) {
-    // subscribe failed; will be retried on reconnect
-  }
+  if (!mqttClient.connected()) return;
+  mqttClient.subscribe(topic.c_str(), 0);
 }
 
 void NodeBridge::safePublish(const String &topic, const String &payload) {
   if (!mqttClient.connected()) {
+    Serial.println("safePublish: mqtt not connected, dropping publish");
     return;
   }
-  mqttClient.publish(topic.c_str(), payload.c_str());
+  uint16_t packetId = mqttClient.publish(topic.c_str(), 0, false, payload.c_str());
+  if (packetId == 0) {
+    Serial.println("safePublish: publish returned 0 (failed)");
+  }
 }
 
 bool NodeBridge::addPublisher(const String &name, const String &type, ValueCallback cb) {
@@ -369,10 +337,6 @@ void NodeBridge::onMqttMessage(char* topic, byte* payload, unsigned int length) 
       updtEvent = true;
       resubscribeDevices();
       lastPayloadMs = millis();
-
-      // reset ack retry state
-      ackAttempts = 0;
-      lastAckAttemptMs = 0;
     }
     return;
   }

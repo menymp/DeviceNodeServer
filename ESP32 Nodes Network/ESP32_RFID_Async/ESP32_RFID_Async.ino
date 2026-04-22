@@ -1,6 +1,8 @@
 /*
  * ESP32 Firmware demo for RFID sensor integration
  * https://www.hackster.io/270906/mqtt-based-event-management-using-esp8266-and-rfid-678c54
+ *
+ * use this for lib install https://github.com/marvinroger/async-mqtt-client/blob/develop/docs/1.-Getting-started.md
  */
 //OTA Headers
 #include <ESPmDNS.h>
@@ -23,13 +25,12 @@ const char* MQTT_BROKER = "";
 const int MQTT_PORT = 1883;
 
 MFRC522 rfid(SS_PIN, RST_PIN);
-bool rfid_scanned = false;
 
-WiFiClient espClient;
-PubSubClient client(espClient);
 NodeBridge *bridge;
 
 char last_rfid_id[50] = {0};  /* last scanned rfid */
+
+bool rfid_scanned = true; /* indicates that a scan was made */
 
 byte readCard[4];
 int lockState = 0;
@@ -43,7 +44,6 @@ void setup() {
 
   pinMode(LOCK_PIN,OUTPUT); //check for availability pin
   digitalWrite(LOCK_PIN, LOW); 
-
   setup_wifi();
 
   ArduinoOTA
@@ -95,7 +95,7 @@ void setup() {
 
 void loop() {
   ArduinoOTA.handle(); 
-  delay(1000);
+  delay(500);
 }
 
 String read_last_scan()
@@ -115,6 +115,9 @@ void lock_command_callback(const String &payload)
   {
       lockState = 1;
       digitalWrite(LOCK_PIN, HIGH); 
+      delay(3000);
+      digitalWrite(LOCK_PIN, LOW); 
+      lockState = 0;
   }
   else
   {
@@ -171,7 +174,6 @@ void setup_wifi() {
 void TaskRfidRead(void *pvParameters)
 {
   (void) pvParameters;
-  int lock_timeout = 0;
   while(true)
   {
     
@@ -202,16 +204,6 @@ void TaskRfidRead(void *pvParameters)
         rfid_scanned = true;
       }
     }
-    if (lockState)
-    {
-      lock_timeout ++;
-      if (lock_timeout > 15)
-      {
-        lock_timeout = 0;
-        lockState = 0;
-        digitalWrite(LOCK_PIN, LOW); 
-      }
-    }
     delay(200);
   }
   vTaskDelete( NULL );
@@ -220,7 +212,7 @@ void TaskRfidRead(void *pvParameters)
 void TaskPublishData(void *pvParameters)
 {
   (void) pvParameters;
-  init_device_node();
+   init_device_node();
  
   while(true)
   {
@@ -230,7 +222,6 @@ void TaskPublishData(void *pvParameters)
       bridge->sendEvent("Rfid", read_last_scan());
     }
     bridge->loop();
-    
     delay(10);
   }
   vTaskDelete( NULL );
