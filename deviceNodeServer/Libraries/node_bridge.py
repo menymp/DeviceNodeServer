@@ -21,8 +21,10 @@ from threading import Timer, Event
 
 '''
 
-TODO: Pending to include a direct publish event for PUBLISHERS
+OK: Pending to include a direct publish event for PUBLISHERS
 This will be returning a method from the creator callback
+
+An event was created for this purpose
 
 '''
 
@@ -74,7 +76,7 @@ class node_bridge(network_utils_hal):
     # TODO: Port to MicroPython and C++
 
     
-    def __init__(self, name, broker, port = 1883, keepalive = 60, sampling_time = 6, reconnect_time = 3):
+    def __init__(self, name, broker, port = 1883, keepalive = 60, sampling_time = 6, reconnect_time = 3, mac_addr = None):
         self.devices = []
         self.VALID_TYPES = [] # requested first with the ack
         self.mqtt_broker = broker
@@ -85,7 +87,15 @@ class node_bridge(network_utils_hal):
         self.Name = name
         self.RootPath = "/%s/" % name
         self.ip_addr = self.get_ip()
-        self.mac_addr = self.get_mac()
+
+        if mac_addr is None or mac_addr == "":
+            # Use base mac device
+            self.mac_addr = self.get_mac()
+        else:
+            self.mac_addr = mac_addr
+        
+        print("Using mac '" + str(self.mac_addr) + "'")
+
         print("Got hw addr: %s %s" % (self.ip_addr, self.mac_addr))
         self.ack_event = Event()
         self.error_event = Event()

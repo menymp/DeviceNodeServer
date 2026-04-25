@@ -16,137 +16,134 @@ in the case of subscribers, an aditional subscription is created in order to acc
 
 In construction ...
 
-#ToDo: a new logic is needed, instead of the client devices to always transmit state, do a continuous
+#OK: a new logic is needed, instead of the client devices to always transmit state, do a continuous
 device scanning by the coordinator AND each time a new message arrives, use a queue to store every transaction
 and process them in order.
+Apr 2026: The system was improved to seamesly integrate with the existing manifest structure
 
 important: take in account that this system is slow as the long range rf communication is slow
+
+# Entrypoint for the XBee coordinator service.
+# Uses XbeeNetworkController to manage discovered XBee nodes and create node_bridge instances.
+#
+# Behavior:
+#  - Loads configuration from ./configs.json if present, otherwise from environment variables.
+#  - Starts the XBee network controller.
+#  - Periodically publishes manifests for all managed nodes.
+#  - Handles SIGTERM for graceful shutdown.
 '''
 
-import time
-from threading import Timer, Thread, Event
 import json
 import sys
 import os
-
-from os.path import dirname, realpath, sep, pardir
-# Get current main.py directory
-#sys.path.append(dirname(realpath(__file__)) + sep + pardir)
-#sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DButils")
-#sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
-sys.path.append("../DButils")
-sys.path.append('../Libraries')
-
-from NodeMqttClient import NodeMqttClient    #replace this with the improved version of the mqtt client for debug
-from XbeeNetMqttCoordinator import XbeeNetMqttCoordinator
+import time
 import signal
+import logging
+from pathlib import Path
+
+# allow local libs if needed (adjust paths if your project layout differs)
+ROOT = Path(__file__).resolve().parent
+sys.path.append(str(ROOT / "DButils"))
+sys.path.append(str(ROOT / "Libraries"))
+sys.path.append(str(ROOT / "DockerUtils"))
+
+# configure logging
+LOG_LEVEL = os.environ.get("WORKER_LOG_LEVEL", "INFO").upper()
+logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logger = logging.getLogger("xbee.main")
+
+# import controller (adjust module name/path if different)
+from XbeeNetworkController import XbeeNetworkController
 
 
-# TODO: Replace with the serial port where your local module is connected to.
-PORT = "COM1"
-# TODO: Replace with the baud rate of your local module.
-BAUD_RATE = 9600
-
-def readConfigFile( path = './configs.json'):
-	with open(path) as f:
-		data = json.load(f)
-	return data
-
-class XbeeNetworkController():
-    def __init__(self, configs):
-        self.nodeProxy = NodeMqttClient(configs["mqtt-host"],configs["mqtt-port"],configs["name"])
-        self.xbeeCoordinator = XbeeNetMqttCoordinator()
-        self.configs = configs
-        pass
-
-    def start(self):
-        self.xbeeCoordinator.init(self.configs["comm-port-path"], self.configs["com-baud-rate"], self._message_received_callback, self._sync_devices_mqtt)
-        self.nodeProxy.connect()
-        self.xbeeCoordinator.start()
-        pass
-
-    def stop(self):
-        self.nodeProxy.disconnect()
-        self.xbeeCoordinator.stop()
-        self.xbeeCoordinator.close()
-        pass
-    
-    #From Xbee to mqtt network
-    def _message_received_callback(self, address64bit, data):
-        print("Received data from %s: %s" % (address64bit, data))
-        try:
-            self.nodeProxy.publishValue(str(address64bit) + "_OUT", data)
-        except:
-            print("Error: " + str(address64bit) + "_OUT" + " Address not registered!")
-        pass
-    
-    #From mqtt network to Xbee, args in this case is the 64 bit addr
-    def _callbackReceivedMessage(self, message, args):
-        try:
-            self.xbeeCoordinator.sendMessage(args, message)
-        except:
-            print("error processing: " + str(message) + " args: " + str(args))
-        pass
+def read_config_file(path: str = "./configs.json") -> dict:
+    p = Path(path)
+    if not p.exists():
+        return {}
+    try:
+        with p.open("r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        logger.exception("Failed to read config file %s", path)
+        return {}
 
 
-    def _sync_devices_mqtt(self, devices):
-        for xbeeDevice in devices:
-            publishExists, _ = self.nodeProxy.deviceExists(name=(xbeeDevice + "_OUT"))
-            subscribeExists, _ = self.nodeProxy.deviceExists(name=(xbeeDevice + "_IN"))
-            if not publishExists:
-                self.nodeProxy.add_publisher(xbeeDevice + "_OUT","STRING")
-            if not subscribeExists:
-                self.nodeProxy.add_subscriber(xbeeDevice + "_IN","STRING",self._callbackReceivedMessage, "value", xbeeDevice)
-        pass
+def build_configs() -> dict:
+    # load file config first, then overlay environment variables
+    cfg = read_config_file("./configs.json")
 
-    def publish_manifest(self):
-        self.nodeProxy.publish_manifest()
-        pass
+    def env_or_cfg(key: str, default=None):
+        return os.getenv(key.upper().replace("-", "_"), cfg.get(key, default))
 
-	
-'''
-# Instantiate a local XBee node.
-xbee = XBeeDevice("COM1", 9600)
-xbee.open()
-
-# Define the callback.
-def my_data_received_callback(xbee_message):
-    address = xbee_message.remote_device.get_64bit_addr()
-    data = xbee_message.data.decode("utf8")
-    print("Received data from %s: %s" % (address, data))
-
-# Add the callback.
-xbee.add_data_received_callback(my_data_received_callback)
-'''
-#when message is received from 
-
-#each device will create a channel under mqtt standard broker
-
-
-if __name__ == '__main__':
-    # configs = readConfigFile()
     configs = {
-        "name": os.getenv("XBEE_COORDINATOR_NAME", ""),
-        "mqtt-host": os.getenv("MQTT_BROKER_HOST", ""),
-        "mqtt-port":int(os.getenv("MQTT_BROKER_PORT", "1883")),
-        "manifest-publish-delay": int(os.getenv("XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY", "6")),
-        "comm-port-path": os.getenv("XBEE_COORDINATOR_TTY_PORT", ""),
-        "com-baud-rate": int(os.getenv("XBEE_COORDINATOR_BAUDRATE", "9600"))
+        "name": env_or_cfg("name", cfg.get("name", "")),
+        "mqtt-host": env_or_cfg("mqtt-host", cfg.get("mqtt-host", "localhost")),
+        "mqtt-port": int(env_or_cfg("mqtt-port", cfg.get("mqtt-port", 1883))),
+        "manifest-publish-delay": int(env_or_cfg("manifest-publish-delay", cfg.get("manifest-publish-delay", 6))),
+        "comm-port-path": env_or_cfg("comm-port-path", cfg.get("comm-port-path", "")),
+        "com-baud-rate": int(env_or_cfg("com-baud-rate", cfg.get("com-baud-rate", 9600))),
+        "discovery-time": int(env_or_cfg("discovery-time", cfg.get("discovery-time", 120))),
+        "keepalive": int(env_or_cfg("keepalive", cfg.get("keepalive", 60))),
+        "sampling": int(env_or_cfg("sampling", cfg.get("sampling", 6))),
     }
-    print("Xbee coordinator started with")
-    print(configs)
-    #Todo: maybe a restart in case of a container restart should be available to regain the port connection
+    return configs
 
-    xbeeServer = XbeeNetworkController(configs)
-    xbeeServer.start()
 
-    def signal_term_handler(signal, frame):
-        xbeeServer.stop()
-        print('exit process')
-        sys.exit(0)
-    signal.signal(signal.SIGTERM, signal_term_handler)
+def main():
+    configs = build_configs()
+    logger.info("Starting XBee coordinator service with config: %s", {
+        "name": configs.get("name"),
+        "mqtt-host": configs.get("mqtt-host"),
+        "mqtt-port": configs.get("mqtt-port"),
+        "comm-port-path": configs.get("comm-port-path"),
+        "com-baud-rate": configs.get("com-baud-rate"),
+        "discovery-time": configs.get("discovery-time"),
+        "manifest-publish-delay": configs.get("manifest-publish-delay"),
+    })
 
-    while True:
-        xbeeServer.publish_manifest()
-        time.sleep(configs["manifest-publish-delay"])
-    pass
+    controller = XbeeNetworkController(configs)
+
+    # graceful shutdown handler
+    stop_requested = {"flag": False}
+
+    def _signal_handler(signum, frame):
+        logger.info("Signal %s received, stopping...", signum)
+        stop_requested["flag"] = True
+
+    signal.signal(signal.SIGTERM, _signal_handler)
+    signal.signal(signal.SIGINT, _signal_handler)
+
+    try:
+        controller.start()
+    except Exception:
+        logger.exception("Failed to start XbeeNetworkController")
+        return 1
+
+    publish_delay = int(configs.get("manifest-publish-delay", 6))
+    try:
+        while not stop_requested["flag"]:
+            try:
+                # publish manifests for all managed nodes
+                controller.publish_all_manifests()
+            except Exception:
+                logger.exception("Error while publishing manifests")
+            # sleep in small increments so we can react quickly to signals
+            slept = 0.0
+            interval = 0.5
+            while slept < publish_delay and not stop_requested["flag"]:
+                time.sleep(interval)
+                slept += interval
+    except Exception:
+        logger.exception("Unexpected error in main loop")
+    finally:
+        logger.info("Shutting down XBee coordinator")
+        try:
+            controller.stop()
+        except Exception:
+            logger.exception("Error while stopping controller")
+        logger.info("Shutdown complete")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
