@@ -1,0 +1,6 @@
+digi_xbee==1.4.1
+pyserial==3.5
+paho_mqtt==1.6.1
+pyzmq>=25.1.0
+mysql-connector-python==8.0.33
+aiomysql==0.3.2

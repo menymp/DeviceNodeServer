@@ -29,7 +29,14 @@ import json
 import sys
 import os
 
+from os.path import dirname, realpath, sep, pardir
+# Get current main.py directory
+#sys.path.append(dirname(realpath(__file__)) + sep + pardir)
+#sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DButils")
+#sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
+sys.path.append("../DButils")
 sys.path.append('../Libraries')
+
 from NodeMqttClient import NodeMqttClient    #replace this with the improved version of the mqtt client for debug
 from XbeeNetMqttCoordinator import XbeeNetMqttCoordinator
 import signal
