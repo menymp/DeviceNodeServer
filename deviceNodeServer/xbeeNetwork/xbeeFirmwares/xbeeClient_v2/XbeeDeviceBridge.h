@@ -1,39 +1,23 @@
 #ifndef XBEE_DEVICE_BRIDGE_H
 #define XBEE_DEVICE_BRIDGE_H
 
-/*
-  XbeeDeviceBridge.h
-  AVR/UNO friendly public header.
-  - No STL, no <vector>/<map>/<functional>.
-  - Public API uses plain C types only (uint64_t, uint16_t).
-  - Implementation converts these to XBee types inside the .cpp.
-  - Requires ArduinoJson v6.
-*/
-
 #include <Arduino.h>
-#include <ArduinoJson.h>
-#include <stdint.h>
 
-#define MAX_DEVICES 10 /* Limit this for low memory Atmega268 */
-#define MAX_NAME_LEN 20
-#define MAX_TYPE_LEN 12
-#define MAX_VALUE_LEN 30
+#define MAX_DEVICES 6
+#define MAX_NAME_LEN 16
+#define MAX_TYPE_LEN 8
+#define MAX_VALUE_LEN 32
+
+typedef String (*ValueCallback)(void *ctx);
+typedef void (*CommandCallback)(const String &value, void *ctx);
 
 struct DeviceDescriptor {
   char Name[MAX_NAME_LEN];
-  char Mode[12]; // "PUBLISHER" or "SUBSCRIBER"
+  char Mode[8];   // "PUBLISHER" or "SUBSCRIBER" (short)
   char Type[MAX_TYPE_LEN];
   char Value[MAX_VALUE_LEN];
 };
 
-// Value callback: return current value as String
-typedef String (*ValueCallback)(void *ctx);
-// Command callback: called with value string
-typedef void (*CommandCallback)(const String &value, void *ctx);
-
-// Transport abstraction (plain C types for addresses).
-// addr64 is 64-bit address encoded as uint64_t (0 means none).
-// addr16 is 16-bit address encoded as uint16_t (0xFFFF or 0 means none).
 class Transport {
 public:
   virtual ~Transport() {}
@@ -44,30 +28,25 @@ public:
   virtual void setReceiveCallback(ReceiveCb cb, void *ctx) = 0;
 };
 
-// Concrete transport declaration (implemented in .cpp).
-// Constructor accepts XBee& and HardwareSerial& in the .cpp implementation.
 class XBeeTransport : public Transport {
 public:
-  // Implementation defined in .cpp
-  XBeeTransport(void *xbeePtr, HardwareSerial *serialPtr, unsigned long serialBaud = 9600);
+  XBeeTransport(void *xbeePtr, Stream *serialPtr, unsigned long serialBaud = 9600);
   void begin(unsigned long baud) override;
   bool send(const uint8_t *buf, size_t len, uint64_t addr64, uint16_t addr16) override;
   void poll() override;
   void setReceiveCallback(ReceiveCb cb, void *ctx) override;
 
 private:
-  // Opaque pointers to avoid exposing XBee types in header
   void *_xbee_ptr;
-  HardwareSerial *_serial_ptr;
+  Stream *_serial_ptr;
   unsigned long _baud;
   ReceiveCb _cb;
   void *_cb_ctx;
 };
 
-// Main bridge class (no STL)
 class XbeeDeviceBridge {
 public:
-  XbeeDeviceBridge(Transport *transport, const char *nodeName = nullptr, const char *macAddr = nullptr);
+  XbeeDeviceBridge(Transport *transport, uint64_t coordinatorAddr64 = 0ULL, uint16_t coordinatorAddr16 = 0xFFFF);
 
   void begin(unsigned long baud = 9600);
   void loop();
@@ -75,14 +54,16 @@ public:
   bool addPublisher(const char *name, const char *type, ValueCallback cb, void *cb_ctx = nullptr);
   bool addSubscriber(const char *name, const char *type, ValueCallback valueCb, void *value_ctx, CommandCallback cmdCb, void *cmd_ctx);
 
-  bool sendManifest();
-  bool sendEvent(const char *deviceName, const char *value);
+  // Compact protocol: M/E/C frames ending with '#'
+  bool sendManifest();               // sends one M:...# frame containing all devices
+  bool sendEvent(const char *deviceName, const char *value); // sends E:...# frame
 
   void setManifestIntervalMs(unsigned long ms) { _manifestInterval = ms; }
   void setCommandAckEnabled(bool en) { _commandAck = en; }
 
-  void setMessagePrefix(const char *p) { _prefix = String(p ? p : ""); }
-  void setMessageSuffix(const char *s) { _suffix = String(s ? s : ""); }
+  void setCoordinatorAddress(uint64_t addr64, uint16_t addr16 = 0xFFFF) { _coordinatorAddr64 = addr64; _coordinatorAddr16 = addr16; }
+
+  static uint64_t parseHex64(const char *hex);
 
 private:
   Transport *_transport;
@@ -102,17 +83,16 @@ private:
   unsigned long _lastManifestMs;
   unsigned long _manifestInterval;
   bool _commandAck;
-  String _prefix;
-  String _suffix;
+
+  uint64_t _coordinatorAddr64;
+  uint16_t _coordinatorAddr16;
 
   void _onPayloadReceived(const String &payload, uint64_t addr64, uint16_t addr16);
   static void _transportTrampoline(const String &payload, uint64_t addr64, uint16_t addr16, void *ctx);
 
-  void _processCommandJson(const JsonVariant &root);
-  String _buildManifestJson();
-  String _buildEventJson(const char *deviceName, const char *value);
+  void _processCommandString(const String &s);
 
-  bool _sendPayload(const String &payload, uint64_t addr64 = 0, uint16_t addr16 = 0);
+  bool _sendPayload(const char *payloadBuf, size_t payloadLen, uint64_t addr64 = 0ULL, uint16_t addr16 = 0xFFFF);
 
   int _find_device_index(const char *name);
   void _safe_strncpy(char *dst, const char *src, size_t maxlen);
