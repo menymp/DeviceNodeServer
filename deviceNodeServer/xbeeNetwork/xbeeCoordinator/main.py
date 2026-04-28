@@ -33,58 +33,48 @@ important: take in account that this system is slow as the long range rf communi
 #  - Handles SIGTERM for graceful shutdown.
 '''
 
-import json
-import sys
+# main.py
+# Entrypoint for the XBee coordinator service.
 import os
-import time
 import signal
+import sys
+import time
 import logging
-from pathlib import Path
 
-# allow local libs if needed (adjust paths if your project layout differs)
-ROOT = Path(__file__).resolve().parent
-sys.path.append(str(ROOT / "DButils"))
-sys.path.append(str(ROOT / "Libraries"))
-sys.path.append(str(ROOT / "DockerUtils"))
+from XbeeNetworkController import XbeeNetworkController
 
-# configure logging
 LOG_LEVEL = os.environ.get("WORKER_LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("xbee.main")
 
-# import controller (adjust module name/path if different)
-from XbeeNetworkController import XbeeNetworkController
-
-
-def read_config_file(path: str = "./configs.json") -> dict:
-    p = Path(path)
-    if not p.exists():
-        return {}
-    try:
-        with p.open("r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        logger.exception("Failed to read config file %s", path)
-        return {}
-
 
 def build_configs() -> dict:
-    # load file config first, then overlay environment variables
-    cfg = read_config_file("./configs.json")
-
-    def env_or_cfg(key: str, default=None):
-        return os.getenv(key.upper().replace("-", "_"), cfg.get(key, default))
+    """
+    Build configs exclusively from environment variables (no configs.json).
+    Expected env vars (as provided in docker-compose):
+      - XBEE_COORDINATOR_NAME
+      - XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY
+      - XBEE_COORDINATOR_TTY_PORT
+      - XBEE_COORDINATOR_BAUDRATE
+      - MQTT_BROKER_HOST
+      - MQTT_BROKER_PORT
+      - KEEPALIVE (optional)
+      - SAMPLING (optional)
+      - DISCOVERY_TIME (optional, kept for coordinator compatibility)
+    """
+    def env(key, default=None):
+        return os.getenv(key, default)
 
     configs = {
-        "name": env_or_cfg("name", cfg.get("name", "")),
-        "mqtt-host": env_or_cfg("mqtt-host", cfg.get("mqtt-host", "localhost")),
-        "mqtt-port": int(env_or_cfg("mqtt-port", cfg.get("mqtt-port", 1883))),
-        "manifest-publish-delay": int(env_or_cfg("manifest-publish-delay", cfg.get("manifest-publish-delay", 6))),
-        "comm-port-path": env_or_cfg("comm-port-path", cfg.get("comm-port-path", "")),
-        "com-baud-rate": int(env_or_cfg("com-baud-rate", cfg.get("com-baud-rate", 9600))),
-        "discovery-time": int(env_or_cfg("discovery-time", cfg.get("discovery-time", 120))),
-        "keepalive": int(env_or_cfg("keepalive", cfg.get("keepalive", 60))),
-        "sampling": int(env_or_cfg("sampling", cfg.get("sampling", 6))),
+        "name": env("XBEE_COORDINATOR_NAME", ""),
+        "manifest-publish-delay": int(env("XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY", "6")),
+        "comm-port-path": env("XBEE_COORDINATOR_TTY_PORT", "/dev/ttyUSB0"),
+        "com-baud-rate": int(env("XBEE_COORDINATOR_BAUDRATE", "9600")),
+        "mqtt-host": env("MQTT_BROKER_HOST", "localhost"),
+        "mqtt-port": int(env("MQTT_BROKER_PORT", "1883")),
+        "keepalive": int(env("KEEPALIVE", "60")),
+        "sampling": int(env("SAMPLING", "6")),
+        "discovery-time": int(env("DISCOVERY_TIME", "30")),
     }
     return configs
 
@@ -103,7 +93,6 @@ def main():
 
     controller = XbeeNetworkController(configs)
 
-    # graceful shutdown handler
     stop_requested = {"flag": False}
 
     def _signal_handler(signum, frame):
@@ -123,11 +112,10 @@ def main():
     try:
         while not stop_requested["flag"]:
             try:
-                # publish manifests for all managed nodes
+                # publish manifests for all managed nodes (node_bridge will use last-known values)
                 controller.publish_all_manifests()
             except Exception:
                 logger.exception("Error while publishing manifests")
-            # sleep in small increments so we can react quickly to signals
             slept = 0.0
             interval = 0.5
             while slept < publish_delay and not stop_requested["flag"]:

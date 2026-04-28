@@ -105,7 +105,7 @@ def readMQ135():
     analogSensors["MQ135"].read()
 
 #this task checks for available updates
-# ToDo: add sync for the wifi shared UI   OK
+# OK: add sync for the wifi shared UI   OK
 #       flags for safe before reset       PENDING
 def update_task(configs, networkLock):
     while(True):

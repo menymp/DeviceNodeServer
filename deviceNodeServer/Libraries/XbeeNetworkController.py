@@ -30,35 +30,34 @@
 # This version ALWAYS uses the XBee 64-bit address (derived) as the mac_addr
 # passed to node_bridge. Manifest-provided MACs are ignored.
 
+# XbeeNetworkController.py
+# Uses XbeeNetCoordinator to manage node_bridge instances for each discovered XBee remote.
 import json
-import threading
-from typing import Dict, Any, List, Optional
 import logging
-import os
+import threading
+import time
+from typing import Dict, Any, List, Optional
 
 from XbeeNetCoordinator import XbeeNetCoordinator
 from node_bridge import node_bridge
 
-logging.basicConfig(level=os.environ.get("WORKER_LOG_LEVEL", "INFO"))
 logger = logging.getLogger("XbeeNetworkController")
 
 
 class XbeeNetworkController:
     """
     Controller that maps each discovered XBee remote device to a node_bridge instance.
-    Node_bridge instances always receive a mac_addr derived from the XBee address.
+    This version:
+      - Uses environment-driven configs (passed in)
+      - Does NOT run discovery; devices send manifests/events periodically
+      - Instantiates node_bridge when a manifest arrives (manifest-driven creation)
+      - Keeps last-known device state per node and updates it on events and commands
+      - Removes node_bridge instances after INACTIVITY_TIMEOUT seconds of no messages
     """
 
+    INACTIVITY_TIMEOUT = 120  # seconds to consider a node inactive and remove it
+
     def __init__(self, configs: Dict[str, Any]):
-        """
-        configs expected keys:
-          - mqtt-host
-          - mqtt-port
-          - name (controller name prefix)
-          - comm-port-path
-          - com-baud-rate
-          - discovery-time (optional)
-        """
         self.configs = configs
         discovery_time = configs.get("discovery-time", 120)
         self.coordinator = XbeeNetCoordinator(discovery_time=discovery_time)
@@ -69,8 +68,15 @@ class XbeeNetworkController:
         # Map remote address -> device state dict: deviceName -> lastValue (strings)
         self._device_states: Dict[str, Dict[str, str]] = {}
 
+        # Map remote address -> last seen timestamp (time.time())
+        self._last_seen: Dict[str, float] = {}
+
         # Lock to protect maps
         self._lock = threading.RLock()
+
+        # background cleaner thread
+        self._cleaner_thread = threading.Thread(target=self._cleaner_loop, daemon=True)
+        self._cleaner_stop = threading.Event()
 
         logger.info(
             "XbeeNetworkController initialized: mqtt=%s:%s comm=%s@%s discovery=%s",
@@ -81,30 +87,25 @@ class XbeeNetworkController:
             discovery_time,
         )
 
-    # -------------------------
-    # Lifecycle
-    # -------------------------
     def start(self):
-        """
-        Initialize coordinator and start background processing.
-        Node bridges are created on discovery or on first message.
-        """
         logger.info("Starting XbeeNetworkController")
+        # initialize coordinator with callbacks
         self.coordinator.init(
             self.configs["comm-port-path"],
             self.configs["com-baud-rate"],
             message_received_callback=self._message_received_callback,
-            sync_devices_callback=self._on_devices_discovered
+            sync_devices_callback=None
         )
-        # Coordinator worker will run discovery and message handling
         self.coordinator.start()
-        logger.info("Coordinator started")
+        self._cleaner_stop.clear()
+        self._cleaner_thread.start()
+        logger.info("Coordinator started and cleaner thread running")
 
     def stop(self):
-        """
-        Stop coordinator and disable all node bridges.
-        """
         logger.info("Stopping XbeeNetworkController")
+        self._cleaner_stop.set()
+        if self._cleaner_thread.is_alive():
+            self._cleaner_thread.join(timeout=2.0)
         # Disable and remove node bridges
         with self._lock:
             for addr, nb in list(self._node_bridges.items()):
@@ -115,184 +116,217 @@ class XbeeNetworkController:
                     logger.exception("Error disabling node_bridge for %s", addr)
             self._node_bridges.clear()
             self._device_states.clear()
-
+            self._last_seen.clear()
         # Stop coordinator
         try:
             self.coordinator.stop()
-            self.coordinator.close()
-            logger.info("Coordinator stopped and closed")
+            logger.info("Coordinator stopped")
         except Exception:
             logger.exception("Error stopping coordinator")
 
     # -------------------------
-    # Coordinator callbacks
+    # Coordinator callback
     # -------------------------
-    def _on_devices_discovered(self, device_addresses: List[str]):
-        """
-        Called by coordinator after discovery completes with a list of address strings.
-        Ensure node_bridge instances exist for each discovered device.
-        """
-        logger.info("Discovery callback: %s", device_addresses)
-        for addr in device_addresses:
-            derived_mac = self._format_addr_as_mac(addr)
-            # Always create node_bridge now with derived mac (manifest MACs are ignored)
-            self._ensure_node_bridge_for(addr, mac_addr=derived_mac)
-
     def _message_received_callback(self, address64bit: str, data: str):
         """
-        Called by Xbee coordinator when a frame arrives from a remote device.
-        Expects JSON payloads in one of the forms:
-          - Manifest: {"Devices":[{...}, ...]}
-          - Event: {"Name": "...", "Mode":"PUBLISHER", "Type":"STRING", "Value":"..."}
-        Manifest MAC fields are ignored; MAC always comes from XBee address.
+        Called by coordinator when a frame arrives from a remote device.
+        data is the raw payload string from the XBee node (e.g., "E:...#" or "M...#").
         """
         addr = str(address64bit)
         logger.debug("Message received from %s: %s", addr, data)
-
-        # Ensure node_bridge exists for this address (use derived mac)
-        nb = self._ensure_node_bridge_for(addr, mac_addr=self._format_addr_as_mac(addr))
-
-        # Parse JSON
-        try:
-            payload = json.loads(data)
-        except json.JSONDecodeError:
-            logger.warning("Invalid JSON from %s: %s", addr, data)
-            return
-
-        # Manifest handling
-        if isinstance(payload, dict) and "Devices" in payload and isinstance(payload["Devices"], list):
-            logger.info("Manifest received from %s with %d devices", addr, len(payload["Devices"]))
-            # Ignore any MacAddress in manifest; use XBee-derived MAC only
-            self._handle_manifest(addr, payload["Devices"], nb)
-            return
-
-        # Event handling (single device object)
-        if isinstance(payload, dict) and "Name" in payload and "Value" in payload:
-            logger.info(
-                "Event received from %s device=%s value=%s", addr, payload.get("Name"), payload.get("Value")
-            )
-            self._handle_event(addr, payload, nb)
-            return
-
-        logger.debug("Unhandled JSON message from %s: %s", addr, payload)
-
-    # -------------------------
-    # Node bridge management
-    # -------------------------
-    def _ensure_node_bridge_for(self, addr: str, mac_addr: Optional[str] = None) -> node_bridge:
-        """
-        Ensure a node_bridge instance exists for the given XBee 64-bit address.
-        If not present, create, acknowledge, and start it.
-        mac_addr is required and must be derived from the XBee address (we enforce that).
-        """
+        # update last seen
         with self._lock:
-            if addr in self._node_bridges:
-                return self._node_bridges[addr]
+            self._last_seen[addr] = time.time()
 
-            # Create node_bridge instance
-            node_name = addr.replace(":", "").upper()  # normalize name (no colons)
-            broker = self.configs.get("mqtt-host", "localhost")
-            broker_port = int(self.configs.get("mqtt-port", 1883))
-            keepalive = int(self.configs.get("keepalive", 60))
-            sampling = int(self.configs.get("sampling", 6))
-
-            # If no mac provided, derive one from the XBee address
-            mac_to_use = mac_addr if mac_addr else self._format_addr_as_mac(addr)
-
-            logger.info("Creating node_bridge for %s -> node name %s mac=%s", addr, node_name, mac_to_use)
+        payload = data.strip()
+        # Manifest messages start with 'M'
+        if payload.startswith("M"):
             try:
-                nb = node_bridge(node_name, broker, broker_port, keepalive, sampling, mac_addr=mac_to_use)
-                # Immediately acknowledge/register with broker
-                nb.acknowledge()
-                # Start server loop for this node_bridge (non-blocking in node_bridge implementation)
-                nb.start_server()
+                devices = self._parse_compact_manifest(payload)
+                logger.info("Manifest received from %s with %d devices", addr, len(devices))
+                # Manifest-driven creation/update: ensure node_bridge exists and update devices
+                self._handle_manifest(addr, devices)
             except Exception:
-                logger.exception("Failed to create/start node_bridge for %s", addr)
-                raise
-
-            # initialize device state store for this node
-            self._device_states[addr] = {}
-
-            # store and return
-            self._node_bridges[addr] = nb
-            logger.info("node_bridge created for %s (mac=%s)", addr, mac_to_use)
-            return nb
+                logger.exception("Failed to parse manifest from %s payload=%s", addr, payload)
+        # Event messages start with 'E:'
+        elif payload.startswith("E:"):
+            try:
+                ev = self._parse_compact_event(payload)
+                logger.info("Event received from %s device=%s value=%s", addr, ev.get("Name"), ev.get("Value"))
+                self._handle_event(addr, ev)
+            except Exception:
+                logger.exception("Failed to parse event from %s payload=%s", addr, payload)
+        else:
+            logger.debug("Unhandled payload format from %s: %s", addr, payload)
 
     # -------------------------
-    # Manifest / Event handling
+    # Parsing helpers
     # -------------------------
-    def _handle_manifest(self, addr: str, devices: List[Dict[str, Any]], nb: node_bridge):
+    def _parse_compact_manifest(self, payload: str) -> List[Dict[str, str]]:
         """
-        For each device in the manifest:
-          - If PUBLISHER: add a publisher device to node_bridge with a value callback that reads from local state.
-          - If SUBSCRIBER: add a subscriber device to node_bridge with a command callback that sends commands to the XBee node.
+        Parse payload like:
+          M2:PirSensor,P,F,70.89;WaterPump,S,S,#
+        Returns list of dicts: {Name, Mode, Type, Value}
+        """
+        if payload.endswith("#"):
+            payload = payload[:-1]
+        colon = payload.find(":")
+        if colon < 0:
+            raise ValueError("manifest missing ':'")
+        body = payload[colon + 1 :]
+        parts = body.split(";")
+        devices = []
+        for p in parts:
+            p = p.strip()
+            if not p:
+                continue
+            fields = p.split(",")
+            name = fields[0] if len(fields) > 0 else ""
+            mode = fields[1] if len(fields) > 1 else ""
+            dtype = fields[2] if len(fields) > 2 else ""
+            val = fields[3] if len(fields) > 3 else ""
+            devices.append({"Name": name, "Mode": mode, "Type": dtype, "Value": val})
+        return devices
+
+    def _parse_compact_event(self, payload: str) -> Dict[str, str]:
+        """
+        Parse payload like:
+          E:PirSensor,P,F,70.79#
+        Returns dict {Name, Mode, Type, Value}
+        """
+        if payload.endswith("#"):
+            payload = payload[:-1]
+        if not payload.startswith("E:"):
+            raise ValueError("not event")
+        body = payload[2:]
+        fields = body.split(",")
+        name = fields[0] if len(fields) > 0 else ""
+        mode = fields[1] if len(fields) > 1 else ""
+        dtype = fields[2] if len(fields) > 2 else ""
+        val = fields[3] if len(fields) > 3 else ""
+        return {"Name": name, "Mode": mode, "Type": dtype, "Value": val}
+
+    # -------------------------
+    # Manifest handling (creates node_bridge if new)
+    # -------------------------
+    def _handle_manifest(self, addr: str, devices: List[Dict[str, Any]]):
+        """
+        Manifest-driven creation and update:
+          - If node_bridge does not exist for addr, create it here.
+          - Add publisher/subscriber devices (if not already present).
+          - Update stored last-known values from manifest.
+          - Publish manifest immediately via node_bridge (if possible).
         """
         with self._lock:
+            nb = self._node_bridges.get(addr)
+            if nb is None:
+                # instantiate node_bridge for this XBee address
+                node_name = addr.replace(":", "").upper()
+                broker = self.configs.get("mqtt-host", "localhost")
+                broker_port = int(self.configs.get("mqtt-port", 1883))
+                keepalive = int(self.configs.get("keepalive", 60))
+                sampling = int(self.configs.get("sampling", 6))
+                mac_to_use = self._format_addr_as_mac(addr)
+                logger.info("Creating node_bridge for %s -> node name %s mac=%s", addr, node_name, mac_to_use)
+                try:
+                    nb = node_bridge(node_name, broker, broker_port, keepalive, sampling, mac_addr=mac_to_use)
+                    # acknowledge (connect to broker) before adding devices
+                    nb.acknowledge()
+                    # start_server will be called after devices are added
+                except Exception:
+                    logger.exception("Failed to create/acknowledge node_bridge for %s", addr)
+                    nb = None
+
+                if nb:
+                    self._node_bridges[addr] = nb
+                    self._device_states.setdefault(addr, {})
+                    self._last_seen[addr] = time.time()
+
+            # ensure device state dict exists
             state = self._device_states.setdefault(addr, {})
 
+            # Process each device entry in manifest
             for dev in devices:
                 try:
                     name = dev.get("Name")
-                    mode = dev.get("Mode", "").upper()
-                    dtype = dev.get("Type", "STRING")
+                    mode = (dev.get("Mode") or "").upper()
+                    dtype = dev.get("Type") or "STRING"
                     value = str(dev.get("Value", "")) if dev.get("Value", None) is not None else ""
 
                     if not name:
                         logger.warning("Manifest device without Name from %s: %s", addr, dev)
                         continue
 
-                    # store initial value
+                    # Update stored value (manifest provides initial/last-known)
                     state[name] = value
 
-                    # Publisher: add publisher device if not exists
-                    if mode == "PUBLISHER":
-                        def make_value_cb(a=addr, n=name):
-                            return lambda: self._get_device_value(a, n)
-                        try:
-                            nb.add_publisher_device(name, dtype, make_value_cb())
-                            logger.info("Added publisher device %s on node %s", name, addr)
-                        except Exception:
-                            logger.debug("Publisher device %s may already exist on node %s", name, addr)
+                    # If node_bridge exists, ensure devices are registered there
+                    if nb:
+                        # Publisher
+                        if mode == "P" or mode == "PUBLISHER":
+                            def make_value_cb(a=addr, n=name):
+                                return lambda: self._get_device_value(a, n)
+                            try:
+                                nb.add_publisher_device(name, dtype, make_value_cb())
+                                logger.info("Added publisher device %s on node %s", name, addr)
+                            except Exception:
+                                logger.debug("Publisher device %s may already exist on node %s", name, addr)
+                        # Subscriber
+                        elif mode == "S" or mode == "SUBSCRIBER":
+                            def make_value_cb(a=addr, n=name):
+                                return lambda: self._get_device_value(a, n)
 
-                    # Subscriber: add subscriber device if not exists
-                    elif mode == "SUBSCRIBER":
-                        def make_value_cb(a=addr, n=name):
-                            return lambda: self._get_device_value(a, n)
+                            def make_command_cb(a=addr, n=name):
+                                def command_cb(payload_value: str):
+                                    cmd_str = f"C:{n},{payload_value}#"
+                                    try:
+                                        sent = self.coordinator.sendMessage(a, cmd_str)
+                                        with self._lock:
+                                            self._device_states.setdefault(a, {})[n] = str(payload_value)
+                                        if sent:
+                                            logger.info("Relayed command to %s device=%s value=%s", a, n, payload_value)
+                                        else:
+                                            logger.warning("Failed to send command to %s device=%s", a, n)
+                                    except Exception:
+                                        logger.exception("Failed to send command to %s device=%s", a, n)
+                                return command_cb
 
-                        def make_command_cb(a=addr, n=name):
-                            def command_cb(payload_value: str):
-                                cmd = {"Device": n, "Value": str(payload_value)}
-                                try:
-                                    self._send_command_to_xbee(a, cmd)
-                                    with self._lock:
-                                        self._device_states.setdefault(a, {})[n] = str(payload_value)
-                                    logger.info("Relayed command to %s device=%s value=%s", a, n, payload_value)
-                                except Exception:
-                                    logger.exception("Failed to send command to %s device=%s", a, n)
-                            return command_cb
-
-                        try:
-                            nb.add_subscriber_device(name, dtype, make_value_cb(), make_command_cb())
-                            logger.info("Added subscriber device %s on node %s", name, addr)
-                        except Exception:
-                            logger.debug("Subscriber device %s may already exist on node %s", name, addr)
-                    else:
-                        logger.warning("Unknown Mode '%s' for device %s from %s", mode, name, addr)
+                            try:
+                                nb.add_subscriber_device(name, dtype, make_value_cb(), make_command_cb())
+                                logger.info("Added subscriber device %s on node %s", name, addr)
+                            except Exception:
+                                logger.debug("Subscriber device %s may already exist on node %s", name, addr)
+                        else:
+                            logger.warning("Unknown Mode '%s' for device %s from %s", mode, name, addr)
                 except Exception:
                     logger.exception("Error processing manifest device %s from %s", dev, addr)
 
-            # After processing manifest, publish the node manifest via node_bridge if available
-            try:
-                nb.publish_manifest()
-                logger.debug("Published manifest for node %s", addr)
-            except Exception:
-                logger.exception("Failed to publish manifest for node %s", addr)
+            # After processing manifest, start server if not already started and publish manifest immediately
+            if nb:
+                try:
+                    # start_server may be idempotent in node_bridge implementation
+                    nb.start_server()
+                except Exception:
+                    logger.exception("Failed to start_server for node %s", addr)
+                # Try to trigger an immediate manifest publish; node_bridge does not expose publish_manifest
+                try:
+                    # call internal publish function if available
+                    if hasattr(nb, "_build_and_send_payload_manifest"):
+                        nb._build_and_send_payload_manifest()
+                    elif hasattr(nb, "publish_manifest"):
+                        nb.publish_manifest()
+                except Exception:
+                    logger.exception("Failed to publish manifest for node %s", addr)
 
-    def _handle_event(self, addr: str, event: Dict[str, Any], nb: node_bridge):
+    # -------------------------
+    # Event handling
+    # -------------------------
+    def _handle_event(self, addr: str, event: Dict[str, Any]):
         """
         Handle a single device event from a remote node:
           - Update local state
-          - Forward event to node_bridge.send_event so it publishes to MQTT
+          - If node_bridge exists, forward event to node_bridge.send_event so it publishes to MQTT
+          - If node_bridge does not exist yet, keep state; manifest will create the node_bridge later
         """
         name = event.get("Name")
         value = str(event.get("Value", ""))
@@ -304,31 +338,17 @@ class XbeeNetworkController:
         with self._lock:
             self._device_states.setdefault(addr, {})[name] = value
 
-        try:
-            nb.send_event(name, value)
-            logger.info("Forwarded event from %s device=%s value=%s to node_bridge", addr, name, value)
-        except Exception:
-            logger.exception("Failed to forward event from %s device=%s", addr, name)
-
-    # -------------------------
-    # Command sending
-    # -------------------------
-    def _send_command_to_xbee(self, addr: str, cmd_obj: Dict[str, Any]):
-        """
-        Send a command JSON to the XBee node via coordinator.
-        The node firmware is expected to accept JSON like:
-          {"Device":"WaterPump", "Value":"OFF"}
-        """
-        try:
-            payload = json.dumps(cmd_obj)
-            sent = self.coordinator.sendMessage(addr, payload)
-            if not sent:
-                logger.warning("Coordinator queue full or send failed for %s payload=%s", addr, payload)
-                raise RuntimeError("sendMessage failed")
-            logger.debug("Command queued to %s payload=%s", addr, payload)
-        except Exception:
-            logger.exception("Error sending command to %s payload=%s", addr, cmd_obj)
-            raise
+        nb = self._node_bridges.get(addr)
+        if nb:
+            try:
+                nb.send_event(name, value)
+                logger.info("Forwarded event from %s device=%s value=%s to node_bridge", addr, name, value)
+            except Exception:
+                logger.exception("Failed to forward event from %s device=%s", addr, name)
+        else:
+            # No node_bridge yet; manifest will create it. We keep the state updated so when manifest arrives
+            # the publisher callback will return the latest value.
+            logger.debug("Event for %s device=%s stored; node_bridge not yet created", addr, name)
 
     # -------------------------
     # Utilities
@@ -339,8 +359,7 @@ class XbeeNetworkController:
 
     def _format_addr_as_mac(self, addr: str) -> str:
         """
-        Convert a 64-bit XBee address string (e.g. '0013A20040XXXXXX' or '00:13:A2:00:40:XX:XX:XX')
-        into a colon-separated lower-case MAC-like string '00:13:a2:00:40:xx:xx:xx'.
+        Convert a 64-bit XBee address string into a colon-separated lower-case MAC-like string.
         """
         hexchars = ''.join(c for c in addr if c.isalnum())
         if len(hexchars) % 2 != 0:
@@ -350,11 +369,44 @@ class XbeeNetworkController:
         return mac
 
     def publish_all_manifests(self):
+        """
+        Trigger immediate manifest publish for all active node_bridges.
+        """
         with self._lock:
-            for addr, nb in self._node_bridges.items():
+            for addr, nb in list(self._node_bridges.items()):
                 try:
-                    nb.publish_manifest()
+                    if hasattr(nb, "_build_and_send_payload_manifest"):
+                        nb._build_and_send_payload_manifest()
+                    elif hasattr(nb, "publish_manifest"):
+                        nb.publish_manifest()
                     logger.info("Published manifest for node %s", addr)
                 except Exception:
                     logger.exception("Failed to publish manifest for node %s", addr)
+
+    def _cleaner_loop(self):
+        """
+        Background thread that removes node_bridges that have been inactive for INACTIVITY_TIMEOUT seconds.
+        """
+        logger.info("Cleaner thread started, timeout=%s", self.INACTIVITY_TIMEOUT)
+        while not self._cleaner_stop.is_set():
+            now = time.time()
+            to_remove = []
+            with self._lock:
+                for addr, last in list(self._last_seen.items()):
+                    if now - last > self.INACTIVITY_TIMEOUT:
+                        to_remove.append(addr)
+                for addr in to_remove:
+                    try:
+                        nb = self._node_bridges.pop(addr, None)
+                        if nb:
+                            nb.disable()
+                            logger.info("Removed inactive node_bridge for %s", addr)
+                        self._device_states.pop(addr, None)
+                        self._last_seen.pop(addr, None)
+                    except Exception:
+                        logger.exception("Error removing inactive node %s", addr)
+            # sleep a short while
+            self._cleaner_stop.wait(5.0)
+        logger.info("Cleaner thread exiting")
+
 
