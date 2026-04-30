@@ -40,8 +40,12 @@ import signal
 import sys
 import time
 import logging
-
-from XbeeNetworkController import XbeeNetworkController
+#sys.path.append("/app/Libraries")
+from os.path import dirname, realpath, sep, pardir
+# Get current main.py directory
+sys.path.append(dirname(realpath(__file__)) + sep + pardir)
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "Libraries")
+from Libraries.XbeeNetworkController import XbeeNetworkController
 
 LOG_LEVEL = os.environ.get("WORKER_LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s %(levelname)s %(name)s: %(message)s")

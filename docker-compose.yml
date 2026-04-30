@@ -264,9 +264,9 @@ services:
       MQTT_BROKER_PORT: ${MQTT_BROKER_PORT}
     devices:
       # Map the host's serial device to a name inside the container
-      - "${XBEE_TTY_PORT}:${XBEE_TTY_PORT}"
+      - "${XBEE_COORDINATOR_TTY_PORT}:${XBEE_COORDINATOR_TTY_PORT}"
     volumes:
-      - ./deviceNodeServer/DeviceMainNodeServer/xbeeNetwork/xbeeCoordinator:/app/xbeeCoordinator:rw  # mount source for live edits
+      - ./deviceNodeServer/xbeeNetwork/xbeeCoordinator:/app/xbeeCoordinator:rw  # mount source for live edits
       - ./deviceNodeServer/Libraries:/app/Libraries:rw
       - ./deviceNodeServer/DeviceMainNodeServer/ConfigsUtils:/app/ConfigsUtils:rw
       - ./deviceNodeServer/DeviceMainNodeServer/DButils:/app/DButils:rw
