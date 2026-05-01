@@ -370,6 +370,7 @@ class node_bridge(network_utils_hal):
     handles commands received from server
     '''
     def _on_message(self, client, userdata, msg):
+        print(f"[node_bridge] _on_message entry topic={msg.topic} ts={time.time():.3f}")
         self._backoff_time = self.reconnect_time   # <-- NEW
         messageValue=str(msg.payload.decode("utf-8","ignore"))
         print("registration response %s for %s" % (messageValue, msg.topic))

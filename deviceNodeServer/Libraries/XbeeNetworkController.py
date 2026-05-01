@@ -320,19 +320,20 @@ class XbeeNetworkController:
 
                             def make_command_cb(a=addr, n=name):
                                 def command_cb(payload_value: str):
-                                    logger.info("Command callback called with " + str(payload_value))
+                                    logger.info("Command callback called with %s ts=%s", payload_value, time.time())
                                     cmd_str = f"C:{n},{payload_value}#"
                                     try:
-                                        sent = self.coordinator.sendMessage(a, cmd_str)
+                                        queued = self.coordinator.sendMessage(a, cmd_str)
                                         with self._lock:
                                             self._device_states.setdefault(a, {})[n] = str(payload_value)
-                                        if sent:
-                                            logger.info("Relayed command to %s device=%s value=%s", a, n, payload_value)
+                                        if queued:
+                                            logger.info("Enqueued command to %s device=%s value=%s", a, n, payload_value)
                                         else:
-                                            logger.warning("Failed to send command to %s device=%s", a, n)
+                                            logger.warning("Failed to enqueue command to %s device=%s", a, n)
                                     except Exception:
-                                        logger.exception("Failed to send command to %s device=%s", a, n)
+                                        logger.exception("Failed to enqueue command to %s device=%s", a, n)
                                 return command_cb
+
 
                             try:
                                 nb.add_subscriber_device(name, dtype, make_value_cb(), make_command_cb())
