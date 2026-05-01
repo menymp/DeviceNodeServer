@@ -256,12 +256,18 @@ services:
     restart: always
     privileged: true # Grants the container the necessary permissions
     environment:
+      DB_HOST: nodes-db
+      DB_USER: ${DB_USER}
+      DB_PASSWORD_FILE: /run/secrets/db_user_password
+      DB_NAME: ${DB_NAME}
       XBEE_COORDINATOR_NAME: ${XBEE_COORDINATOR_NAME}
       XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY: ${XBEE_COORDINATOR_MANIFEST_PUBLISH_DELAY}
       XBEE_COORDINATOR_TTY_PORT: ${XBEE_COORDINATOR_TTY_PORT}
       XBEE_COORDINATOR_BAUDRATE: ${XBEE_COORDINATOR_BAUDRATE}
       MQTT_BROKER_HOST: mqtt-broker
       MQTT_BROKER_PORT: ${MQTT_BROKER_PORT}
+    secrets:
+      - db_user_password
     devices:
       # Map the host's serial device to a name inside the container
       - "${XBEE_COORDINATOR_TTY_PORT}:${XBEE_COORDINATOR_TTY_PORT}"
@@ -274,6 +280,8 @@ services:
     depends_on:
       mqtt-broker:
         condition: service_started
+      nodes-db:
+         condition: service_healthy
       node-device-manager-service:
         condition: service_started
 

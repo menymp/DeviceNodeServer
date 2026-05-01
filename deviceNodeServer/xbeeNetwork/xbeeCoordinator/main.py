@@ -45,12 +45,19 @@ from os.path import dirname, realpath, sep, pardir
 # Get current main.py directory
 sys.path.append(dirname(realpath(__file__)) + sep + pardir)
 sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "Libraries")
+sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DButils")
 from Libraries.XbeeNetworkController import XbeeNetworkController
 
 LOG_LEVEL = os.environ.get("WORKER_LOG_LEVEL", "INFO").upper()
 logging.basicConfig(level=LOG_LEVEL, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 logger = logging.getLogger("xbee.main")
 
+def read_secret(path):
+    try:
+        with open(path, "r") as f:
+            return f.read().strip()
+    except Exception:
+        return None
 
 def build_configs() -> dict:
     """
@@ -68,6 +75,12 @@ def build_configs() -> dict:
     """
     def env(key, default=None):
         return os.getenv(key, default)
+    
+    DB_HOST = os.environ.get("DB_HOST", "nodes-db")
+    DB_NAME = os.environ.get("DB_NAME", "")
+    DB_USER = os.environ.get("DB_USER", "")
+    DB_PASSWORD_FILE = os.environ.get("DB_PASSWORD_FILE", "/run/secrets/db_user_password")
+    pw = read_secret(DB_PASSWORD_FILE)
 
     configs = {
         "name": env("XBEE_COORDINATOR_NAME", ""),
@@ -79,6 +92,10 @@ def build_configs() -> dict:
         "keepalive": int(env("KEEPALIVE", "60")),
         "sampling": int(env("SAMPLING", "6")),
         "discovery-time": int(env("DISCOVERY_TIME", "30")),
+        "db-host": DB_HOST,
+        "db-name": DB_NAME,
+        "db-user": DB_USER,
+        "db-password": pw,
     }
     return configs
 
@@ -115,11 +132,6 @@ def main():
     publish_delay = int(configs.get("manifest-publish-delay", 6))
     try:
         while not stop_requested["flag"]:
-            try:
-                # publish manifests for all managed nodes (node_bridge will use last-known values)
-                controller.publish_all_manifests()
-            except Exception:
-                logger.exception("Error while publishing manifests")
             slept = 0.0
             interval = 0.5
             while slept < publish_delay and not stop_requested["flag"]:

@@ -27,6 +27,7 @@ XbeeDeviceBridge bridge(&transport, COORDINATOR_ADDR64, 0xFFFF);
 // Optional LEDs
 int statusLed = 11;
 int errorLed = 12;
+int pumpLed = 13;
 
 float pirValue = 69.69;
 String pumpState = "OFF";
@@ -68,8 +69,10 @@ void flashLed(int pin, int times, int waitMs) {
 void setup() {
   pinMode(statusLed, OUTPUT);
   pinMode(errorLed, OUTPUT);
+  pinMode(pumpLed, OUTPUT);
   digitalWrite(statusLed, LOW);
   digitalWrite(errorLed, LOW);
+  digitalWrite(pumpLed, LOW);
 
   Serial.begin(9600);
   while (!Serial) { ; }

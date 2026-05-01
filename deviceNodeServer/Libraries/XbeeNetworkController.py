@@ -40,6 +40,7 @@ from typing import Dict, Any, List, Optional
 
 from XbeeNetCoordinator import XbeeNetCoordinator
 from node_bridge import node_bridge
+from DButils.dbActions import dbDevicesActions
 
 logger = logging.getLogger("XbeeNetworkController")
 
@@ -77,6 +78,12 @@ class XbeeNetworkController:
         # background cleaner thread
         self._cleaner_thread = threading.Thread(target=self._cleaner_loop, daemon=True)
         self._cleaner_stop = threading.Event()
+        
+        # Retriving valid types:
+        self.dbDevicesActions1 = dbDevicesActions()
+        self.dbDevicesActions1.initConnector(configs.get("db-user"),configs.get("db-password"),configs.get("db-host"),configs.get("db-name"))
+        self.valid_types = self.dbDevicesActions1.getValidDeviceTypes()
+        logger.info("Got device data types: " + str(self.valid_types))
 
         logger.info(
             "XbeeNetworkController initialized: mqtt=%s:%s comm=%s@%s discovery=%s",
@@ -86,6 +93,21 @@ class XbeeNetworkController:
             configs.get("com-baud-rate"),
             discovery_time,
         )
+    
+    def map_valid_type(self, encoded_type):
+        expanded_type = ""
+        if encoded_type == "F":
+            expanded_type = "FLOAT"
+        if encoded_type == "S":
+            expanded_type = "STRING"
+        if encoded_type == "I":
+            expanded_type = "INT"
+        
+        if expanded_type not in self.valid_types:
+            logger.info("Invalid device data type: " + str(expanded_type))
+            return None
+
+        return expanded_type
 
     def start(self):
         logger.info("Starting XbeeNetworkController")
@@ -133,7 +155,7 @@ class XbeeNetworkController:
         data is the raw payload string from the XBee node (e.g., "E:...#" or "M...#").
         """
         addr = str(address64bit)
-        logger.debug("Message received from %s: %s", addr, data)
+        logger.info("Message received from %s: %s", addr, data)
         # update last seen
         with self._lock:
             self._last_seen[addr] = time.time()
@@ -185,7 +207,24 @@ class XbeeNetworkController:
             mode = fields[1] if len(fields) > 1 else ""
             dtype = fields[2] if len(fields) > 2 else ""
             val = fields[3] if len(fields) > 3 else ""
-            devices.append({"Name": name, "Mode": mode, "Type": dtype, "Value": val})
+
+            # Now validate and convert device current type
+            if mode == "S":
+                mode = "SUBSCRIBER"
+            elif mode == "P":
+                mode = "PUBLISHER"
+            else:
+                logger.warning("Error, unknown device mode: " + str(mode))
+                continue
+
+            # Now validating and expanding device data type
+            expanded_type = self.map_valid_type(dtype)
+            if expanded_type is None:
+                logger.warning("Error, unknown device data type: " + str(expanded_type))
+                continue
+
+
+            devices.append({"Name": name, "Mode": mode, "Type": expanded_type, "Value": val})
         return devices
 
     def _parse_compact_event(self, payload: str) -> Dict[str, str]:
@@ -217,9 +256,12 @@ class XbeeNetworkController:
           - Update stored last-known values from manifest.
           - Publish manifest immediately via node_bridge (if possible).
         """
+        logger.info("devices: " + str(devices) )
         with self._lock:
+            first_time = False
             nb = self._node_bridges.get(addr)
             if nb is None:
+                first_time = True
                 # instantiate node_bridge for this XBee address
                 node_name = addr.replace(":", "").upper()
                 broker = self.configs.get("mqtt-host", "localhost")
@@ -278,6 +320,7 @@ class XbeeNetworkController:
 
                             def make_command_cb(a=addr, n=name):
                                 def command_cb(payload_value: str):
+                                    logger.info("Command callback called with " + str(payload_value))
                                     cmd_str = f"C:{n},{payload_value}#"
                                     try:
                                         sent = self.coordinator.sendMessage(a, cmd_str)
@@ -302,21 +345,12 @@ class XbeeNetworkController:
                     logger.exception("Error processing manifest device %s from %s", dev, addr)
 
             # After processing manifest, start server if not already started and publish manifest immediately
-            if nb:
+            if nb and first_time:
                 try:
                     # start_server may be idempotent in node_bridge implementation
                     nb.start_server()
                 except Exception:
                     logger.exception("Failed to start_server for node %s", addr)
-                # Try to trigger an immediate manifest publish; node_bridge does not expose publish_manifest
-                try:
-                    # call internal publish function if available
-                    if hasattr(nb, "_build_and_send_payload_manifest"):
-                        nb._build_and_send_payload_manifest()
-                    elif hasattr(nb, "publish_manifest"):
-                        nb.publish_manifest()
-                except Exception:
-                    logger.exception("Failed to publish manifest for node %s", addr)
 
     # -------------------------
     # Event handling
