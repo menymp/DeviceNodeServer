@@ -17,3 +17,32 @@ Thumbs.db
 # Ignore build artifacts
 dist/
 build/
+
+# Node artifacts (if present)
+node_modules
+dist
+build
+
+# Git
+.git
+.gitignore
+
+# Local environment files
+.env
+.env.local
+.env.*.local
+
+# Secrets and certs (do not include in image)
+secrets/
+certs/
+*.pem
+*.key
+
+# Logs and temp
+*.log
+*.tmp
+*.swp
+
+# IDE
+.vscode/
+.idea/

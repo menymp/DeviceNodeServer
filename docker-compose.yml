@@ -100,25 +100,36 @@ services:
 
   php-node-service:
     build:
-       context: ./phpWebApp
-       dockerfile: Dockerfile
+      context: ./phpWebApp
+      dockerfile: Dockerfile
     restart: always
     environment:
+      APP_ENV: production
       DB_HOST: nodes-db
       DB_USER: ${DB_USER}
       DB_PASSWORD_FILE: /run/secrets/db_user_password
       DB_NAME: ${DB_NAME}
-    volumes:
-      - ./phpconfig/php.ini:/var/www/html/config.ini:ro
+      DB_PORT: 3306
+      DB_PASSWORD_FILE: /run/secrets/db_user_password
+      JWT_PRIVATE_KEY_PATH: /run/secrets/jwt_private_key
+      JWT_PUBLIC_KEY_PATH: /run/secrets/jwt_public_key
+      CORS_ORIGIN: ${REACT_APP_ORIGIN}
     secrets:
       - db_user_password
-    ports:
-      - "${PHP_PORT}:80"
+      - jwt_private_key
+      - jwt_public_key
+    networks:
+      - backend
+    volumes:
+      - ./phpconfig/php.ini:/var/www/html/config.ini:ro
+      - ./certs:/etc/certs:ro
     depends_on:
       nodes-db:
         condition: service_healthy
       mqtt-broker:
         condition: service_started
+    ports:
+      - "${PHP_PORT}:80"
 
   registry:
     image: registry:2

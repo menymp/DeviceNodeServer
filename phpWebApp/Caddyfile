@@ -1,0 +1,11 @@
+:443 {
+  reverse_proxy php-node-service:80
+  tls /etc/certs/localhost.pem /etc/certs/localhost-key.pem
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+  }
+}
+
+
+#For production, remove tls lines and let Caddy obtain certs automatically.
+# Generate dev certs with mkcert -install && mkcert localhost 127.0.0.1 ::1 and place localhost.pem and localhost-key.pem into phpWebApp/certs/ (do not commit).

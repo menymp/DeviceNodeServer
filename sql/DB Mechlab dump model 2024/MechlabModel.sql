@@ -172,6 +172,7 @@ CREATE TABLE `users` (
   `registerdate` timestamp NULL DEFAULT NULL,
   `telegrambotToken` varchar(255) DEFAULT NULL,
   `userState` int DEFAULT NULL,
+  `password_hash` VARCHAR(255) NOT NULL,
   PRIMARY KEY (`idUser`),
   UNIQUE KEY `username_UNIQUE` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb3;
