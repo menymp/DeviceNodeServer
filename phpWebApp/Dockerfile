@@ -19,6 +19,10 @@ RUN chown -R www-data:www-data /var/www/html \
  && sed -i 's|<Directory /var/www/html>|<Directory /var/www/html/public>|' /etc/apache2/apache2.conf \
  && a2enmod rewrite
 
+# add ServerName to avoid "Could not reliably determine the server's fully qualified domain name" warning
+RUN echo "ServerName localhost" > /etc/apache2/conf-available/servername.conf \
+ && a2enconf servername
+
 EXPOSE 80
 CMD ["apache2-foreground"]
 
