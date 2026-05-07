@@ -1,20 +1,19 @@
 {
-    "name": "menymp/php-web-app",
-    "description": "main backend for devices nodes UI",
-    "type": "project",
-    "require": {
-        "monolog/monolog": "^3.10"
-    },
-    "license": "MIT",
-    "autoload": {
-        "psr-4": {
-            "Menymp\\PhpWebApp\\": "src/"
-        }
-    },
-    "authors": [
-        {
-            "name": "menymp",
-            "email": "lmeny04@hotmail.com"
-        }
-    ]
+  "name": "menymp/php-web-app",
+  "description": "modernized backend for devices nodes UI",
+  "type": "project",
+  "require": {
+    "php": ">=8.0",
+    "slim/slim": "^4.10",
+    "slim/psr7": "^1.6",
+    "monolog/monolog": "^3.10",
+    "vlucas/phpdotenv": "^5.5",
+    "firebase/php-jwt": "7.0",
+    "tuupola/cors-middleware": "^1.4"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\": "src/"
+    }
+  }
 }

@@ -59,3 +59,9 @@ $pdo = new PDO("mysql:host=nodes-db;dbname=app_db", "app_user", trim(file_get_co
 $hash = password_hash('ChangeMe123!', PASSWORD_DEFAULT);
 $pdo->prepare('INSERT INTO users (username, password_hash) VALUES (?, ?)')->execute(['admin', $hash]);
 echo "created\n";
+
+
+php -r 'echo password_hash("ChangeMe!234", PASSWORD_DEFAULT) . PHP_EOL;'
+
+INSERT INTO users (username, password_hash, pwd, email, is_admin)
+VALUES ('admin', '.....', 'DEPRECATED', 'admin@example.com', 1);
