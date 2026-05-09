@@ -31,8 +31,8 @@ class UsersController
             return $res->withHeader('Content-Type', 'application/json')->withStatus(401);
         }
 
-        $stmt = $this->db->pdo()->prepare('SELECT id, username, created_at FROM users WHERE id = :id LIMIT 1');
-        $stmt->execute(['id' => $user['sub']]);
+        $stmt = $this->db->pdo()->prepare('SELECT * FROM users WHERE idUser = :idUser LIMIT 1');
+        $stmt->execute(['idUser' => $user['sub']]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if (!$row) {
@@ -72,7 +72,7 @@ class UsersController
             $stmt = $this->db->pdo()->prepare('INSERT INTO users (username, password_hash) VALUES (:u, :p)');
             $stmt->execute(['u' => $username, 'p' => $hash]);
             $id = (int)$this->db->pdo()->lastInsertId();
-            $res->getBody()->write(json_encode(['id' => $id, 'username' => $username]));
+            $res->getBody()->write(json_encode(['idUser' => $id, 'username' => $username]));
             return $res->withHeader('Content-Type', 'application/json')->withStatus(201);
         } catch (\PDOException $e) {
             $this->logger->warning('User create failed: ' . $e->getMessage());
