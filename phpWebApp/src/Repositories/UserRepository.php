@@ -11,7 +11,7 @@ class UserRepository {
     public function __construct(Database $db, LoggerInterface $logger) { $this->db = $db; $this->logger = $logger; }
 
     public function findByUsername(string $username): ?array {
-        $stmt = $this->db->pdo()->prepare('SELECT id, username, password_hash FROM users WHERE username = :u LIMIT 1');
+        $stmt = $this->db->pdo()->prepare('SELECT idUser, username, password_hash FROM users WHERE username = :u LIMIT 1');
         $stmt->execute(['u' => $username]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;

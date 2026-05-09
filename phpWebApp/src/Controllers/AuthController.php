@@ -45,10 +45,10 @@ class AuthController {
         }
 
         // Create access token
-        $access = $this->tokenService->createAccessToken(['sub' => $user['id'], 'username' => $user['username']]);
+        $access = $this->tokenService->createAccessToken(['sub' => $user['idUser'], 'username' => $user['username']]);
 
         // Create refresh token (rotateable, stored in DB)
-        $refreshToken = $this->createAndStoreRefreshToken((int)$user['id']);
+        $refreshToken = $this->createAndStoreRefreshToken((int)$user['idUser']);
 
         // Set refresh token as httpOnly secure cookie
         $this->setRefreshCookie($res, $refreshToken);
@@ -130,6 +130,8 @@ class AuthController {
      * Revokes refresh token cookie and removes it from DB (or marks revoked).
      */
     public function logout(Request $req, Response $res): Response {
+        error_log('DEBUG cookies: ' . json_encode($req->getCookieParams()));
+        error_log('DEBUG $_COOKIE: ' . json_encode($_COOKIE));
         $cookies = $req->getCookieParams();
         $refresh = $cookies['refresh_token'] ?? null;
         if ($refresh) {

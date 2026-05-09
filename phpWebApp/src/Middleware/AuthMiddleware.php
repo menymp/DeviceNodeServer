@@ -10,6 +10,8 @@ class AuthMiddleware {
     private TokenService $tokenService;
     public function __construct(TokenService $tokenService) { $this->tokenService = $tokenService; }
     public function __invoke(Request $request, Handler $handler): Response {
+        error_log('DEBUG cookies: ' . json_encode($request->getHeaderLine('Authorization')));
+        error_log('DEBUG $_COOKIE: ' . json_encode($_COOKIE));
         $auth = $request->getHeaderLine('Authorization');
         if (!$auth || !preg_match('/Bearer\s+(.*)$/i', $auth, $m)) {
             $res = new \Slim\Psr7\Response();
@@ -17,6 +19,7 @@ class AuthMiddleware {
             return $res->withHeader('Content-Type','application/json')->withStatus(401);
         }
         $token = $m[1];
+        error_log('TOKEN: ' . json_encode($token));
         $payload = $this->tokenService->validateAccessToken($token);
         if (!$payload) {
             $res = new \Slim\Psr7\Response();
