@@ -102,12 +102,11 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     $group->post('/controls', [$dashboardController, 'save']);
     $group->delete('/controls/{id}', [$dashboardController, 'delete']);
 
-    // Nodes
+    // Nodes read-only routes
     $group->get('/nodes', [$nodeController, 'list']);
-    $group->post('/nodes', [$nodeController, 'save']);
-    $group->put('/nodes/{id}', [$nodeController, 'save']);
-    $group->delete('/nodes/{id}', [$nodeController, 'delete']);
+    $group->get('/node/{id}', [$nodeController, 'get']);
     $group->get('/nodes/configs', [$nodeController, 'configs']);
+
 })->add($authMiddleware);
 
 // Run the app
