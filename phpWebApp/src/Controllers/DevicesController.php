@@ -106,12 +106,13 @@ class DevicesController
     }
 
     /**
-     * GET /api/devices/{id}
+     * GET /api/device
      * Returns single device with joined fields.
      */
-    public function get(Request $req, Response $res, array $args): Response
+    public function get(Request $req, Response $res): Response
     {
-        $id = (int)($args['id'] ?? 0);
+        $params = $req->getQueryParams();
+        $id = (int)($params['id'] ?? 0);
         if ($id <= 0) {
             $res->getBody()->write(json_encode(['error' => 'invalid_id']));
             return $res->withHeader('Content-Type', 'application/json')->withStatus(400);
