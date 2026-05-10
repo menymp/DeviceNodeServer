@@ -81,9 +81,7 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
 
     // Devices
     $group->get('/devices', [$devicesController, 'list']);
-    $group->post('/devices', [$devicesController, 'create']);
-    $group->put('/devices/{id}', [$devicesController, 'update']);
-    $group->delete('/devices/{id}', [$devicesController, 'delete']);
+    $group->put('/devices/{id}', [$devicesController, 'get']);
 
     // Cameras (service)
     $group->get('/cameras', [$camerasController, 'list']);

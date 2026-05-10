@@ -6,6 +6,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use App\Database;
 use Psr\Log\LoggerInterface;
 use PDO;
+use Exception;
 
 class DevicesController
 {
@@ -20,129 +21,167 @@ class DevicesController
 
     /**
      * GET /api/devices
-     * Query params: optional page, size, name
+     * Also accepts POST with JSON body for clients that send body (compat with legacy client).
+     *
+     * Params (query or JSON body):
+     *  - pageCount (int)  -> page index (0-based)
+     *  - pageSize  (int)  -> page size
+     *  - deviceName (string) -> filter devices.name LIKE %deviceName%
+     *  - nodeName (string) -> filter nodestable.nodeName LIKE %nodeName%
+     *  - idDevices (int) -> optional exact id filter (returns single row in array)
+     *
+     * Returns array of joined device rows:
+     *  idDevices, name, mode, type, channelPath, nodeName, idMode, idType, idParentNode
      */
     public function list(Request $req, Response $res): Response
     {
-        $user = $req->getAttribute('user');
-        $uid = $user['sub'] ?? null;
-        if (!$uid) {
-            return $this->unauth($res);
+        // Accept query params or JSON body for compatibility
+        $params = $req->getQueryParams();
+        if (empty($params)) {
+            $body = (array)$req->getParsedBody();
+            $params = $body ?: [];
         }
 
-        $params = $req->getQueryParams();
-        $page = max(0, (int)($params['page'] ?? 0));
-        $size = max(1, min(200, (int)($params['size'] ?? 50)));
-        $nameFilter = isset($params['name']) ? "%{$params['name']}%" : null;
+        $page = max(0, (int)($params['pageCount'] ?? $params['page'] ?? 0));
+        $size = max(1, min(200, (int)($params['pageSize'] ?? $params['size'] ?? 50)));
+        $deviceName = isset($params['deviceName']) ? $params['deviceName'] : null;
+        $nodeName = isset($params['nodeName']) ? $params['nodeName'] : null;
+        $idDevices = isset($params['idDevices']) ? (int)$params['idDevices'] : null;
 
-        $sql = 'SELECT id, name, channel_path, created_at FROM devices WHERE owner_id = :uid';
-        if ($nameFilter) $sql .= ' AND name LIKE :name';
-        $sql .= ' ORDER BY created_at DESC LIMIT :limit OFFSET :offset';
+        $sql = "SELECT 
+                    devices.idDevices,
+                    devices.name,
+                    devicesmodes.mode,
+                    devicestype.type,
+                    devices.channelPath,
+                    nodestable.nodeName,
+                    devices.idMode,
+                    devices.idType,
+                    devices.idParentNode
+                FROM devices
+                    INNER JOIN devicesmodes ON devices.idMode = devicesmodes.idDevicesModes
+                    INNER JOIN devicestype ON devices.idType = devicestype.idDevicesType
+                    INNER JOIN nodestable ON devices.idParentNode = nodestable.idNodesTable
+                WHERE 1=1";
 
-        $stmt = $this->db->pdo()->prepare($sql);
-        $stmt->bindValue(':uid', $uid, PDO::PARAM_INT);
-        if ($nameFilter) $stmt->bindValue(':name', $nameFilter, PDO::PARAM_STR);
-        $stmt->bindValue(':limit', $size, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $page * $size, PDO::PARAM_INT);
-        $stmt->execute();
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $bindings = [];
 
-        $res->getBody()->write(json_encode($rows));
-        return $res->withHeader('Content-Type', 'application/json');
+        if ($idDevices) {
+            $sql .= " AND devices.idDevices = :idDevices";
+            $bindings['idDevices'] = $idDevices;
+        } else {
+            if ($deviceName !== null) {
+                $sql .= " AND devices.name LIKE :deviceName";
+                $bindings['deviceName'] = '%' . $deviceName . '%';
+            }
+            if ($nodeName !== null) {
+                $sql .= " AND nodestable.nodeName LIKE :nodeName";
+                $bindings['nodeName'] = '%' . $nodeName . '%';
+            }
+            $sql .= " ORDER BY devices.name DESC LIMIT :limit OFFSET :offset";
+        }
+
+        try {
+            $stmt = $this->db->pdo()->prepare($sql);
+
+            foreach ($bindings as $k => $v) {
+                $stmt->bindValue(':' . $k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+            }
+
+            if (!$idDevices) {
+                $stmt->bindValue(':limit', (int)$size, PDO::PARAM_INT);
+                $stmt->bindValue(':offset', (int)($page * $size), PDO::PARAM_INT);
+            }
+
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $res->getBody()->write(json_encode($rows));
+            return $res->withHeader('Content-Type', 'application/json');
+        } catch (Exception $e) {
+            $this->logger->error('Devices list error: ' . $e->getMessage());
+            $res->getBody()->write(json_encode(['error' => 'server_error']));
+            return $res->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
     }
 
     /**
-     * POST /api/devices
-     * Body: { "name": "...", "channelPath": "..." }
+     * GET /api/devices/{id}
+     * Returns single device with joined fields.
      */
-    public function create(Request $req, Response $res): Response
+    public function get(Request $req, Response $res, array $args): Response
     {
-        $user = $req->getAttribute('user');
-        $uid = $user['sub'] ?? null;
-        if (!$uid) return $this->unauth($res);
-
-        $body = (array)$req->getParsedBody();
-        $name = trim($body['name'] ?? '');
-        $channel = trim($body['channelPath'] ?? '');
-
-        if ($name === '') {
-            $res->getBody()->write(json_encode(['error' => 'name_required']));
+        $id = (int)($args['id'] ?? 0);
+        if ($id <= 0) {
+            $res->getBody()->write(json_encode(['error' => 'invalid_id']));
             return $res->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
 
-        $stmt = $this->db->pdo()->prepare('INSERT INTO devices (name, channel_path, owner_id) VALUES (:n, :c, :uid)');
-        $stmt->execute(['n' => $name, 'c' => $channel, 'uid' => $uid]);
-        $id = (int)$this->db->pdo()->lastInsertId();
+        $sql = "SELECT 
+                    devices.idDevices,
+                    devices.name,
+                    devicesmodes.mode,
+                    devicestype.type,
+                    devices.channelPath,
+                    nodestable.nodeName,
+                    devices.idMode,
+                    devices.idType,
+                    devices.idParentNode
+                FROM devices
+                    INNER JOIN devicesmodes ON devices.idMode = devicesmodes.idDevicesModes
+                    INNER JOIN devicestype ON devices.idType = devicestype.idDevicesType
+                    INNER JOIN nodestable ON devices.idParentNode = nodestable.idNodesTable
+                WHERE devices.idDevices = :id LIMIT 1";
 
-        $res->getBody()->write(json_encode(['id' => $id, 'name' => $name]));
-        return $res->withHeader('Content-Type', 'application/json')->withStatus(201);
+        try {
+            $stmt = $this->db->pdo()->prepare($sql);
+            $stmt->execute(['id' => $id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row) {
+                $res->getBody()->write(json_encode(['error' => 'not_found']));
+                return $res->withHeader('Content-Type', 'application/json')->withStatus(404);
+            }
+            $res->getBody()->write(json_encode($row));
+            return $res->withHeader('Content-Type', 'application/json');
+        } catch (Exception $e) {
+            $this->logger->error('Devices get error: ' . $e->getMessage());
+            $res->getBody()->write(json_encode(['error' => 'server_error']));
+            return $res->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
     }
 
     /**
-     * PUT /api/devices/{id}
-     * Body: { "name": "...", "channelPath": "..." }
+     * POST /api/devices/fetchDeviceById
+     * Body: { deviceId }
+     * Returns same shape as get()
      */
-    public function update(Request $req, Response $res, array $args): Response
+    public function fetchDeviceById(Request $req, Response $res): Response
     {
-        $user = $req->getAttribute('user');
-        $uid = $user['sub'] ?? null;
-        if (!$uid) return $this->unauth($res);
-
-        $id = (int)$args['id'];
         $body = (array)$req->getParsedBody();
-        $name = trim($body['name'] ?? '');
-        $channel = trim($body['channelPath'] ?? '');
-
-        // Ensure device belongs to user
-        $check = $this->db->pdo()->prepare('SELECT owner_id FROM devices WHERE id = :id LIMIT 1');
-        $check->execute(['id' => $id]);
-        $row = $check->fetch(PDO::FETCH_ASSOC);
-        if (!$row || (int)$row['owner_id'] !== (int)$uid) {
-            return $this->forbidden($res);
+        $id = isset($body['deviceId']) ? (int)$body['deviceId'] : 0;
+        if ($id <= 0) {
+            $res->getBody()->write(json_encode(['error' => 'invalid_deviceId']));
+            return $res->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
-
-        $stmt = $this->db->pdo()->prepare('UPDATE devices SET name = :n, channel_path = :c WHERE id = :id');
-        $stmt->execute(['n' => $name, 'c' => $channel, 'id' => $id]);
-
-        $res->getBody()->write(json_encode(['id' => $id, 'name' => $name]));
-        return $res->withHeader('Content-Type', 'application/json');
+        return $this->get($req, $res, ['id' => $id]);
     }
 
     /**
-     * DELETE /api/devices/{id}
+     * POST /api/devices/fetchDevices
+     * Body: { pageCount, pageSize, deviceName, nodeName, idDevices (optional) }
+     * Returns same shape as list()
      */
-    public function delete(Request $req, Response $res, array $args): Response
+    public function fetchDevices(Request $req, Response $res): Response
     {
-        $user = $req->getAttribute('user');
-        $uid = $user['sub'] ?? null;
-        if (!$uid) return $this->unauth($res);
-
-        $id = (int)$args['id'];
-
-        // Ensure device belongs to user
-        $check = $this->db->pdo()->prepare('SELECT owner_id FROM devices WHERE id = :id LIMIT 1');
-        $check->execute(['id' => $id]);
-        $row = $check->fetch(PDO::FETCH_ASSOC);
-        if (!$row || (int)$row['owner_id'] !== (int)$uid) {
-            return $this->forbidden($res);
-        }
-
-        $stmt = $this->db->pdo()->prepare('DELETE FROM devices WHERE id = :id');
-        $stmt->execute(['id' => $id]);
-
-        $res->getBody()->write(json_encode(['deleted' => $id]));
-        return $res->withHeader('Content-Type', 'application/json');
+        return $this->list($req, $res);
     }
 
-    private function unauth(Response $res): Response
+    // ----------------------
+    // Helpers
+    // ----------------------
+    private function jsonError(Response $res, string $msg, int $status = 400): Response
     {
-        $res->getBody()->write(json_encode(['error' => 'unauthenticated']));
-        return $res->withHeader('Content-Type', 'application/json')->withStatus(401);
-    }
-
-    private function forbidden(Response $res): Response
-    {
-        $res->getBody()->write(json_encode(['error' => 'forbidden']));
-        return $res->withHeader('Content-Type', 'application/json')->withStatus(403);
+        $res->getBody()->write(json_encode(['error' => $msg]));
+        return $res->withHeader('Content-Type', 'application/json')->withStatus($status);
     }
 }
