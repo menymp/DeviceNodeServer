@@ -6,6 +6,7 @@ use Psr\Http\Message\ResponseInterface as Response;
 use App\Database;
 use Psr\Log\LoggerInterface;
 use PDO;
+use Exception;
 
 class CamerasController
 {
@@ -20,131 +21,108 @@ class CamerasController
 
     /**
      * GET /api/cameras
-     * Optional query params: page, size
+     * Query params: pageCount (0-based), pageSize
+     *
+     * Returns array of camera rows:
+     *  idVideoSource, name, username, sourceParameters (decoded JSON or null)
+     *
+     * Accepts query params or JSON body for compatibility with different clients.
      */
     public function list(Request $req, Response $res): Response
     {
-        $user = $req->getAttribute('user');
-        $uid = $user['sub'] ?? null;
-        if (!$uid) {
-            $res->getBody()->write(json_encode(['error' => 'unauthenticated']));
-            return $res->withHeader('Content-Type', 'application/json')->withStatus(401);
-        }
-
+        // Accept query params or JSON body
         $params = $req->getQueryParams();
-        $page = max(0, (int)($params['page'] ?? 0));
-        $size = max(1, min(200, (int)($params['size'] ?? 50)));
-
-        $stmt = $this->db->pdo()->prepare('SELECT id, name, source_parameters, created_at FROM cameras WHERE owner_id = :uid ORDER BY created_at DESC LIMIT :limit OFFSET :offset');
-        $stmt->bindValue(':uid', $uid, PDO::PARAM_INT);
-        $stmt->bindValue(':limit', $size, PDO::PARAM_INT);
-        $stmt->bindValue(':offset', $page * $size, PDO::PARAM_INT);
-        $stmt->execute();
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // decode JSON column for each row
-        foreach ($rows as &$r) {
-            $r['source_parameters'] = $r['source_parameters'] ? json_decode($r['source_parameters'], true) : null;
+        if (empty($params)) {
+            $body = (array)$req->getParsedBody();
+            $params = $body ?: [];
         }
 
-        $res->getBody()->write(json_encode($rows));
-        return $res->withHeader('Content-Type', 'application/json');
+        $page = max(0, (int)($params['pageCount'] ?? $params['page'] ?? 0));
+        $size = max(1, min(200, (int)($params['pageSize'] ?? $params['size'] ?? 50)));
+        $offset = $page * $size;
+
+        $sql = "SELECT 
+                    VideoSources.idVideoSource,
+                    VideoSources.name,
+                    users.username,
+                    VideoSources.sourceParameters
+                FROM videosources AS VideoSources
+                    INNER JOIN users ON VideoSources.idCreator = users.idUser
+                ORDER BY VideoSources.name DESC
+                LIMIT :limit OFFSET :offset";
+
+        try {
+            $stmt = $this->db->pdo()->prepare($sql);
+            $stmt->bindValue(':limit', (int)$size, PDO::PARAM_INT);
+            $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($rows as &$r) {
+                $r['sourceParameters'] = $r['sourceParameters'] !== null && $r['sourceParameters'] !== ''
+                    ? json_decode($r['sourceParameters'], true)
+                    : null;
+            }
+
+            $res->getBody()->write(json_encode($rows));
+            return $res->withHeader('Content-Type', 'application/json');
+        } catch (Exception $e) {
+            $this->logger->error('Cameras list error: ' . $e->getMessage());
+            $res->getBody()->write(json_encode(['error' => 'server_error']));
+            return $res->withHeader('Content-Type', 'application/json')->withStatus(500);
+        }
     }
 
     /**
-     * POST /api/cameras
-     * Body: { "name": "...", "sourceParameters": {...} }
+     * GET /api/camera/{id}
+     * Returns single camera row.
      */
-    public function create(Request $req, Response $res): Response
+    public function get(Request $req, Response $res, array $args): Response
     {
-        $user = $req->getAttribute('user');
-        $uid = $user['sub'] ?? null;
-        if (!$uid) {
-            $res->getBody()->write(json_encode(['error' => 'unauthenticated']));
-            return $res->withHeader('Content-Type', 'application/json')->withStatus(401);
-        }
-
-        $body = (array)$req->getParsedBody();
-        $name = trim($body['name'] ?? '');
-        $params = $body['sourceParameters'] ?? null;
-
-        if ($name === '') {
-            $res->getBody()->write(json_encode(['error' => 'name_required']));
+        $id = (int)($args['id'] ?? 0);
+        if ($id <= 0) {
+            $res->getBody()->write(json_encode(['error' => 'invalid_id']));
             return $res->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
 
-        $stmt = $this->db->pdo()->prepare('INSERT INTO cameras (name, source_parameters, owner_id) VALUES (:n, :p, :uid)');
-        $stmt->execute(['n' => $name, 'p' => $params ? json_encode($params) : null, 'uid' => $uid]);
-        $id = (int)$this->db->pdo()->lastInsertId();
+        $sql = "SELECT 
+                    VideoSources.idVideoSource,
+                    VideoSources.name,
+                    users.username,
+                    VideoSources.sourceParameters
+                FROM videosources AS VideoSources
+                    INNER JOIN users ON VideoSources.idCreator = users.idUser
+                WHERE VideoSources.idVideoSource = :id
+                LIMIT 1";
 
-        $res->getBody()->write(json_encode(['id' => $id, 'name' => $name]));
-        return $res->withHeader('Content-Type', 'application/json')->withStatus(201);
-    }
+        try {
+            $stmt = $this->db->pdo()->prepare($sql);
+            $stmt->execute(['id' => $id]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (!$row) {
+                $res->getBody()->write(json_encode(['error' => 'not_found']));
+                return $res->withHeader('Content-Type', 'application/json')->withStatus(404);
+            }
 
-    /**
-     * PUT /api/cameras/{id}
-     */
-    public function update(Request $req, Response $res, array $args): Response
-    {
-        $user = $req->getAttribute('user');
-        $uid = $user['sub'] ?? null;
-        if (!$uid) return $this->unauth($res);
+            $row['sourceParameters'] = $row['sourceParameters'] !== null && $row['sourceParameters'] !== ''
+                ? json_decode($row['sourceParameters'], true)
+                : null;
 
-        $id = (int)$args['id'];
-        $body = (array)$req->getParsedBody();
-        $name = trim($body['name'] ?? '');
-        $params = $body['sourceParameters'] ?? null;
-
-        // ownership check
-        $check = $this->db->pdo()->prepare('SELECT owner_id FROM cameras WHERE id = :id LIMIT 1');
-        $check->execute(['id' => $id]);
-        $row = $check->fetch(PDO::FETCH_ASSOC);
-        if (!$row || (int)$row['owner_id'] !== (int)$uid) {
-            return $this->forbidden($res);
+            $res->getBody()->write(json_encode($row));
+            return $res->withHeader('Content-Type', 'application/json');
+        } catch (Exception $e) {
+            $this->logger->error('Cameras get error: ' . $e->getMessage());
+            $res->getBody()->write(json_encode(['error' => 'server_error']));
+            return $res->withHeader('Content-Type', 'application/json')->withStatus(500);
         }
-
-        $stmt = $this->db->pdo()->prepare('UPDATE cameras SET name = :n, source_parameters = :p WHERE id = :id');
-        $stmt->execute(['n' => $name, 'p' => $params ? json_encode($params) : null, 'id' => $id]);
-
-        $res->getBody()->write(json_encode(['id' => $id, 'name' => $name]));
-        return $res->withHeader('Content-Type', 'application/json');
     }
 
-    /**
-     * DELETE /api/cameras/{id}
-     */
-    public function delete(Request $req, Response $res, array $args): Response
+    // ----------------------
+    // Helpers
+    // ----------------------
+    private function jsonError(Response $res, string $msg, int $status = 400): Response
     {
-        $user = $req->getAttribute('user');
-        $uid = $user['sub'] ?? null;
-        if (!$uid) return $this->unauth($res);
-
-        $id = (int)$args['id'];
-
-        $check = $this->db->pdo()->prepare('SELECT owner_id FROM cameras WHERE id = :id LIMIT 1');
-        $check->execute(['id' => $id]);
-        $row = $check->fetch(PDO::FETCH_ASSOC);
-        if (!$row || (int)$row['owner_id'] !== (int)$uid) {
-            return $this->forbidden($res);
-        }
-
-        $stmt = $this->db->pdo()->prepare('DELETE FROM cameras WHERE id = :id');
-        $stmt->execute(['id' => $id]);
-
-        $res->getBody()->write(json_encode(['deleted' => $id]));
-        return $res->withHeader('Content-Type', 'application/json');
-    }
-
-    private function unauth(Response $res): Response
-    {
-        $res->getBody()->write(json_encode(['error' => 'unauthenticated']));
-        return $res->withHeader('Content-Type', 'application/json')->withStatus(401);
-    }
-
-    private function forbidden(Response $res): Response
-    {
-        $res->getBody()->write(json_encode(['error' => 'forbidden']));
-        return $res->withHeader('Content-Type', 'application/json')->withStatus(403);
+        $res->getBody()->write(json_encode(['error' => $msg]));
+        return $res->withHeader('Content-Type', 'application/json')->withStatus($status);
     }
 }
-

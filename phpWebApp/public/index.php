@@ -54,7 +54,7 @@ $authController = new \App\Controllers\AuthController(
 
 $usersController = new \App\Controllers\UsersController($db, $logger);
 $devicesController = new \App\Controllers\DevicesController($db, $logger);
-$camerasController = new \App\Controllers\CamerasServiceController($db, $logger);
+$camerasController = new \App\Controllers\CamerasController($db, $logger);
 $camerasDashboardController = new \App\Controllers\CamerasDashboardController($db, $logger);
 $dashboardController = new \App\Controllers\DashboardController($db, $logger);
 $nodeController = new \App\Controllers\NodeController($db, $logger);
@@ -85,22 +85,22 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
 
     // Cameras (service)
     $group->get('/cameras', [$camerasController, 'list']);
-    $group->post('/cameras', [$camerasController, 'create']);
-    $group->put('/cameras/{id}', [$camerasController, 'update']);
-    $group->delete('/cameras/{id}', [$camerasController, 'delete']);
+    $group->get('/camera/{id:[0-9]+}', [$camerasController, 'get']);
 
-    // Cameras dashboards
+    // Video dashboards routes
     $group->get('/video-dashboards', [$camerasDashboardController, 'list']);
+    $group->get('/video-dashboard/{id:[0-9]+}', [$camerasDashboardController, 'get']);
     $group->post('/video-dashboards', [$camerasDashboardController, 'create']);
-    $group->put('/video-dashboards/{id}', [$camerasDashboardController, 'update']);
-    $group->delete('/video-dashboards/{id}', [$camerasDashboardController, 'delete']);
+    $group->put('/video-dashboard/{id:[0-9]+}', [$camerasDashboardController, 'update']);
+    $group->delete('/video-dashboard/{id:[0-9]+}', [$camerasDashboardController, 'delete']);
 
-    // Dashboard controls
+
+    // Dashboard controls routes
     $group->get('/controls', [$dashboardController, 'list']);
-    $group->get('/controls/{id}', [$dashboardController, 'get']);
+    $group->get('/control/{id:[0-9]+}', [$dashboardController, 'get']);
     $group->get('/control-types', [$dashboardController, 'types']);
     $group->post('/controls', [$dashboardController, 'save']);
-    $group->delete('/controls/{id}', [$dashboardController, 'delete']);
+    $group->delete('/control/{id:[0-9]+}', [$dashboardController, 'delete']);
 
     // Nodes read-only routes
     $group->get('/nodes', [$nodeController, 'list']);
