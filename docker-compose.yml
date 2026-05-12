@@ -89,6 +89,8 @@ services:
       DB_NAME: ${DB_NAME}
       WEBSOCKET_PORT: ${WEBSOCKET_PORT}
       DEVICE_MANAGER_LOCAL_CONN: ${DEVICE_MANAGER_LOCAL_CONN}
+      AUTH_SERVICE_URL: "http://php-node-service:80"
+      AUTH_VALIDATE_PATH: "/api/users/"
     volumes:
       - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
     secrets:

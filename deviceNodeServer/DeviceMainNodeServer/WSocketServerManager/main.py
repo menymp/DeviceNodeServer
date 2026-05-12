@@ -9,7 +9,18 @@ import json
 from threading import Event
 import signal
 
-# Get current main.py directory
+# --- Read and export auth config early so imported modules can use it ---
+# Default to the internal compose service name and port 80 if not provided.
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://php-node-service:80")
+AUTH_VALIDATE_PATH = os.getenv("AUTH_VALIDATE_PATH", "/me")
+
+# Ensure these are available to modules that import environment variables at import time
+os.environ.setdefault("AUTH_SERVICE_URL", AUTH_SERVICE_URL)
+os.environ.setdefault("AUTH_VALIDATE_PATH", AUTH_VALIDATE_PATH)
+# ---------------------------------------------------------------------
+
+# Now import application modules (these may read AUTH_* from env)
+# Add parent dir and utility paths to sys.path
 sys.path.append(dirname(realpath(__file__)) + sep + pardir)
 sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "ConfigsUtils")
 sys.path.append(dirname(realpath(__file__)) + sep + pardir + sep + "DockerUtils")
@@ -55,21 +66,16 @@ class handleOnMessage():
 
 
 if __name__ == "__main__":
-    #cfgObj = configsParser()
-    # Get the absolute path of the parent directory
-    # parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-    # configs_path = os.path.join(parent_dir, 'configs.ini')
-    # print("configs path: " + configs_path)
-    # args = cfgObj.readConfigData(configs_path)
-    # wSockCfg = cfgObj.readSection("wSocketServerManager",configs_path)
-    # zmqCfg = cfgObj.readSection("zmqConfigs",configs_path)
+    # Read runtime config (existing)
     zmqDeviceManagerConn = os.getenv("DEVICE_MANAGER_LOCAL_CONN", "") # zmqCfg["device-manager-local-conn"]
     webSocketPort = int(os.getenv("WEBSOCKET_PORT", "8112"))
 
+    # Log important runtime configuration including auth service info
     logger.info("Configs for tornado server: ")
-    logger.info(zmqDeviceManagerConn)
-    logger.info(webSocketPort)
-
+    logger.info("ZMQ device manager conn: " + str(zmqDeviceManagerConn))
+    logger.info("WebSocket port: " + str(webSocketPort))
+    logger.info("Auth service URL: " + str(AUTH_SERVICE_URL))
+    logger.info("Auth validate path: " + str(AUTH_VALIDATE_PATH))
 
     onMsgHandler = handleOnMessage(zmqDeviceManagerConn)
     onMsgHandler.connect()

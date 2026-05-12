@@ -43,6 +43,12 @@ const DevicesListView: React.FC = () => {
     }
 
     useEffect(() => {
+        // TODO, CONFIGURE THIS WITH THE ACCESS TOKEN
+        // Example: create a WebSocket with token in query string
+        const token = sessionStorage.getItem('accessToken'); // or wherever you store it
+        const wsUrl = `${process.env.REACT_APP_WEBSOCKET_URL || 'ws://localhost:8112'}/workHandler?token=${encodeURIComponent(token)}`;
+        const ws = new WebSocket(wsUrl);
+
         ws.current = new WebSocket(WEB_SOCK_SERVER_ADDR);
         ws.current.onopen = () => console.log("ws opened");
         ws.current.onclose = () => console.log("ws closed");
