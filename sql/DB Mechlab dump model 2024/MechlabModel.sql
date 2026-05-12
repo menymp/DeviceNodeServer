@@ -75,6 +75,22 @@ CREATE TABLE `devices` (
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb3;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+DROP TABLE IF EXISTS `device_tags`;
+
+CREATE TABLE device_tags (
+  id INT NOT NULL AUTO_INCREMENT,
+  idDevices INT NOT NULL,
+  user_id INT NOT NULL,
+  tag VARCHAR(128) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY ux_device_user_tag (idDevices, user_id, tag),
+  INDEX idx_device (idDevices),
+  INDEX idx_user (user_id),
+  CONSTRAINT fk_device_tags_devices FOREIGN KEY (idDevices) REFERENCES devices (idDevices) ON DELETE CASCADE,
+  CONSTRAINT fk_device_tags_users FOREIGN KEY (user_id) REFERENCES users (idUser) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3;
+
 --
 -- Table structure for table `devicesmeasures`
 --

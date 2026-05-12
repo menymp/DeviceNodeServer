@@ -83,6 +83,12 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     $group->get('/devices', [$devicesController, 'list']);
     $group->get('/device', [$devicesController, 'get']);
 
+    // Device tags CRUD (per-device, user-scoped)
+    $group->get('/devices/{id:[0-9]+}/tags', [$devicesController, 'listTags']);
+    $group->post('/devices/{id:[0-9]+}/tags', [$devicesController, 'createTag']);
+    $group->put('/devices/{id:[0-9]+}/tags/{tagId:[0-9]+}', [$devicesController, 'updateTag']);
+    $group->delete('/devices/{id:[0-9]+}/tags/{tagId:[0-9]+}', [$devicesController, 'deleteTag']);
+
     // Cameras (service)
     $group->get('/cameras', [$camerasController, 'list']);
     $group->get('/camera/{id:[0-9]+}', [$camerasController, 'get']);

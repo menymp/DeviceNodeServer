@@ -112,6 +112,7 @@ class dbDevicesActions(dbConnectorBase):
     
     def cleanOldRecords(self, retentionPeriod = 60):
         result = self.dbConn.execute("DELETE FROM devicesmeasures WHERE uploadDate < (NOW() - INTERVAL %s DAY) AND idDevice > -1", (retentionPeriod,))
+        result = self.dbConn.execute("DELETE FROM refresh_tokens WHERE expires_at < NOW() OR (revoked = 1 AND created_at < NOW() - INTERVAL 30 DAY);")
         pass
 
     def updateDevice(self, deviceName, Mode, Type, channelPath, idParentNode):

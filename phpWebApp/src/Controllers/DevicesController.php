@@ -151,30 +151,154 @@ class DevicesController
         }
     }
 
+
+    // ----------------------
+    // Device tags (per-user nicknames/labels)
+    // ----------------------
+
     /**
-     * POST /api/devices/fetchDeviceById
-     * Body: { deviceId }
-     * Returns same shape as get()
+     * GET /api/devices/{id}/tags
+     * Returns tags for the authenticated user and device
      */
-    public function fetchDeviceById(Request $req, Response $res): Response
+    public function listTags(Request $req, Response $res, array $args): Response
     {
-        $body = (array)$req->getParsedBody();
-        $id = isset($body['deviceId']) ? (int)$body['deviceId'] : 0;
-        if ($id <= 0) {
-            $res->getBody()->write(json_encode(['error' => 'invalid_deviceId']));
-            return $res->withHeader('Content-Type', 'application/json')->withStatus(400);
+        $user = $req->getAttribute('user');
+        $uid = $user['sub'] ?? null;
+        if (!$uid) return $this->unauth($res);
+
+        $id = (int)($args['id'] ?? 0);
+        if ($id <= 0) return $this->jsonError($res, 'invalid_device_id', 400);
+
+        // ensure device exists
+        $check = $this->db->pdo()->prepare('SELECT idDevices FROM devices WHERE idDevices = :id LIMIT 1');
+        $check->execute(['id' => $id]);
+        if (!$check->fetch(PDO::FETCH_ASSOC)) return $this->jsonError($res, 'device_not_found', 404);
+
+        try {
+            $stmt = $this->db->pdo()->prepare('SELECT id, idDevices, user_id, tag, created_at FROM device_tags WHERE idDevices = :id AND user_id = :uid ORDER BY created_at DESC');
+            $stmt->execute(['id' => $id, 'uid' => $uid]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $res->getBody()->write(json_encode($rows));
+            return $res->withHeader('Content-Type', 'application/json');
+        } catch (Exception $e) {
+            $this->logger->error('Device tags list error: ' . $e->getMessage());
+            return $this->jsonError($res, 'server_error', 500);
         }
-        return $this->get($req, $res, ['id' => $id]);
     }
 
     /**
-     * POST /api/devices/fetchDevices
-     * Body: { pageCount, pageSize, deviceName, nodeName, idDevices (optional) }
-     * Returns same shape as list()
+     * POST /api/devices/{id}/tags
+     * Body: { tag: "nickname" }
+     * Creates a tag for the authenticated user and device
      */
-    public function fetchDevices(Request $req, Response $res): Response
+    public function createTag(Request $req, Response $res, array $args): Response
     {
-        return $this->list($req, $res);
+        $user = $req->getAttribute('user');
+        $uid = $user['sub'] ?? null;
+        if (!$uid) return $this->unauth($res);
+
+        $id = (int)($args['id'] ?? 0);
+        if ($id <= 0) return $this->jsonError($res, 'invalid_device_id', 400);
+
+        $body = (array)$req->getParsedBody();
+        $tag = trim((string)($body['tag'] ?? ''));
+
+        if ($tag === '') return $this->jsonError($res, 'tag_required', 400);
+
+        // ensure device exists
+        $check = $this->db->pdo()->prepare('SELECT idDevices FROM devices WHERE idDevices = :id LIMIT 1');
+        $check->execute(['id' => $id]);
+        if (!$check->fetch(PDO::FETCH_ASSOC)) return $this->jsonError($res, 'device_not_found', 404);
+
+        try {
+            $stmt = $this->db->pdo()->prepare('INSERT INTO device_tags (idDevices, user_id, tag) VALUES (:idDevices, :uid, :tag)');
+            $stmt->execute(['idDevices' => $id, 'uid' => $uid, 'tag' => $tag]);
+            $tagId = (int)$this->db->pdo()->lastInsertId();
+
+            $res->getBody()->write(json_encode(['id' => $tagId, 'tag' => $tag]));
+            return $res->withHeader('Content-Type', 'application/json')->withStatus(201);
+        } catch (Exception $e) {
+            // handle unique constraint violation gracefully
+            if ($e->getCode() === '23000') {
+                return $this->jsonError($res, 'duplicate_tag', 409);
+            }
+            $this->logger->error('Device tag create error: ' . $e->getMessage());
+            return $this->jsonError($res, 'server_error', 500);
+        }
+    }
+
+    /**
+     * PUT /api/devices/{id}/tags/{tagId}
+     * Body: { tag: "new nickname" }
+     * Updates a tag owned by the authenticated user
+     */
+    public function updateTag(Request $req, Response $res, array $args): Response
+    {
+        $user = $req->getAttribute('user');
+        $uid = $user['sub'] ?? null;
+        if (!$uid) return $this->unauth($res);
+
+        $id = (int)($args['id'] ?? 0);
+        $tagId = (int)($args['tagId'] ?? 0);
+        if ($id <= 0 || $tagId <= 0) return $this->jsonError($res, 'invalid_ids', 400);
+
+        $body = (array)$req->getParsedBody();
+        $tag = trim((string)($body['tag'] ?? ''));
+        if ($tag === '') return $this->jsonError($res, 'tag_required', 400);
+
+        try {
+            // ensure tag exists and belongs to user and device
+            $check = $this->db->pdo()->prepare('SELECT id, idDevices, user_id FROM device_tags WHERE id = :tagId LIMIT 1');
+            $check->execute(['tagId' => $tagId]);
+            $row = $check->fetch(PDO::FETCH_ASSOC);
+            if (!$row) return $this->jsonError($res, 'tag_not_found', 404);
+            if ((int)$row['idDevices'] !== $id || (int)$row['user_id'] !== (int)$uid) return $this->forbidden($res);
+
+            $stmt = $this->db->pdo()->prepare('UPDATE device_tags SET tag = :tag WHERE id = :tagId');
+            $stmt->execute(['tag' => $tag, 'tagId' => $tagId]);
+
+            $res->getBody()->write(json_encode(['id' => $tagId, 'tag' => $tag, 'updated' => true]));
+            return $res->withHeader('Content-Type', 'application/json');
+        } catch (Exception $e) {
+            if ($e->getCode() === '23000') {
+                return $this->jsonError($res, 'duplicate_tag', 409);
+            }
+            $this->logger->error('Device tag update error: ' . $e->getMessage());
+            return $this->jsonError($res, 'server_error', 500);
+        }
+    }
+
+    /**
+     * DELETE /api/devices/{id}/tags/{tagId}
+     * Deletes a tag owned by the authenticated user
+     */
+    public function deleteTag(Request $req, Response $res, array $args): Response
+    {
+        $user = $req->getAttribute('user');
+        $uid = $user['sub'] ?? null;
+        if (!$uid) return $this->unauth($res);
+
+        $id = (int)($args['id'] ?? 0);
+        $tagId = (int)($args['tagId'] ?? 0);
+        if ($id <= 0 || $tagId <= 0) return $this->jsonError($res, 'invalid_ids', 400);
+
+        try {
+            $check = $this->db->pdo()->prepare('SELECT id, idDevices, user_id FROM device_tags WHERE id = :tagId LIMIT 1');
+            $check->execute(['tagId' => $tagId]);
+            $row = $check->fetch(PDO::FETCH_ASSOC);
+            if (!$row) return $this->jsonError($res, 'tag_not_found', 404);
+            if ((int)$row['idDevices'] !== $id || (int)$row['user_id'] !== (int)$uid) return $this->forbidden($res);
+
+            $stmt = $this->db->pdo()->prepare('DELETE FROM device_tags WHERE id = :tagId');
+            $stmt->execute(['tagId' => $tagId]);
+
+            $res->getBody()->write(json_encode(['deleted' => $tagId]));
+            return $res->withHeader('Content-Type', 'application/json');
+        } catch (Exception $e) {
+            $this->logger->error('Device tag delete error: ' . $e->getMessage());
+            return $this->jsonError($res, 'server_error', 500);
+        }
     }
 
     // ----------------------
@@ -184,5 +308,17 @@ class DevicesController
     {
         $res->getBody()->write(json_encode(['error' => $msg]));
         return $res->withHeader('Content-Type', 'application/json')->withStatus($status);
+    }
+
+    private function unauth(Response $res): Response
+    {
+        $res->getBody()->write(json_encode(['error' => 'unauthenticated']));
+        return $res->withHeader('Content-Type', 'application/json')->withStatus(401);
+    }
+
+    private function forbidden(Response $res): Response
+    {
+        $res->getBody()->write(json_encode(['error' => 'forbidden']));
+        return $res->withHeader('Content-Type', 'application/json')->withStatus(403);
     }
 }
