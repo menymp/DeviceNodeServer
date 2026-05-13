@@ -21,7 +21,7 @@ logger = get_logger(__name__)
 
 # Read auth service configuration from environment
 AUTH_SERVICE_URL = os.getenv('AUTH_SERVICE_URL', 'http://php-node-service:80')
-AUTH_VALIDATE_PATH = os.getenv('AUTH_VALIDATE_PATH', '/api/users/')  # endpoint that returns user payload when token valid
+AUTH_VALIDATE_PATH = os.getenv('AUTH_VALIDATE_PATH', '/api/users/me')  # endpoint that returns user payload when token valid
 AUTH_VALIDATE_FULL = AUTH_SERVICE_URL.rstrip('/') + AUTH_VALIDATE_PATH
 
 class wSocketServerManager():
@@ -58,6 +58,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
     def initialize(self):
         self.on_messageHandler = self.application.settings.get('on_messageHandler')
         self.user = None
+        self._current_token = None
 
     @staticmethod
     def send_to_all(message):
@@ -68,10 +69,9 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             except Exception as e:
                 logger.error("error broadcasting to client: " + str(e))
 
-    def open(self):
+    async def open(self):
         """
-        Called when a new WebSocket connection is opened.
-        Authenticate the client using the token provided in the query string or Authorization header.
+        Async open: extract token and validate it with the auth service using AsyncHTTPClient.
         """
         logger.info("new open channel, attempting authentication")
         try:
@@ -81,14 +81,16 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 self.close(code=4001, reason="authentication_required")
                 return
 
-            # Validate token synchronously (simple approach)
-            user_payload = self._validate_token_with_auth_service(token)
+            # store token for potential reauth/revalidation later
+            self._current_token = token
+
+            # validate token asynchronously
+            user_payload = await self._validate_token_with_auth_service(token)
             if not user_payload:
                 logger.warning("token validation failed, closing connection")
                 self.close(code=4002, reason="invalid_token")
                 return
 
-            # Attach user payload to the handler for later use
             self.user = user_payload
             logger.info(f"authenticated websocket user: {self.user}")
             SocketHandler.clients.add(self)
@@ -144,10 +146,13 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
          - Sec-WebSocket-Protocol header (if you choose to use it)
         """
         # 1) query string
+        logger.info("Extracting token")
         query = urllib.parse.urlparse(self.request.uri).query
         qs = urllib.parse.parse_qs(query)
+        logger.info(qs)
         token_list = qs.get('token') or qs.get('access_token')
         if token_list:
+            logger.info(token_list[0])
             return token_list[0]
 
         # 2) Authorization header
@@ -174,32 +179,33 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 
         return None
 
-    def _validate_token_with_auth_service(self, token):
+    async def _validate_token_with_auth_service(self, token):
         """
-        Call the PHP auth endpoint (AUTH_VALIDATE_FULL) with Authorization: Bearer <token>.
-        Expect a 200 response with JSON payload containing user info (e.g., sub claim).
-        Returns the parsed JSON payload on success, or None on failure.
+        Async validation using AsyncHTTPClient.
+        Returns parsed JSON payload on success, or None on failure.
         """
-        http_client = tornado.httpclient.HTTPClient()
+        client = tornado.httpclient.AsyncHTTPClient()
+        url = AUTH_VALIDATE_FULL  # built from AUTH_SERVICE_URL + AUTH_VALIDATE_PATH
+        logger.info("Authenticating at: " + str(url))
+        logger.info("With Token: " + str(token))
+        req = tornado.httpclient.HTTPRequest(
+            url,
+            method='GET',
+            headers={'Authorization': f'Bearer {token}', 'Accept': 'application/json'},
+            request_timeout=5
+        )
         try:
-            req = tornado.httpclient.HTTPRequest(
-                AUTH_VALIDATE_FULL,
-                method='GET',
-                headers={'Authorization': f'Bearer {token}', 'Accept': 'application/json'},
-                request_timeout=5
-            )
-            resp = http_client.fetch(req)
+            resp = await client.fetch(req)
             if resp.code != 200:
                 logger.warning(f"auth service returned non-200: {resp.code}")
                 return None
             body = resp.body.decode() if isinstance(resp.body, (bytes, bytearray)) else resp.body
             payload = json.loads(body)
-            # Basic sanity checks: ensure payload contains a user identifier (sub or id)
+            # Basic sanity checks
             if isinstance(payload, dict) and ('sub' in payload or 'idUser' in payload or 'id' in payload or 'user' in payload):
+                if 'user' in payload and isinstance(payload['user'], dict):
+                    return payload['user']
                 return payload
-            # Some /me endpoints return { user: { ... } }
-            if isinstance(payload, dict) and 'user' in payload and isinstance(payload['user'], dict):
-                return payload['user']
             logger.warning("auth service payload missing expected user id")
             return None
         except tornado.httpclient.HTTPError as e:
@@ -208,11 +214,6 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         except Exception as e:
             logger.error("auth service validation exception: " + str(e))
             return None
-        finally:
-            try:
-                http_client.close()
-            except:
-                pass
 
 
 ##MAIN

@@ -12,7 +12,7 @@ import signal
 # --- Read and export auth config early so imported modules can use it ---
 # Default to the internal compose service name and port 80 if not provided.
 AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://php-node-service:80")
-AUTH_VALIDATE_PATH = os.getenv("AUTH_VALIDATE_PATH", "/me")
+AUTH_VALIDATE_PATH = os.getenv("AUTH_VALIDATE_PATH", "/api/users/me")
 
 # Ensure these are available to modules that import environment variables at import time
 os.environ.setdefault("AUTH_SERVICE_URL", AUTH_SERVICE_URL)
