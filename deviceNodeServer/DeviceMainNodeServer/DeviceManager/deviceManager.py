@@ -117,9 +117,11 @@ class deviceManager():
                 del deviceToDel
 
     def executeCMDJson(self, jsonArgs):
-        logger.info("running json command %s" % (jsonArgs))
-        cmdArrayObj1 = json.loads(jsonArgs["args"])
-        cmdArrayObj = json.loads(cmdArrayObj1)#ToDo: fix, for some weird reason, objects are stringified with dual quotes
+        logger.debug("running json command %s" % (jsonArgs))
+        cmdArrayObj = json.loads(jsonArgs["args"])
+        #logger.info("parsed command " + str(cmdArrayObj1))
+        #cmdArrayObj = json.loads(cmdArrayObj1)#ToDo: fix, for some weird reason, objects are stringified with dual quotes
+        logger.debug("parsed command 2" + str(cmdArrayObj))
         results = []
         #print(cmdArrayObj)
         
@@ -156,9 +158,12 @@ class deviceManager():
 
 
             try:
+                logger.debug("Running raw command: " + str(cmd))
                 result = self.executeCMDraw(cmd['idDevice'], cmd['command'], cmd['args'])
-                logger.info("raw command result %s" % (result))
-            except:
+                logger.debug("raw command result %s" % (result))
+            except Exception as e:
+                logger.error("raw command error")
+                logger.error(e)
                 state = "ERROR"
 
             cmdResult = {
@@ -179,10 +184,12 @@ class deviceManager():
         return jsonString
     
     def executeCMDraw(self, idDevice, command, args):
-        logger.info("running raw command %s" % (idDevice, command, args))
+        logger.debug("running raw command " + str(command) + "for id: " + str(idDevice))
         result = ""
         for device in self.Devices:
+            logger.debug(str(device.id))
             if device.id == idDevice:
+                logger.debug("found device, running")
                 result = device.executeCMD(command,args)
                 break
         return result
@@ -259,7 +266,7 @@ class device():
             raise Exception("Protocol "+protocol+" not supported")
 
     def executeCMD(self, cmd, args):
-        logger.info("running command %s" % (cmd, args))
+        logger.debug("running command " + str(cmd) + " " + str(args))
         result = ""
         
         if cmd == 'getValue' or self.mode == 'PUBLISHER':
@@ -267,7 +274,7 @@ class device():
             self.value = result
         if cmd != 'getValue' and self.mode == 'SUBSCRIBER':
             #currently the only thing that accepts commands are SUBSCRIBER nodes
-            self.Driver.sendCommand(cmd, self.channelPath)
+            self.Driver.sendCommand(cmd)
             result = "OK"
         return result
 
