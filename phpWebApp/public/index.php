@@ -58,6 +58,7 @@ $camerasController = new \App\Controllers\CamerasController($db, $logger);
 $camerasDashboardController = new \App\Controllers\CamerasDashboardController($db, $logger);
 $dashboardController = new \App\Controllers\DashboardController($db, $logger);
 $nodeController = new \App\Controllers\NodeController($db, $logger);
+$schedulerController = new \App\Controllers\SchedulerController($db, $logger);
 
 // Public auth routes
 $app->post('/auth/login', [$authController, 'login']);
@@ -73,7 +74,8 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     $camerasController,
     $camerasDashboardController,
     $dashboardController,
-    $nodeController
+    $nodeController,
+    $schedulerController
 ) {
     // Users
     $group->get('/users/me', [$usersController, 'me']);
@@ -112,6 +114,14 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     $group->get('/nodes', [$nodeController, 'list']);
     $group->get('/node/{id}', [$nodeController, 'get']);
     $group->get('/nodes/configs', [$nodeController, 'configs']);
+
+    // List rules (paginated)
+    $group->get('/scheduler/rules', [$schedulerController, 'list']);
+    $group->get('/scheduler/rules/{id:[0-9]+}', [$schedulerController, 'get']);
+    $group->post('/scheduler/rules', [$schedulerController, 'create']);
+    $group->put('/scheduler/rules/{id:[0-9]+}', [$schedulerController, 'update']);
+    $group->delete('/scheduler/rules/{id:[0-9]+}', [$schedulerController, 'delete']);
+    $group->post('/scheduler/notify-reload', [$schedulerController, 'notifyReload']);
 
 })->add($authMiddleware);
 
