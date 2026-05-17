@@ -1,0 +1,8 @@
+gen==0.1.30
+mysql-connector-python==8.0.33
+aiomysql==0.3.2
+requests==2.31.0
+paho-mqtt>=1.6.1
+APScheduler>=3.10.1
+python-dateutil>=2.8.2
+pytz>=2023.3
