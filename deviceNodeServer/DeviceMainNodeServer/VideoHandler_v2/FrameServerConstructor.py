@@ -174,13 +174,17 @@ class FrameServerConstructor:
 	
     def getDeviceIds(self):
         devIdArr = []
+        logger.info(self.deviceDict)
         for deviceD in self.deviceDict:
-            devIdArr.append(deviceD["dbId"])
+            logger.info("camera Device")
+            logger.info(deviceD)
+            devIdArr.append((deviceD, self.deviceDict[deviceD]))
         logger.debug("frame constructor found devices: " + str(devIdArr))
         return devIdArr
 	
     def getDeviceFromDbId(self, dbId):
-        for deviceD in self.deviceDict:
+        for deviceI in self.deviceDict:
+            deviceD = self.deviceDict[deviceI]
             if deviceD["dbId"] == dbId:
                 logger.debug("frame constructor found device: " + str(dbId))
                 return deviceD
@@ -190,7 +194,7 @@ class FrameServerConstructor:
 	#ToDo: deep test of every case of failure
 	#create the no image from cam driver
     def buildFrame(self, sources, argsObj):
-        logger.debug("frame constructor building frame with " + str(argsObj))
+        logger.info("frame constructor building frame with " + str(argsObj))
         toggleFlag = 0
         frameRow = None
         frame = None
@@ -199,10 +203,10 @@ class FrameServerConstructor:
             if not device:
                 continue
 
-            ts, hdr, img = sources[device["cameraUID"]]
-            nparr = np.frombuffer(img, dtype=np.uint8)
-            frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)   # BGR image or None on failure
-            if frame is None:
+            ts, hdr, rawImg = sources[device["cameraUID"]]
+            nparr = np.frombuffer(rawImg, dtype=np.uint8)
+            img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)   # BGR image or None on failure
+            if img is None:
                 raise RuntimeError("jpeg decode failed")
 			
             img = cv2.resize(img, (argsObj["height"], argsObj["width"]))
@@ -247,7 +251,7 @@ class FrameServerConstructor:
 			
         if frame is None:
             frame = frameRow
-        return frame
+        return frame, 'IMG'
 	
     def getJpg(self, sources, argsObj):
         img = self.buildFrame(sources, argsObj)

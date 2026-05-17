@@ -129,7 +129,7 @@ class FrameConstructor():
 			
 		if frame is None:
 			frame = frameRow
-		return frame
+		return frame, 'IMG'
 	
 	def getJpg(self, argsObj):
 		img = self.buildFrame(argsObj)

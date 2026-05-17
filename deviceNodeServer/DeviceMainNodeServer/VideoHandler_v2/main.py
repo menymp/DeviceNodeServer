@@ -227,11 +227,15 @@ async def handle_mq_request(req: dict):
     Return a JSON-serializable reply.
     """
     try:
+        logger.info("new video service request")
+        logger.info(str(req))
         # Example: expect {"action":"get_camera","name":"cam1"}
-        if req.get("method") != "execCommand":
+        if req.get("method") != "executeCMDJson":
             return {"error": "unknown command"}
         if req.get("args") is None:
             return {"error": "missing args"}
+        
+        commandArgs = json.loads(req.get("args"))
 
 
         #parses the command
@@ -245,14 +249,13 @@ async def handle_mq_request(req: dict):
         	"idText":True #enable video id for source
         }
         
-        inTks = req.get("args").split(' ') # TODO TEST IT NOT SURE WHAT is the format
-        if inTks[0] == 'ls':
-            return str(frameConstructor.getDeviceIds())
-        elif inTks[0] == "get":
-            if len(inTks) == 2:
-                argsObj["idList"].append(int(inTks[1]))
-                result = frameConstructor.buildFrame(argsObj)
-                return result
+        if commandArgs[0] == 'ls':
+            return ('LIST' , str(frameConstructor.getDeviceIds()))
+        elif commandArgs[0] == "get":
+            if len(commandArgs) == 2:
+                argsObj["idList"].append(int(commandArgs[1]))
+                result = frameConstructor.buildFrame(camera_store, argsObj)
+                return ('IMG', result)
             else:
                 return None
         else:

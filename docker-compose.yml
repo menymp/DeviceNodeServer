@@ -309,6 +309,7 @@ services:
       WEBSOCKET_PORT: ${WEBSOCKET_PORT}
       DEVICE_MANAGER_LOCAL_CONN: ${DEVICE_MANAGER_LOCAL_CONN}
       VIDEO_HANDLER_LOCAL_CONN: ${VIDEO_HANDLER_LOCAL_CONN}
+      VIDEO_API_BASE_URL: http://video-composer-service:${VIDEO_SEED_PORT}
     volumes:
       - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
     secrets:

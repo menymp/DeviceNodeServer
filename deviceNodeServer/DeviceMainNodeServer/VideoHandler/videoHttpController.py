@@ -89,7 +89,8 @@ class videoHandler():
 		self.stop = False
 		pass
 	
-	def execCommand(self, inputArgs):
+	def execCommand(self, camera_store, inputArgs):
+		logger.info("building frame with args: " + str(inputArgs))
 		#parses the command
 		#list cameras
 		#default generic object
@@ -107,12 +108,12 @@ class videoHandler():
 		elif inTks[0] == "get":
 			if len(inTks) == 2:
 				argsObj["idList"].append(int(inTks[1]))
-				result = self.frameObjConstructor.buildFrame(argsObj)
+				result = self.frameObjConstructor.buildFrame(camera_store, argsObj)
 				return result
 			else:
 				return None
 		else:
-			return "unknown command"
+			return "unknown video command"
 		pass
 	
 	#ToDo: need to implement a char update method to restart the camera obj when a change

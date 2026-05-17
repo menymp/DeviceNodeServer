@@ -78,7 +78,19 @@ def _mq_worker_loop(socket: zmq.Socket,
                 else:
                     # send the handler result back to requester
                     try:
-                        socket.send_json(result)
+                        if result[0] == "IMG":
+                            logger.info("sending image frame")
+                            img = result[1]
+                            # Make contiguous and get bytes
+                            #if not img.flags['C_CONTIGUOUS']:
+                            #    img = np.ascontiguousarray(img)
+                            md = {"dtype": str(img.dtype), "shape": img.shape}
+
+                            socket.send_json(md, flags=zmq.SNDMORE)
+                            socket.send(img.tobytes(), copy=False)
+                            logger.info("sent image frame (md=%s)", md)
+                        else:
+                            socket.send_json(result)
                     except Exception:
                         logger.exception("Failed to send reply")
             # else: poll timed out, loop again and check stop_event
