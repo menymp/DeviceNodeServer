@@ -13,6 +13,8 @@ Updates List
 | base dashboard items	   | done |
 | user signup info	  	   | done  |
 | advanced debug	  	   | done  |
-| trigger jobs	 	  	   | pending  |
+| trigger jobs	 	  	   | done  |
 | refract server to process| done  |
 | UI enhancements	 	   | done  |
+| dockerize	        	   | done  |
+| UI modernization	       | in progress  |
