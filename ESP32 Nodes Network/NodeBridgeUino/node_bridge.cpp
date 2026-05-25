@@ -37,7 +37,7 @@ NodeBridge::NodeBridge(const String &nodeName, const String &mqttBroker, uint16_
   }
 
   // configure mqtt client
-  mqttClient.setServer(IPAddress(192,168,1,71), mqttPort);
+  mqttClient.setServer(mqttBroker.c_str(), mqttPort);
   // Set buffer size, TODO increase this dinamicaly???
 
   mqttClient.setBufferSize(1024*5);

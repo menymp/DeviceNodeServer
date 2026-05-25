@@ -19,8 +19,9 @@
 
 const char* ssid = "";
 const char* password = "";
-const char* MQTT_BROKER = "";
+const String MQTT_BROKER = "";
 const int MQTT_PORT = 1883;
+const String NODE_NAME = "";
 
 MFRC522 rfid(SS_PIN, RST_PIN);
 bool rfid_scanned = false;
@@ -137,7 +138,7 @@ void array_to_string(byte a[],unsigned int len,char buffer[])
 
 void init_device_node()
 {
-  bridge = new NodeBridge("MenyNodeRF1", MQTT_BROKER, MQTT_PORT);
+  bridge = new NodeBridge(NODE_NAME, MQTT_BROKER, MQTT_PORT);
   bridge->begin();
   
   // Wait a bit for ack from server, or poll ackEvent in production
