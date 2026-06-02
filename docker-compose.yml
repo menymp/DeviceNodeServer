@@ -89,7 +89,7 @@ services:
       DB_NAME: ${DB_NAME}
       WEBSOCKET_PORT: ${WEBSOCKET_PORT}
       DEVICE_MANAGER_LOCAL_CONN: ${DEVICE_MANAGER_LOCAL_CONN}
-      AUTH_SERVICE_URL: "http://php-node-service:80"
+      AUTH_SERVICE_URL: "http://php-node-service:${PHP_PORT}"
       AUTH_VALIDATE_PATH: "/api/users/me"
     volumes:
       - ./deviceNodeServer/DeviceMainNodeServer/config.ini:/app/config.ini:ro # <---- outdated way
@@ -130,6 +130,24 @@ services:
         condition: service_started
     ports:
       - "${PHP_PORT}:80"
+
+  react-device-manager-ui:
+    build:
+      context: .
+      dockerfile: ./nodePackages/device-mgr-ui/Dockerfile
+    restart: always
+    environment:
+      NODE_ENV: production
+      REACT_APP_COMMAND_WEBSOCKET_URL: http://websocket-service:${WEBSOCKET_PORT}/workHandler
+      REACT_APP_DEVICE_SERVICE_URL: http://php-node-service:${PHP_PORT}/DeviceNodeServer/phpWebApp/
+      REACT_APP_VIDEO_SEED_URL: http://video-composer-service:${VIDEO_SEED_PORT}/video_feed?vidArgs=
+    ports:
+      - "${REACT_MANAGER_PORT}:${REACT_MANAGER_PORT}"
+    volumes:
+      - ./config/config.ini:/app/config.ini:ro
+    depends_on:
+      - websocket-service
+      - php-node-service
 
   registry:
     image: registry:2
@@ -384,24 +402,6 @@ services:
   #     - device-manager-service
   #     - video-composer-service
   #     - websocket-service
-  #
-  # react-device-manager-ui:
-  #   build:
-  #     context: .
-  #     dockerfile: ./nodePackages/device-mgr-ui/Dockerfile
-  #   restart: always
-  #   environment:
-  #     NODE_ENV: production
-  #     REACT_APP_COMMAND_WEBSOCKET_URL: http://websocket-service:${WEBSOCKET_PORT}/workHandler
-  #     REACT_APP_DEVICE_SERVICE_URL: http://php-node-service:${PHP_PORT}/DeviceNodeServer/phpWebApp/
-  #     REACT_APP_VIDEO_SEED_URL: http://video-composer-service:${VIDEO_SEED_PORT}/video_feed?vidArgs=
-  #   ports:
-  #     - "${REACT_MANAGER_PORT}:${REACT_MANAGER_PORT}"
-  #   volumes:
-  #     - ./config/config.ini:/app/config.ini:ro
-  #   depends_on:
-  #     - websocket-service
-  #     - php-node-service
 
   ##   OUTDATED LEGACY Video service
   # video-composer-service:
