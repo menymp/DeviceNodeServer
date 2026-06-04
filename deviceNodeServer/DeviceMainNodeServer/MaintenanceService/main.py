@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 class devicesDbMaintenance:
     def __init__(self, initArgs):
         logger.info("new devices Maintenance created with %s" % initArgs)
-        self.dbActions = dbDevicesActions()
+        #self.dbActions = dbDevicesActions()
         self.dbHost = initArgs[0]
         self.dbName = initArgs[1]
         self.dbUser = initArgs[2]
