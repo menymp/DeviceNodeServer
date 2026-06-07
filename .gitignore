@@ -7,6 +7,5 @@
 *.ini
 *.vs
 *.pyc
-*config.php
 *.bak
 secrets/
