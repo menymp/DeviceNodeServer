@@ -113,8 +113,9 @@ services:
       DB_PASSWORD_FILE: /run/secrets/db_user_password
       DB_NAME: ${DB_NAME}
       DB_PORT: 3306
-      JWT_PRIVATE_KEY_PATH: /run/secrets/jwt_private_key
-      JWT_PUBLIC_KEY_PATH: /run/secrets/jwt_public_key
+      # point the app at the runtime-copied secret location (entrypoint will create this)
+      JWT_PRIVATE_KEY_PATH: /var/www/html/secrets/jwt_private_key
+      JWT_PUBLIC_KEY_PATH: /var/www/html/secrets/jwt_public_key
       CORS_ORIGIN: ${REACT_APP_ORIGIN}
     secrets:
       - db_user_password
