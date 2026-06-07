@@ -107,10 +107,12 @@ void writeUint32BE(WiFiClient &c, uint32_t v) {
   c.write(b, 4);
 }
 
-String getMac() {
+// returns MAC as 12 hex chars (e.g. "AABBCCDDEEFF")
+String getMacNoDots() {
   uint8_t mac[6];
-  esp_read_mac(mac, ESP_MAC_WIFI_STA);
-  char buf[18];
+  // Arduino WiFi provides this overload to fill raw bytes
+  WiFi.macAddress(mac);
+  char buf[13]; // 12 chars + null
   sprintf(buf, "%02X%02X%02X%02X%02X%02X",
           mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
   return String(buf);
@@ -125,7 +127,7 @@ void sendFrame() {
 
   // Build JSON header (small, no external libs)
   // Example: {"name":"MenyEspCam1","camera_type":"1","mac":"AA:BB:CC:DD:EE:FF","frame_size":12345}
-  String mac = getMac();
+  String mac = getMacNoDots();
   char headerBuf[300];
   
   int headerLen = snprintf(headerBuf, sizeof(headerBuf),

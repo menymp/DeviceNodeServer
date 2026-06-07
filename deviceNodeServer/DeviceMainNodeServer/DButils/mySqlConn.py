@@ -4,7 +4,7 @@
  
 # dbConn.py
 """
-Robust drop-in replacement for the original dbConn class.
+Robust dbConn class.
 
 Public API preserved:
   - connect(user, password, host, database, auth='mysql_native_password', port=3306, autocommit=True, retries=10, delay=3)
