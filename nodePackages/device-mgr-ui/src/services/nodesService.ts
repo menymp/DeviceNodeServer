@@ -1,93 +1,84 @@
-// Need to use the React-specific entry point to import createApi
+// src/services/nodesService.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import type { RootState } from '../store';
 
-export type requestNodesInfo = {
-    pageCount: number;
-    pageSize: number;
-}
+export type RequestNodesInfo = {
+  page?: number;
+  size?: number;
+};
 
-export type node = {
-    idNodesTable: number
-    nodeName: string
-    nodePath: string
-    idDeviceProtocol: number
-    idOwnerUser: number
-    connectionParameters: any
-}
+export type Node = {
+  idNodesTable: number;
+  nodeName: string;
+  nodePath: string;
+  idDeviceProtocol: number;
+  idOwnerUser: number;
+  connectionParameters: any | null;
+};
 
-export type createNodeRequestInfo = {
-  nodeName: string
-  nodePath: string
-  nodeProtocol: string
-  nodeParameters: string
-}
+export type ProtocolInfo = {
+  idsupportedProtocols: number;
+  ProtocolName: string;
+};
 
-export type deleteNodeRequestInfo = {
-  nodeName: string
-}
+const baseUrl = process.env.REACT_APP_DEVICE_SERVICE_URL || '/';
 
-export type protocolInfo = {
-  idsupportedProtocols: number
-  ProtocolName: string
-}
+const baseQuery = fetchBaseQuery({
+  baseUrl,
+  prepareHeaders: (headers, { getState }) => {
+    const token = (getState() as RootState).auth.accessToken;
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+    return headers;
+  },
+  credentials: 'include', // send cookies (refresh token) for refresh endpoint
+});
 
-export type messageResult = {
-  message: string
-}
-
-// Define a service using a base URL and expected endpoints
 export const nodesService = createApi({
   reducerPath: 'nodesApi',
-  baseQuery: fetchBaseQuery({ baseUrl: process.env.REACT_APP_DEVICE_SERVICE_URL }),
+  baseQuery,
+  tagTypes: ['Nodes', 'Protocols'],
   endpoints: (builder) => ({
-    fetchNodes: builder.mutation<Array<node> , requestNodesInfo>({
-      query: (requestNodeInfo) => ({
-        url: 'nodeService.php',
-        method: 'POST',
-        dataType: 'JSON',
-        withcredentials: true,
-        body: {...requestNodeInfo, type:"fetchNodes", userId: parseInt(sessionStorage.getItem("userId") as string)}
-      })
+    // GET /api/nodes?page=0&size=50
+    fetchNodes: builder.query<Node[], RequestNodesInfo | void>({
+      query: (params) => {
+        const page = params?.page ?? 0;
+        const size = params?.size ?? 50;
+        const qp = `?page=${encodeURIComponent(String(page))}&size=${encodeURIComponent(String(size))}`;
+        return { url: `/api/nodes${qp}`, method: 'GET' };
+      },
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((n) => ({ type: 'Nodes' as const, id: n.idNodesTable })),
+              { type: 'Nodes', id: 'LIST' },
+            ]
+          : [{ type: 'Nodes', id: 'LIST' }],
     }),
-    fetchProtocols: builder.mutation<Array<protocolInfo> , void>({
-        query: () => ({
-          url: 'nodeService.php',
-          method: 'POST',
-          dataType: 'JSON',
-          withcredentials: true,
-          body: { type:"fetchConfigs", userId: parseInt(sessionStorage.getItem("userId") as string)}
-        })
-    }),
-    createNode: builder.mutation<messageResult , createNodeRequestInfo>({
-      query: (newNodeInfo) => ({
-        url: 'nodeService.php',
-        method: 'POST',
-        dataType: 'JSON',
-        withcredentials: true,
-        body: { ... newNodeInfo, type:"createNode", userId: parseInt(sessionStorage.getItem("userId") as string)}
-      })
-    }),
-    saveNode: builder.mutation<messageResult , createNodeRequestInfo>({
-      query: (existingNodeInfo) => ({
-        url: 'nodeService.php',
-        method: 'POST',
-        dataType: 'JSON',
-        withcredentials: true,
-        body: {...existingNodeInfo, type:"saveNode", userId: parseInt(sessionStorage.getItem("userId") as string)}
-      })
-    }),
-    deleteNode: builder.mutation<messageResult , deleteNodeRequestInfo>({
-      query: (deleteNodeInfo) => ({
-        url: 'nodeService.php',
-        method: 'POST',
-        dataType: 'JSON',
-        withcredentials: true,
-        body: {...deleteNodeInfo, type:"deleteNode", userId: parseInt(sessionStorage.getItem("userId") as string)}
-      })
-    })
-  })
-})
 
-// Export hooks for usage in functional components, which are
-// auto-generated based on the defined endpoints
-export const { useFetchNodesMutation, useCreateNodeMutation, useSaveNodeMutation, useDeleteNodeMutation, useFetchProtocolsMutation } = nodesService
+    // GET /api/node/{id}
+    fetchNodeById: builder.query<Node, { id: number }>({
+      query: ({ id }) => ({ url: `/api/node/${id}`, method: 'GET' }),
+      providesTags: (result) => (result ? [{ type: 'Nodes', id: result.idNodesTable }] : []),
+    }),
+
+    // GET /api/nodes/configs
+    fetchProtocols: builder.query<ProtocolInfo[], void>({
+      query: () => ({ url: '/api/nodes/configs', method: 'GET' }),
+      providesTags: (result) =>
+        result ? result.map((p) => ({ type: 'Protocols' as const, id: p.idsupportedProtocols })) : [{ type: 'Protocols', id: 'LIST' }],
+    }),
+  }),
+});
+
+export const {
+  useFetchNodesQuery,
+  useLazyFetchNodesQuery,
+  useFetchNodeByIdQuery,
+  useLazyFetchNodeByIdQuery,
+  useFetchProtocolsQuery,
+  useLazyFetchProtocolsQuery,
+} = nodesService;
+
+export default nodesService;

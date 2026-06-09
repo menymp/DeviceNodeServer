@@ -108,16 +108,120 @@ class DevicesController
     /**
      * GET /api/device
      * Returns single device with joined fields.
+     *
+     * Supports:
+     *  - /api/device?id=123
+     *  - /api/device?tag=nickname   (requires authenticated user; resolves tag -> device id)
+     *  - /api/device/{identifier}    (identifier can be numeric id or tag string)
      */
     public function get(Request $req, Response $res): Response
     {
+        // Try to resolve device id from query params or parsed body
         $params = $req->getQueryParams();
-        $id = (int)($params['id'] ?? 0);
-        if ($id <= 0) {
+        if (empty($params)) {
+            $body = (array)$req->getParsedBody();
+            $params = $body ?: [];
+        }
+
+        // If a path param was used, it will be handled by getByIdentifier route.
+        // Here we support query-based id or tag.
+        $id = $this->resolveDeviceIdFromRequest($req, $params, []);
+
+        if ($id === null || $id <= 0) {
             $res->getBody()->write(json_encode(['error' => 'invalid_id']));
             return $res->withHeader('Content-Type', 'application/json')->withStatus(400);
         }
 
+        return $this->fetchAndReturnDevice($id, $res);
+    }
+
+    /**
+     * GET /api/device/{identifier}
+     * Path identifier can be numeric id or a tag string.
+     */
+    public function getByIdentifier(Request $req, Response $res, array $args): Response
+    {
+        $id = $this->resolveDeviceIdFromRequest($req, [], $args);
+
+        if ($id === null || $id <= 0) {
+            $res->getBody()->write(json_encode(['error' => 'invalid_id_or_tag']));
+            return $res->withHeader('Content-Type', 'application/json')->withStatus(400);
+        }
+
+        return $this->fetchAndReturnDevice($id, $res);
+    }
+
+    /**
+     * Helper: resolve device id from query/body/path args.
+     *
+     * Priority:
+     * 1) explicit numeric id (query param 'id' or body 'id')
+     * 2) path identifier (args['identifier']) — numeric treated as id, otherwise treated as tag
+     * 3) query param 'tag' (user-scoped)
+     *
+     * If tag is used, it is resolved against device_tags for the authenticated user.
+     */
+    private function resolveDeviceIdFromRequest(Request $req, array $params = [], array $args = []): ?int
+    {
+        // 1) explicit numeric id in params
+        $id = isset($params['id']) ? (int)$params['id'] : null;
+        if ($id && $id > 0) return $id;
+
+        // 2) path identifier
+        if (!empty($args['identifier'])) {
+            $identifier = (string)$args['identifier'];
+            if (ctype_digit($identifier)) {
+                return (int)$identifier;
+            }
+            // treat as tag string
+            $tag = trim($identifier);
+            if ($tag !== '') {
+                return $this->resolveDeviceIdByTag($req, $tag);
+            }
+        }
+
+        // 3) query/body tag param
+        $tag = isset($params['tag']) ? trim((string)$params['tag']) : null;
+        if ($tag !== null && $tag !== '') {
+            return $this->resolveDeviceIdByTag($req, $tag);
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve a device id by tag for the authenticated user.
+     * Returns first matching device id or null.
+     */
+    private function resolveDeviceIdByTag(Request $req, string $tag): ?int
+    {
+        // Tag lookups are user-scoped. Ensure user is authenticated.
+        $user = $req->getAttribute('user');
+        $uid = $user['sub'] ?? null;
+        if (!$uid) {
+            // Not authenticated — cannot resolve user-scoped tag
+            return null;
+        }
+
+        try {
+            $stmt = $this->db->pdo()->prepare('SELECT idDevices FROM device_tags WHERE tag = :tag AND user_id = :uid ORDER BY created_at DESC LIMIT 1');
+            $stmt->execute(['tag' => $tag, 'uid' => $uid]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row && isset($row['idDevices'])) {
+                return (int)$row['idDevices'];
+            }
+            return null;
+        } catch (Exception $e) {
+            $this->logger->warning('Tag lookup failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Fetch device row by id and return JSON response (joined fields).
+     */
+    private function fetchAndReturnDevice(int $id, Response $res): Response
+    {
         $sql = "SELECT 
                     devices.idDevices,
                     devices.name,

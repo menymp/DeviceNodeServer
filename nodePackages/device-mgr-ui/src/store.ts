@@ -8,6 +8,8 @@ import { devicesService } from './services/deviceService';
 import { camerasService } from './services/camerasService';
 import { camerasDashboardService } from './services/camerasDashboardService';
 import { dashboardService } from './services/dashboardService';
+import { schedulerService } from './services/schedulerService';
+import { rfidService } from './services/rfidService';
 
 // Auth slice: stores access token and userId in memory
 type AuthState = {
@@ -47,6 +49,8 @@ export const store = configureStore({
     [camerasService.reducerPath]: camerasService.reducer,
     [camerasDashboardService.reducerPath]: camerasDashboardService.reducer,
     [dashboardService.reducerPath]: dashboardService.reducer,
+    [schedulerService.reducerPath]: schedulerService.reducer,
+    [rfidService.reducerPath]: rfidService.reducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware()
@@ -56,7 +60,9 @@ export const store = configureStore({
       .concat(devicesService.middleware)
       .concat(camerasService.middleware)
       .concat(camerasDashboardService.middleware)
-      .concat(dashboardService.middleware),
+      .concat(dashboardService.middleware)
+      .concat(schedulerService.middleware)
+      .concat(rfidService.middleware),
 });
 
 // optional listeners for refetchOnFocus/refetchOnReconnect
@@ -66,3 +72,4 @@ export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
 export default store;
+

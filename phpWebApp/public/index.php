@@ -59,6 +59,7 @@ $camerasDashboardController = new \App\Controllers\CamerasDashboardController($d
 $dashboardController = new \App\Controllers\DashboardController($db, $logger);
 $nodeController = new \App\Controllers\NodeController($db, $logger);
 $schedulerController = new \App\Controllers\SchedulerController($db, $logger);
+$userRfidsController = new \App\Controllers\UserRfidsController($db, $logger);
 
 // Public auth routes
 $app->post('/auth/login', [$authController, 'login']);
@@ -75,7 +76,8 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     $camerasDashboardController,
     $dashboardController,
     $nodeController,
-    $schedulerController
+    $schedulerController,
+    $userRfidsController
 ) {
     // Users
     $group->get('/users/me', [$usersController, 'me']);
@@ -83,7 +85,11 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
 
     // Devices
     $group->get('/devices', [$devicesController, 'list']);
+    // keep existing query-based route for backward compatibility
     $group->get('/device', [$devicesController, 'get']);
+
+    // new route: identifier can be numeric id or a tag string (user-scoped)
+    $group->get('/device/{identifier}', [$devicesController, 'getByIdentifier']);
 
     // Device tags CRUD (per-device, user-scoped)
     $group->get('/devices/{id:[0-9]+}/tags', [$devicesController, 'listTags']);
@@ -122,6 +128,15 @@ $app->group('/api', function (\Slim\Routing\RouteCollectorProxy $group) use (
     $group->put('/scheduler/rules/{id:[0-9]+}', [$schedulerController, 'update']);
     $group->delete('/scheduler/rules/{id:[0-9]+}', [$schedulerController, 'delete']);
     $group->post('/scheduler/notify-reload', [$schedulerController, 'notifyReload']);
+
+    // User RFIDs (owner-scoped)
+    $group->get('/users/{id:[0-9]+}/rfids', [ $userRfidsController, 'list' ]);
+    $group->post('/users/{id:[0-9]+}/rfids', [ $userRfidsController, 'create' ]);
+    $group->put('/users/{id:[0-9]+}/rfids/{rfidId:[0-9]+}', [ $userRfidsController, 'update' ]);
+    $group->delete('/users/{id:[0-9]+}/rfids/{rfidId:[0-9]+}', [ $userRfidsController, 'delete' ]);
+
+    // RFID resolve (requires auth)
+    $group->post('/rfid/resolve', [ $userRfidsController, 'resolve' ]);
 
 })->add($authMiddleware);
 

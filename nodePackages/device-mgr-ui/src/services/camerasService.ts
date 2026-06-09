@@ -1,85 +1,67 @@
-// Need to use the React-specific entry point to import createApi
+// src/services/camerasService.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import type { RootState } from '../store';
 
-export type requestCameraInfo = {
-    pageCount: number;
-    pageSize: number;
-}
+export type RequestCamerasInfo = {
+  page?: number;   // 0-based
+  size?: number;
+};
 
-export type newCameraRequestInfo = {
-    name: string;
-    sourceParameters: string; //Convert this to JSON since its a JSON based value
-}
+export type Camera = {
+  idVideoSource: number;
+  name: string;
+  username: string;
+  sourceParameters: any | null;
+};
 
-export type updateCameraRequestInfo = {
-    name: string;
-    sourceParameters: string; //Convert this to JSON since its a JSON based value
-    idVideoSource: number;
-}
+const baseUrl = process.env.REACT_APP_DEVICE_SERVICE_URL || '/';
 
-export type deleteCameraRequestInfo = {
-    idVideoSource: number;
-}
+const baseQuery = fetchBaseQuery({
+  baseUrl,
+  prepareHeaders: (headers, { getState }) => {
+    const token = (getState() as RootState).auth.accessToken;
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    return headers;
+  },
+  credentials: 'include', // send refresh cookie for refresh endpoint
+});
 
-export type camera = {
-    idVideoSource: number;
-    name: string;
-    username: string;
-    sourceParameters: string; //Convert this to JSON since its a JSON based value
-}
-
-export type sourceParameters = {
-    host: string;
-    port: number;
-    type: number;
-    width: number;
-    height: number;
-}
-
-// Define a service using a base URL and expected endpoints
 export const camerasService = createApi({
-  reducerPath: 'cameraApi',
-  baseQuery: fetchBaseQuery({ baseUrl: process.env.REACT_APP_DEVICE_SERVICE_URL }),
+  reducerPath: 'camerasApi',
+  baseQuery,
+  tagTypes: ['Cameras'],
   endpoints: (builder) => ({
-    fetchCameras: builder.mutation<Array<camera> , requestCameraInfo>({
-      query: (requestCamsInfo) => ({
-        url: 'camerasService.php',
-        method: 'POST',
-        dataType: 'JSON',
-        withcredentials: true,
-        body: {...requestCamsInfo, actionOption:"fetchCams", userId: parseInt(sessionStorage.getItem("userId") as string)}
-      })
+    // GET /api/cameras?pageCount=0&pageSize=50
+    fetchCameras: builder.query<Camera[], RequestCamerasInfo | void>({
+      query: (params) => {
+        const page = params?.page ?? 0;
+        const size = params?.size ?? 50;
+        // backend accepts pageCount/pageSize naming; keep those query keys
+        const qp = `?pageCount=${encodeURIComponent(String(page))}&pageSize=${encodeURIComponent(String(size))}`;
+        return { url: `/api/cameras${qp}`, method: 'GET' };
+      },
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((c) => ({ type: 'Cameras' as const, id: c.idVideoSource })),
+              { type: 'Cameras', id: 'LIST' },
+            ]
+          : [{ type: 'Cameras', id: 'LIST' }],
     }),
-    AddCam: builder.mutation<void , newCameraRequestInfo>({
-        query: (requestNewCamInfo) => ({
-          url: 'camerasService.php',
-          method: 'POST',
-          dataType: 'JSON',
-          withcredentials: true,
-          body: {...requestNewCamInfo, actionOption:"AddCam", userId: parseInt(sessionStorage.getItem("userId") as string)}
-        })
-      }),
-    UpdateCam: builder.mutation<void , updateCameraRequestInfo>({
-        query: (requestUpdateInfo) => ({
-          url: 'camerasService.php',
-          method: 'POST',
-          dataType: 'JSON',
-          withcredentials: true,
-          body: {...requestUpdateInfo, actionOption:"UpdateCam", userId: parseInt(sessionStorage.getItem("userId") as string)}
-        })
-      }),
-    DeleteCam: builder.mutation<void , deleteCameraRequestInfo>({
-        query: (requestDeleteInfo) => ({
-          url: 'camerasService.php',
-          method: 'POST',
-          dataType: 'JSON',
-          withcredentials: true,
-          body: {...requestDeleteInfo, actionOption:"DelCam", userId: parseInt(sessionStorage.getItem("userId") as string)}
-        })
-      })
-  })
-})
 
-// Export hooks for usage in functional components, which are
-// auto-generated based on the defined endpoints
-export const { useFetchCamerasMutation, useAddCamMutation, useUpdateCamMutation, useDeleteCamMutation  } = camerasService
+    // GET /api/camera/{id}
+    fetchCameraById: builder.query<Camera, { id: number }>({
+      query: ({ id }) => ({ url: `/api/camera/${id}`, method: 'GET' }),
+      providesTags: (result) => (result ? [{ type: 'Cameras', id: result.idVideoSource }] : []),
+    }),
+  }),
+});
+
+export const {
+  useFetchCamerasQuery,
+  useLazyFetchCamerasQuery,
+  useFetchCameraByIdQuery,
+  useLazyFetchCameraByIdQuery,
+} = camerasService;
+
+export default camerasService;

@@ -1,71 +1,117 @@
-// Need to use the React-specific entry point to import createApi
+// src/services/camerasDashboardService.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import type { RootState } from '../store';
 
-export type requestConfigsInfo = {
-    pageCount: number;
-    pageSize: number;
-}
-
-// configJsonFetch form
-export type configCameraData = {
+export type ConfigCameraData = {
   width?: number;
   height?: number;
-  idList?: Array<number>;
+  idList?: number[];
   idText?: number;
   rowLen?: number;
-}
+};
 
-export type dashboardCameraConfigs = {
-    idvideoDashboard: number;
-    configJsonFetch: configCameraData;
-    idOwnerUser: number;
-}
+export type VideoDashboard = {
+  id: number;
+  config: ConfigCameraData | null;
+  idOwnerUser?: number;
+  created_at?: string;
+};
 
-// Define a service using a base URL and expected endpoints
+export type CreateDashboardPayload = {
+  configJsonFetch: ConfigCameraData;
+};
+
+export type UpdateDashboardPayload = {
+  configJsonFetch: ConfigCameraData;
+};
+
+const baseUrl = process.env.REACT_APP_DEVICE_SERVICE_URL || '/';
+
+const baseQuery = fetchBaseQuery({
+  baseUrl,
+  prepareHeaders: (headers, { getState }) => {
+    const token = (getState() as RootState).auth.accessToken;
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    return headers;
+  },
+  credentials: 'include',
+});
+
 export const camerasDashboardService = createApi({
   reducerPath: 'camerasDashboardApi',
-  baseQuery: fetchBaseQuery({ baseUrl: process.env.REACT_APP_DEVICE_SERVICE_URL }),
+  baseQuery,
+  tagTypes: ['VideoDashboards'],
   endpoints: (builder) => ({
-    fetchConfigs: builder.mutation<Array<dashboardCameraConfigs> , requestConfigsInfo>({
-      query: (requestCamsInfo) => ({
-        url: 'camerasDashboardService.php',
-        method: 'POST',
-        dataType: 'JSON',
-        withcredentials: true,
-        body: {...requestCamsInfo, actionOption:"fetchConfigs", userId: parseInt(sessionStorage.getItem("userId") as string)}
-       }),
-       transformResponse: (rawResponse: Array<{ 
-          idvideoDashboard: number,
-          configJsonFetch: string,
-          idOwnerUser: number 
-        }>) => {
-          const result =  rawResponse.map((config) => {
-            return {...config, configJsonFetch: JSON.parse(config.configJsonFetch) as configCameraData}
-          })
-          return result
-        }
-      }),
-      deleteById: builder.mutation<void , dashboardCameraConfigs>({
-        query: (requestCamsInfo) => ({
-          url: 'camerasDashboardService.php',
-          method: 'POST',
-          dataType: 'JSON',
-          withcredentials: true,
-          body: {...requestCamsInfo, actionOption:"deleteById", userId: parseInt(sessionStorage.getItem("userId") as string)}
-        })
-      }),
-      saveVideoDashboard: builder.mutation<void , dashboardCameraConfigs>({
-        query: (requestCamsInfo) => ({
-          url: 'camerasDashboardService.php',
-          method: 'POST',
-          dataType: 'JSON',
-          withcredentials: true,
-          body: {...requestCamsInfo, actionOption:"saveVideoDashboard", configJsonFetch: JSON.stringify(requestCamsInfo.configJsonFetch), userId: parseInt(sessionStorage.getItem("userId") as string)}
-        })
-      })
-  })
-})
+    // GET /api/video-dashboards
+    fetchDashboards: builder.query<VideoDashboard[], void>({
+      query: () => ({ url: '/api/video-dashboards', method: 'GET' }),
+      transformResponse: (raw: Array<{ id: number; config: string | null; idOwnerUser?: number; created_at?: string }>) =>
+        raw.map((r) => ({
+          id: r.id,
+          config: r.config !== null && r.config !== '' ? JSON.parse(r.config) as ConfigCameraData : null,
+          idOwnerUser: r.idOwnerUser,
+          created_at: r.created_at,
+        })),
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map((d) => ({ type: 'VideoDashboards' as const, id: d.id })),
+              { type: 'VideoDashboards', id: 'LIST' },
+            ]
+          : [{ type: 'VideoDashboards', id: 'LIST' }],
+    }),
 
-// Export hooks for usage in functional components, which are
-// auto-generated based on the defined endpoints
-export const { useFetchConfigsMutation, useDeleteByIdMutation, useSaveVideoDashboardMutation } = camerasDashboardService
+    // GET /api/video-dashboard/{id}
+    fetchDashboardById: builder.query<VideoDashboard, { id: number }>({
+      query: ({ id }) => ({ url: `/api/video-dashboard/${id}`, method: 'GET' }),
+      transformResponse: (raw: { id: number; config: string | null }) => ({
+        id: raw.id,
+        config: raw.config !== null && raw.config !== '' ? JSON.parse(raw.config) as ConfigCameraData : null,
+      }),
+      providesTags: (result) => (result ? [{ type: 'VideoDashboards' as const, id: result.id }] : []),
+    }),
+
+    // POST /api/video-dashboards
+    createDashboard: builder.mutation<{ id: number }, CreateDashboardPayload>({
+      query: (payload) => ({
+        url: '/api/video-dashboards',
+        method: 'POST',
+        body: { configJsonFetch: payload.configJsonFetch },
+        headers: { 'Content-Type': 'application/json' },
+      }),
+      invalidatesTags: [{ type: 'VideoDashboards', id: 'LIST' }],
+    }),
+
+    // PUT /api/video-dashboards/{id}
+    updateDashboard: builder.mutation<{ id: number; updated: boolean }, { id: number; configJsonFetch: ConfigCameraData }>({
+      query: ({ id, configJsonFetch }) => ({
+        url: `/api/video-dashboards/${id}`,
+        method: 'PUT',
+        body: { configJsonFetch },
+        headers: { 'Content-Type': 'application/json' },
+      }),
+      invalidatesTags: (result, error, arg) => [{ type: 'VideoDashboards', id: arg.id }, { type: 'VideoDashboards', id: 'LIST' }],
+    }),
+
+    // DELETE /api/video-dashboards/{id}
+    deleteDashboard: builder.mutation<{ deleted: number }, { id: number }>({
+      query: ({ id }) => ({
+        url: `/api/video-dashboards/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: (result, error, arg) => [{ type: 'VideoDashboards', id: arg.id }, { type: 'VideoDashboards', id: 'LIST' }],
+    }),
+  }),
+});
+
+export const {
+  useFetchDashboardsQuery,
+  useLazyFetchDashboardsQuery,
+  useFetchDashboardByIdQuery,
+  useLazyFetchDashboardByIdQuery,
+  useCreateDashboardMutation,
+  useUpdateDashboardMutation,
+  useDeleteDashboardMutation,
+} = camerasDashboardService;
+
+export default camerasDashboardService;
