@@ -1,6 +1,6 @@
 // src/services/devicesService.ts
-import { createApi, fetchBaseQuery, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
-import type { RootState } from '../store';
+import { createApi } from '@reduxjs/toolkit/query/react';
+import { baseQueryWithReauth } from './authService';
 
 export type RequestDevicesInfo = {
   pageCount?: number;
@@ -35,25 +35,10 @@ export type DeviceTag = {
   created_at: string;
 };
 
-const baseUrl = process.env.REACT_APP_DEVICE_SERVICE_URL || '/';
-
-// baseQuery that includes credentials and Authorization header from store
-const baseQuery = fetchBaseQuery({
-  baseUrl,
-  prepareHeaders: (headers, { getState }) => {
-    const token = (getState() as RootState).auth.accessToken;
-    if (token) {
-      headers.set('Authorization', `Bearer ${token}`);
-    }
-    return headers;
-  },
-  credentials: 'include', // send cookies (refresh token) for refresh endpoint
-});
-
 // Devices API
 export const devicesService = createApi({
   reducerPath: 'devicesApi',
-  baseQuery,
+  baseQuery: baseQueryWithReauth,
   tagTypes: ['Devices', 'DeviceTags'],
   endpoints: (builder) => ({
     // Fetch list of devices (supports query params or POST body)

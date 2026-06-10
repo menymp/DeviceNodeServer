@@ -1,9 +1,8 @@
-import React from "react";
-import { useState, useEffect } from 'react';
+﻿import React, { useMemo, useState } from "react";
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
-import BaseTable, { tableInit } from '../Table/Table'
-import { useFetchNodesMutation, node, useFetchProtocolsMutation, protocolInfo, useSaveNodeMutation, useDeleteNodeMutation, useCreateNodeMutation } from '../../services/nodesService'
-import { ITEM_LIST_DISPLAY_CNT } from '../../constants'
+import BaseTable, { tableInit } from '../Table/Table';
+import { useFetchNodesQuery, useFetchProtocolsQuery, Node, ProtocolInfo } from '../../services/nodesService';
+import { ITEM_LIST_DISPLAY_CNT } from '../../constants';
 
 const initialTableState = {
     headers: ['Node id', 'Name', 'Path', 'Protocol', 'Owner', 'Parameters'],
@@ -11,254 +10,224 @@ const initialTableState = {
     detailBtn: false,
     deleteBtn: false,
     editBtn: false,
-}
+} as tableInit;
 
 const NodesListView: React.FC = () => {
-    
-    const [getNodes, {isSuccess: nodesLoaded, data: nodesData}] = useFetchNodesMutation();
-    const [getProtocols, {isSuccess: protocolsLoaded, data: protocolData}] = useFetchProtocolsMutation();
-    const [updateNodeInfo, {isSuccess: updatedNodeInfo, isLoading: updatingNode}] = useSaveNodeMutation();
-    const [deleteNode, {isSuccess: deletedNode, isLoading: deletingNode}] = useDeleteNodeMutation();
-    const [createNode, {isSuccess: createNodeSuccess, isLoading: creatingNode}] = useCreateNodeMutation();
-    const [protocols, setProtocols] = useState<Array<protocolInfo>>([]);
-    const [selectedEditNode, setSelectedEditNode] = useState<node>();
-    const [show, setShow] = useState(false);
     const [page, setPage] = useState<number>(0);
-    const [nodesDisplay, setNodesDisplay] = useState<tableInit>(initialTableState);
+    const [filterField, setFilterField] = useState<'name' | 'path' | 'protocol' | 'owner'>('name');
+    const [filterValue, setFilterValue] = useState<string>('');
+    const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+    const [showDetails, setShowDetails] = useState(false);
 
-    const [newName, setNewName] = useState<string>();
-    const handleChangeName = (event: React.ChangeEvent<HTMLInputElement>) => setNewName(event.target.value); //ToDo: perform validations
-    const [newPath, setNewPath] = useState<string>();
-    const handleChangePath = (event: React.ChangeEvent<HTMLInputElement>) => setNewPath(event.target.value); //ToDo: perform validations
-    const [newProtocol, setNewProtocol] = useState<number>();
-    const handleChangeProtocol = (event: React.ChangeEvent<HTMLSelectElement>) => setNewProtocol(parseInt(event.target.value)); //ToDo: perform validations
-    const [newParameters, setNewParameters] = useState<string>();
-    const handleChangeParameters = (event: React.ChangeEvent<HTMLInputElement>) => setNewParameters(event.target.value); //ToDo: perform validations
+    const {
+        data: nodesData,
+        isLoading: nodesLoading,
+        isError: nodesError,
+        refetch: refetchNodes,
+    } = useFetchNodesQuery({ page, size: ITEM_LIST_DISPLAY_CNT });
 
-    const handleClose = () => {
-        setShow(false)
-    };
+    const {
+        data: protocolData,
+        isLoading: protocolsLoading,
+        isError: protocolsError,
+    } = useFetchProtocolsQuery();
 
-    useEffect(() => {
-    }, [deletingNode, creatingNode, updatingNode]);
+    const protocolById = useMemo<Record<number, string>>(() => {
+        return (protocolData ?? []).reduce<Record<number, string>>((map: Record<number, string>, protocol: ProtocolInfo) => {
+            map[protocol.idsupportedProtocols] = protocol.ProtocolName;
+            return map;
+        }, {});
+    }, [protocolData]);
 
-    const handleEditNode = (nodeId: string) => {
-        const selectedEditNode = nodesData?.find((nodeObj) => nodeObj.idNodesTable.toString() === nodeId)
-        if (selectedEditNode) {
-            setSelectedEditNode(selectedEditNode)
-            setNewName(selectedEditNode?.nodeName)
-            setNewPath(selectedEditNode?.nodePath)
-            setNewParameters(selectedEditNode?.connectionParameters)
-            setNewProtocol(selectedEditNode?.idDeviceProtocol)
-            setShow(true)
-        }
-        else
-        {
-            setShow(false)
-        }
-    };
-
-    const saveElement = () => {
-        let selectedProtocol = "";
-        let tmp = getCurrentProtocolSelection();
-
-        if (tmp) {
-            selectedProtocol = tmp // ToDo check this!!!!
-        } else {
-            selectedProtocol = newProtocol?.toString()!
-        }
-        if (!newName || !newPath || !selectedProtocol || !newParameters) {
-            return
-        }
-        if (selectedEditNode?.idNodesTable == -1) {
-            createNode({nodeName: newName, 
-                nodePath: newPath, 
-                nodeProtocol: selectedProtocol.toString(), 
-                nodeParameters: newParameters,
-            });
-        } else {
-            updateNodeInfo({nodeName: newName, 
-                nodePath: newPath, 
-                nodeProtocol: selectedProtocol.toString(), 
-                nodeParameters: newParameters,
-            });
-        }
-        setShow(false);
-        cleanSelectedNode();
-        getNodes({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT})
-        getProtocols();
-    }
-
-    const deleteElement = () => {
-        if (!selectedEditNode?.nodeName) {
-            return
-        }
-        if (window.confirm('Quieres elimiar el nodo: ' + selectedEditNode?.nodeName + '?')) {
-            deleteNode({nodeName: selectedEditNode?.nodeName});
-            setShow(false);
-            cleanSelectedNode();
-            getNodes({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT})
-            getProtocols();
+    const filteredNodes = useMemo<Node[]>(() => {
+        if (!nodesData || !filterValue.trim()) {
+            return nodesData ?? [];
         }
 
-    }
-
-    const cleanSelectedNode = () => {
-        setSelectedEditNode({nodeName: "", idDeviceProtocol: 0, nodePath: "", connectionParameters:"", idNodesTable: -1} as node);
-    }
-
-    useEffect(() => {
-        getNodes({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT})
-        getProtocols();
-    },[page, deletingNode, creatingNode, updatingNode]);
-
-    useEffect(() => {
-        if (!protocolsLoaded || !protocolData || !protocolData?.length) {
-            return
-        }
-        setProtocols(protocolData)
-    }, [protocolsLoaded ,protocolData])
-
-    useEffect(() => {
-        if (!nodesLoaded || !nodesData || !nodesData.length) {
-            setNodesDisplay(initialTableState);
-            return
-        }
-        const newTable = {
-            headers: ['Node id', 'Name', 'Path', 'Protocol', 'Owner', 'Parameters'],
-            rows: nodesData.map((node) => {return [node.idNodesTable.toString(), node.nodeName, node.nodePath, node.idDeviceProtocol.toString(), node.idOwnerUser.toString(), node.connectionParameters.toString()]}),
-            detailBtn: false,
-            deleteBtn: false,
-            editBtn: true,
-            editCallback: (selectedNode) => {
-                handleEditNode(selectedNode[0]) 
+        const normalizedFilter = filterValue.trim().toLowerCase();
+        return (nodesData ?? []).filter((node: Node) => {
+            switch (filterField) {
+                case 'path':
+                    return node.nodePath?.toLowerCase().includes(normalizedFilter);
+                case 'protocol':
+                    return (protocolById[node.idDeviceProtocol] ?? node.idDeviceProtocol.toString()).toLowerCase().includes(normalizedFilter);
+                case 'owner':
+                    return node.idOwnerUser.toString().includes(normalizedFilter);
+                default:
+                    return node.nodeName?.toLowerCase().includes(normalizedFilter);
             }
-        } as tableInit
-        setNodesDisplay(newTable);
-    }, [nodesLoaded, nodesData])
-    //ToDo: we can not change the node name once created, should it be selected instead by id??????
-    const getCurrentProtocolSelection = () => {
-        const value = (document.getElementById('selectedProtocolItem') as HTMLSelectElement).value;
-        return value;
-    }
+        });
+    }, [nodesData, filterField, filterValue, protocolById]);
 
-    // a pagination item already exists
-    
-    return(
+    const nodesDisplay = useMemo<tableInit>(() => {
+        return {
+            headers: ['Node id', 'Name', 'Path', 'Protocol', 'Owner', 'Parameters'],
+            rows: filteredNodes.map((node: Node) => [
+                node.idNodesTable.toString(),
+                node.nodeName ?? '',
+                node.nodePath ?? '',
+                protocolById[node.idDeviceProtocol] ?? node.idDeviceProtocol.toString(),
+                node.idOwnerUser.toString(),
+                node.connectionParameters != null
+                    ? typeof node.connectionParameters === 'string'
+                        ? node.connectionParameters
+                        : JSON.stringify(node.connectionParameters)
+                    : '',
+            ]),
+            detailBtn: true,
+            deleteBtn: false,
+            editBtn: false,
+            detailCallback: (selectedRow) => {
+                const id = parseInt(selectedRow[0], 10);
+                const node = nodesData?.find((item: Node) => item.idNodesTable === id) ?? null;
+                setSelectedNode(node);
+                setShowDetails(true);
+            },
+        } as tableInit;
+    }, [filteredNodes, protocolById, nodesData]);
+
+    const handleCloseDetails = () => setShowDetails(false);
+
+    const handleFilterFieldChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        setFilterField(event.target.value as 'name' | 'path' | 'protocol' | 'owner');
+    };
+
+    const handleFilterValueChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        setFilterValue(event.target.value);
+    };
+
+    const handleRefresh = () => {
+        refetchNodes();
+    };
+
+    const protocolLabel = (protocolId: number) => protocolById[protocolId] ?? protocolId.toString();
+
+    return (
         <>
-            <Modal show={show} onHide={handleClose}>
+            <Modal show={showDetails} onHide={handleCloseDetails}>
                 <Modal.Header closeButton>
                     <Modal.Title>Node details</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
-                    <Form>
-                        <Form.Group className="mb-3" controlId="nodeDetails.name">
-                            <Form.Label>Node name</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="node name ..."
-                                defaultValue={selectedEditNode?.nodeName}
-                                onChange={handleChangeName}
-                                autoFocus
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3" controlId="nodeDetails.path">
-                            <Form.Label>Node path</Form.Label>
-                            <Form.Control
-                                type="text"
-                                placeholder="/nodePath/..."
-                                defaultValue={selectedEditNode?.nodePath}
-                                onChange={handleChangePath}
-                                autoFocus
-                            />
-                        </Form.Group>
-                        <Form.Group className="mb-3" controlId="nodeDetails.protocol">
-                            <Form.Label>Node protocol</Form.Label>
-                            <Form.Select onChange={handleChangeProtocol} aria-label="MQTT" id="selectedProtocolItem">
-                                {protocols?.map((value, index) => { return <option id={`${index}`} value={value.idsupportedProtocols}>{value.ProtocolName}</option>})}
-                            </Form.Select>
-                        </Form.Group>
-                        <Form.Group
-                            className="mb-3"
-                            controlId="nodeDetails.parameters"
-                            >
-                            <Form.Label>Parameters</Form.Label>
-                            <Form.Control as="textarea" rows={3} 
-                                onChange={handleChangeParameters} 
-                                placeholder='{"node":"parameters"}...' 
-                                defaultValue={selectedEditNode?.connectionParameters} 
-                            />
-                        </Form.Group>
-                    </Form>
+                    {selectedNode ? (
+                        <Form>
+                            <Form.Group className="mb-3" controlId="nodeDetails.id">
+                                <Form.Label>Node id</Form.Label>
+                                <Form.Control type="text" readOnly defaultValue={selectedNode.idNodesTable} />
+                            </Form.Group>
+                            <Form.Group className="mb-3" controlId="nodeDetails.name">
+                                <Form.Label>Node name</Form.Label>
+                                <Form.Control type="text" readOnly defaultValue={selectedNode.nodeName} />
+                            </Form.Group>
+                            <Form.Group className="mb-3" controlId="nodeDetails.path">
+                                <Form.Label>Node path</Form.Label>
+                                <Form.Control type="text" readOnly defaultValue={selectedNode.nodePath} />
+                            </Form.Group>
+                            <Form.Group className="mb-3" controlId="nodeDetails.protocol">
+                                <Form.Label>Protocol</Form.Label>
+                                <Form.Control type="text" readOnly defaultValue={protocolLabel(selectedNode.idDeviceProtocol)} />
+                            </Form.Group>
+                            <Form.Group className="mb-3" controlId="nodeDetails.owner">
+                                <Form.Label>Owner</Form.Label>
+                                <Form.Control type="text" readOnly defaultValue={selectedNode.idOwnerUser.toString()} />
+                            </Form.Group>
+                            <Form.Group className="mb-3" controlId="nodeDetails.parameters">
+                                <Form.Label>Parameters</Form.Label>
+                                <Form.Control
+                                    as="textarea"
+                                    rows={5}
+                                    readOnly
+                                    value={
+                                        selectedNode.connectionParameters != null
+                                            ? typeof selectedNode.connectionParameters === 'string'
+                                                ? selectedNode.connectionParameters
+                                                : JSON.stringify(selectedNode.connectionParameters, null, 2)
+                                            : ''
+                                    }
+                                />
+                            </Form.Group>
+                        </Form>
+                    ) : (
+                        <div>No node selected.</div>
+                    )}
                 </Modal.Body>
                 <Modal.Footer>
-                    <Button variant="secondary" onClick={handleClose}>
+                    <Button variant="secondary" onClick={handleCloseDetails}>
                         Close
-                    </Button>
-                    <Button variant="primary" onClick={() => {
-
-                        saveElement();
-                    }}>
-                        Save Changes
-                    </Button>
-                    <Button variant="primary" onClick={deleteElement}>
-                        Delete
                     </Button>
                 </Modal.Footer>
             </Modal>
-            <Container >
+
+            <Container>
                 <Row className="p-3 mb-2 bg-success bg-gradient text-white rounded-3">
-                    <Col xs={2}>
-                        <Button onClick={() => {
-                            cleanSelectedNode();
-                            setShow(true);
-                        }}>New Node</Button>
-                    </Col>
-                    <Col xs={5} >
-                        <Form className="mr-left ">
-                            <Form.Group className="mb-3 form-check-inline" controlId="searchFilterField">
+                    <Col xs={12} md={5} className="mb-2 mb-md-0">
+                        <Form>
+                            <Form.Group className="mb-3" controlId="searchFilterField">
                                 <Row xs={12}>
-                                    <Col xs={4}>
-                                        <Form.Select aria-label="Default select example">
-                                            <option value="1">Name</option>
-                                            <option value="2">Type</option>
-                                            <option value="3">Path</option>
+                                    <Col xs={4} className="mb-2 mb-md-0">
+                                        <Form.Select value={filterField} onChange={handleFilterFieldChange}>
+                                            <option value="name">Name</option>
+                                            <option value="path">Path</option>
+                                            <option value="protocol">Protocol</option>
+                                            <option value="owner">Owner</option>
                                         </Form.Select>
                                     </Col>
-                                    <Col xs={2}>
-                                        <Form.Label>Name</Form.Label>
-                                    </Col>
-                                    <Col xs={5}>
-                                        <Form.Control type="text" placeholder="node name..." />
+                                    <Col xs={8}>
+                                        <Form.Control
+                                            type="text"
+                                            placeholder="Filter nodes..."
+                                            value={filterValue}
+                                            onChange={handleFilterValueChange}
+                                        />
                                     </Col>
                                 </Row>
                             </Form.Group>
                         </Form>
                     </Col>
-                    <Col>
-                        <Form className="mr-left ">
-                            <Form.Group className="mb-3 form-check-inline" controlId="searchFilterField">
-                                <Row xs={12}>
-                                    <Col xs={6}>
-                                        <Button onClick={() => {(page > 0) && setPage(page - 1)}}>Previous page</Button>
-                                    </Col>
-                                    <Col xs={1}>
-                                        <Form.Label>{page}</Form.Label>
-                                    </Col>
-                                    <Col xs={5}>
-                                        <Button onClick={() => {setPage(page + 1)}}>Next page</Button>
-                                    </Col>
-                                </Row>
-                            </Form.Group>
-                        </Form>
+                    <Col xs={12} md={4} className="mb-2 mb-md-0">
+                        <Button variant="outline-light" onClick={handleRefresh} disabled={nodesLoading || protocolsLoading}>
+                            Refresh
+                        </Button>
+                    </Col>
+                    <Col xs={12} md={3}>
+                        <Row>
+                            <Col xs={6}>
+                                <Button onClick={() => page > 0 && setPage(page - 1)} disabled={page === 0}>
+                                    Previous
+                                </Button>
+                            </Col>
+                            <Col xs={2} className="d-flex align-items-center justify-content-center">
+                                <span>{page}</span>
+                            </Col>
+                            <Col xs={4}>
+                                <Button onClick={() => setPage(page + 1)}>
+                                    Next
+                                </Button>
+                            </Col>
+                        </Row>
                     </Col>
                 </Row>
+
+                <Row className="mb-3">
+                    <Col>
+                        {nodesError ? (
+                            <div className="text-danger">Unable to load nodes.</div>
+                        ) : protocolsError ? (
+                            <div className="text-danger">Unable to load protocols.</div>
+                        ) : nodesLoading || protocolsLoading ? (
+                            <div>Loading nodes...</div>
+                        ) : null}
+                    </Col>
+                </Row>
+
                 <Row>
-                    <Col><BaseTable {...nodesDisplay}></BaseTable></Col>
+                    <Col>
+                        <BaseTable {...nodesDisplay} />
+                    </Col>
                 </Row>
             </Container>
         </>
-    )
-}
+    );
+};
 
-export default NodesListView
+export default NodesListView;

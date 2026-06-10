@@ -12,6 +12,10 @@ export type LoginResponse = {
   access_token: string;
   token_type: string;
   expires_in: number;
+  user_id?: number;
+  idUser?: number;
+  userId?: number;
+  username?: string;
 };
 
 const baseUrl = process.env.REACT_APP_DEVICE_SERVICE_URL || '/';
@@ -30,7 +34,7 @@ const baseQuery = fetchBaseQuery({
 });
 
 // wrapper to handle 401 -> try refresh -> retry original
-const baseQueryWithReauth = async (args: string | FetchArgs, api: any, extraOptions: any) => {
+export const baseQueryWithReauth = async (args: string | FetchArgs, api: any, extraOptions: any) => {
   let result = await baseQuery(args, api, extraOptions);
 
   if (result.error && (result.error as FetchBaseQueryError).status === 401) {
@@ -82,6 +86,11 @@ export const authApi = createApi({
           await queryFulfilled;
         } finally {
           // clear local token regardless of server response
+          if (typeof window !== 'undefined' && window.sessionStorage) {
+            window.sessionStorage.removeItem('accessToken');
+            window.sessionStorage.removeItem('user');
+            window.sessionStorage.removeItem('userId');
+          }
           dispatch(clearCredentials());
         }
       },

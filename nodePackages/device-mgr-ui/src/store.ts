@@ -17,10 +17,22 @@ type AuthState = {
   userId: number | null;
 };
 
-const initialState: AuthState = {
-  accessToken: null,
-  userId: null,
+const loadAuthFromSession = (): AuthState => {
+  if (typeof window === 'undefined' || !window.sessionStorage) {
+    return { accessToken: null, userId: null };
+  }
+
+  const accessToken = window.sessionStorage.getItem('accessToken');
+  const userIdRaw = window.sessionStorage.getItem('userId');
+  const userId = userIdRaw ? Number(userIdRaw) : null;
+
+  return {
+    accessToken: accessToken || null,
+    userId,
+  };
 };
+
+const initialState: AuthState = loadAuthFromSession();
 
 const authSlice = createSlice({
   name: 'auth',
@@ -33,6 +45,11 @@ const authSlice = createSlice({
     clearCredentials: (state) => {
       state.accessToken = null;
       state.userId = null;
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.removeItem('accessToken');
+        window.sessionStorage.removeItem('user');
+        window.sessionStorage.removeItem('userId');
+      }
     },
   },
 });
