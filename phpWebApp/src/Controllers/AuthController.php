@@ -44,8 +44,12 @@ class AuthController {
             return $this->json($res, ['error' => 'invalid_credentials'], 401);
         }
 
-        // Create access token
-        $access = $this->tokenService->createAccessToken(['sub' => $user['idUser'], 'username' => $user['username']]);
+        // Create access token with admin claim
+        $access = $this->tokenService->createAccessToken([
+            'sub' => $user['idUser'], 
+            'username' => $user['username'],
+            'is_admin' => (bool)($user['is_admin'] ?? false)
+        ]);
 
         // Create refresh token (rotateable, stored in DB)
         $refreshToken = $this->createAndStoreRefreshToken((int)$user['idUser']);
@@ -93,6 +97,10 @@ class AuthController {
             }
 
             $userId = (int)$row['user_id'];
+            $userStmt = $this->db->pdo()->prepare('SELECT is_admin FROM users WHERE idUser = :id LIMIT 1');
+            $userStmt->execute(['id' => $userId]);
+            $userRow = $userStmt->fetch(PDO::FETCH_ASSOC);
+            $isAdmin = (bool)($userRow['is_admin'] ?? false);
 
             // Rotate refresh token: mark old revoked and insert new
             $this->db->pdo()->beginTransaction();
@@ -107,8 +115,11 @@ class AuthController {
             $ins->execute(['uid' => $userId, 't' => $newRefresh, 'exp' => $expires]);
             $this->db->pdo()->commit();
 
-            // Issue new access token
-            $access = $this->tokenService->createAccessToken(['sub' => $userId]);
+            // Issue new access token with admin claim
+            $access = $this->tokenService->createAccessToken([
+                'sub' => $userId,
+                'is_admin' => $isAdmin
+            ]);
 
             // Set new refresh cookie
             $this->setRefreshCookie($res, $newRefresh, $refreshTtl);

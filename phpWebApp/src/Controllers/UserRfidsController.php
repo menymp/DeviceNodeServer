@@ -27,13 +27,13 @@ class UserRfidsController
     {
         $auth = $req->getAttribute('user');
         $authUid = $auth['sub'] ?? null;
+        $isAdmin = (bool)($auth['is_admin'] ?? false);
         if (!$authUid) return $this->unauth($res);
 
         $userId = (int)($args['id'] ?? 0);
         if ($userId <= 0) return $this->jsonError($res, 'invalid_user_id', 400);
 
-        // only allow listing own rfids (owner-only)
-        if ((int)$authUid !== $userId) return $this->forbidden($res);
+        if (!$isAdmin && (int)$authUid !== $userId) return $this->forbidden($res);
 
         try {
             $stmt = $this->db->pdo()->prepare('SELECT id, user_id, rfid_id, label, enabled, created_at FROM user_rfids WHERE user_id = :uid ORDER BY created_at DESC');
@@ -56,11 +56,12 @@ class UserRfidsController
     {
         $auth = $req->getAttribute('user');
         $authUid = $auth['sub'] ?? null;
+        $isAdmin = (bool)($auth['is_admin'] ?? false);
         if (!$authUid) return $this->unauth($res);
 
         $userId = (int)($args['id'] ?? 0);
         if ($userId <= 0) return $this->jsonError($res, 'invalid_user_id', 400);
-        if ((int)$authUid !== $userId) return $this->forbidden($res);
+        if (!$isAdmin && (int)$authUid !== $userId) return $this->forbidden($res);
 
         $body = (array)$req->getParsedBody();
         $rfid = isset($body['rfid_id']) ? trim((string)$body['rfid_id']) : '';
@@ -99,12 +100,13 @@ class UserRfidsController
     {
         $auth = $req->getAttribute('user');
         $authUid = $auth['sub'] ?? null;
+        $isAdmin = (bool)($auth['is_admin'] ?? false);
         if (!$authUid) return $this->unauth($res);
 
         $userId = (int)($args['id'] ?? 0);
         $rfidRowId = (int)($args['rfidId'] ?? 0);
         if ($userId <= 0 || $rfidRowId <= 0) return $this->jsonError($res, 'invalid_ids', 400);
-        if ((int)$authUid !== $userId) return $this->forbidden($res);
+        if (!$isAdmin && (int)$authUid !== $userId) return $this->forbidden($res);
 
         $body = (array)$req->getParsedBody();
         $label = array_key_exists('label', $body) ? trim((string)$body['label']) : null;
@@ -143,12 +145,13 @@ class UserRfidsController
     {
         $auth = $req->getAttribute('user');
         $authUid = $auth['sub'] ?? null;
+        $isAdmin = (bool)($auth['is_admin'] ?? false);
         if (!$authUid) return $this->unauth($res);
 
         $userId = (int)($args['id'] ?? 0);
         $rfidRowId = (int)($args['rfidId'] ?? 0);
         if ($userId <= 0 || $rfidRowId <= 0) return $this->jsonError($res, 'invalid_ids', 400);
-        if ((int)$authUid !== $userId) return $this->forbidden($res);
+        if (!$isAdmin && (int)$authUid !== $userId) return $this->forbidden($res);
 
         try {
             $check = $this->db->pdo()->prepare('SELECT id FROM user_rfids WHERE id = :id AND user_id = :uid LIMIT 1');
