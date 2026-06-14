@@ -10,6 +10,15 @@ class AuthMiddleware {
     private TokenService $tokenService;
     public function __construct(TokenService $tokenService) { $this->tokenService = $tokenService; }
     public function __invoke(Request $request, Handler $handler): Response {
+    // Allow preflight requests to pass through without auth
+        if (strtoupper($request->getMethod()) === 'OPTIONS') {
+            // optional debug log
+            error_log('DEBUG AuthMiddleware: bypassing OPTIONS preflight for ' . $request->getUri()->getPath());
+            return $handler->handle($request);
+        }
+
+        error_log('DEBUG cookies: ' . json_encode($request->getHeaderLine('Authorization')));
+        error_log('DEBUG $_COOKIE: ' . json_encode($_COOKIE));
         error_log('DEBUG cookies: ' . json_encode($request->getHeaderLine('Authorization')));
         error_log('DEBUG $_COOKIE: ' . json_encode($_COOKIE));
         $auth = $request->getHeaderLine('Authorization');

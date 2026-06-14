@@ -21,8 +21,13 @@ $container = Dependencies::build($config);
 AppFactory::setContainer($container);
 $app = AppFactory::create();
 
-// global OPTIONS handler to answer preflight early
-$app->options('/{routes:.+}', function ($request, $response, $args) use ($config) {
+// register global OPTIONS route before middleware and routing
+$app->options('/{routes:.+}', function ($request, $response) use ($container, $config) {
+    // optional logging to confirm handler runs
+    if ($container->has('logger')) {
+        $container->get('logger')->info('Global OPTIONS handler invoked for ' . $request->getUri()->getPath());
+    }
+
     $origin = $request->getHeaderLine('Origin') ?: ($config->get('CORS_ORIGIN') ?? '');
     if ($origin) {
         $response = $response
