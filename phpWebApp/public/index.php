@@ -24,30 +24,21 @@ $container = Dependencies::build($config);
 AppFactory::setContainer($container);
 $app = AppFactory::create();
 
-
-// Temporary test handler — insert before $app->add(...) in public/index.php
-// Temporary test handler — insert immediately after $app = AppFactory::create();
+// TEMP debug handler for /auth/login
 $app->options('/auth/login', function ($request, $response) use ($config) {
-    file_put_contents('/tmp/test_options_hit', date('c') . " " . $request->getMethod() . " " . $request->getUri()->getPath() . PHP_EOL, FILE_APPEND);
-    // $origin = $request->getHeaderLine('Origin') ?: ($config->get('CORS_ORIGIN') ?? ''); //NOT SENDING ORIGIN???
-    // if ($origin) {
-       $response = $response
-            ->withHeader('Access-Control-Allow-Origin', "http://localhost:3000") // or use $origin if you want to reflect the request origin
-            ->withHeader('Access-Control-Allow-Credentials', 'true')
-            ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-            ->withHeader('Access-Control-Allow-Headers', $request->getHeaderLine('Access-Control-Request-Headers') ?: 'Content-Type, Authorization')
-            ->withHeader('Vary', 'Origin');
-    // }
-    return $response->withStatus(204);
-});
+    // write a file so we can confirm execution
+    @file_put_contents('/tmp/test_options_hit', date('c') . " " . $request->getMethod() . " " . $request->getUri()->getPath() . PHP_EOL, FILE_APPEND);
 
-$app->post('/auth/login', function ($request, $response) {
-    $body = $request->getParsedBody() ?: json_decode((string)$request->getBody(), true) ?: [];
-    $response->getBody()->write(json_encode([
-        'ok' => true,
-        'received' => $body,
-        'time' => date('c')
-    ]));
-    return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
+    $origin = $request->getHeaderLine('Origin') ?: 'http://localhost:3000';
+    $response = $response
+        ->withHeader('Access-Control-Allow-Origin', $origin)
+        ->withHeader('Access-Control-Allow-Credentials', 'true')
+        ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        ->withHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With')
+        ->withHeader('Vary', 'Origin')
+        ->withHeader('Content-Type', 'application/json');
+
+    $response->getBody()->write(json_encode(['ok' => true, 'method' => 'OPTIONS', 'origin' => $origin]));
+    return $response->withStatus(200);
 });
 
