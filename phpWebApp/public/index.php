@@ -30,7 +30,7 @@ $app = AppFactory::create();
 // TEMP debug handler for /auth/login
 $app->options('/auth/login', function ($request, $response) use ($config) {
     // write a file so we can confirm execution
-    @file_put_contents('/tmp/test_options_hit', date('c') . " " . $request->getMethod() . " " . $request->getUri()->getPath() . PHP_EOL, FILE_APPEND);
+    // @file_put_contents('/tmp/test_options_hit', date('c') . " " . $request->getMethod() . " " . $request->getUri()->getPath() . PHP_EOL, FILE_APPEND);
 
     $origin = $request->getHeaderLine('Origin') ?: 'http://localhost:3000';
     $response = $response
