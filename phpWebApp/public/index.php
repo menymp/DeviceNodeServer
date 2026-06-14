@@ -25,6 +25,21 @@ $app = AppFactory::create();
 $app->add(CorsMiddlewareFactory::create($config));
 
 $app->addBodyParsingMiddleware();
+
+// global OPTIONS handler to answer preflight early
+$app->options('/{routes:.+}', function ($request, $response, $args) use ($config) {
+    $origin = $request->getHeaderLine('Origin') ?: ($config->get('CORS_ORIGIN') ?? '');
+    if ($origin) {
+        $response = $response
+            ->withHeader('Access-Control-Allow-Origin', $origin)
+            ->withHeader('Access-Control-Allow-Credentials', 'true')
+            ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+            ->withHeader('Access-Control-Allow-Headers', $request->getHeaderLine('Access-Control-Request-Headers') ?: 'Content-Type, Authorization')
+            ->withHeader('Vary', 'Origin');
+    }
+    return $response->withStatus(204);
+});
+
 $app->addRoutingMiddleware();
 
 // Error middleware (detailed in dev)
