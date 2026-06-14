@@ -21,11 +21,11 @@ $container = Dependencies::build($config);
 AppFactory::setContainer($container);
 $app = AppFactory::create();
 
-$app->addBodyParsingMiddleware();
-$app->addRoutingMiddleware();
-
 // CORS
 $app->add(CorsMiddlewareFactory::create($config));
+
+$app->addBodyParsingMiddleware();
+$app->addRoutingMiddleware();
 
 // Error middleware (detailed in dev)
 $app->addErrorMiddleware($config->isDebug(), true, true);
