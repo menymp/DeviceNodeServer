@@ -1,7 +1,7 @@
 // src/services/authService.ts
 import { createApi, fetchBaseQuery, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../store';
-import { setCredentials, clearCredentials } from '../store';
+import { setCredentials, clearCredentials } from '../store/authSlice';
 
 export type LoginRequest = {
   username: string;

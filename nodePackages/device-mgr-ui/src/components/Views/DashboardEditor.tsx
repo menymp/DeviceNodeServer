@@ -4,20 +4,15 @@ import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable, { tableInit } from '../Table/Table'
 import { useNavigate } from "react-router-dom"
 import { 
-    useFetchControlsMutation, 
+    useFetchControlsQuery, 
     Control, 
-    useFetchControlsTypesMutation, 
-    useGetControlTypeTemplateMutation, 
-    getControlTypeRequestInfo, 
-    useFetchControlByIdMutation, 
+    useFetchControlTypesQuery, 
+    useFetchControlByIdQuery, 
     useSaveControlMutation,
-    useDeleteControlByIdMutation 
+    useDeleteControlMutation 
 } from "../../services/dashboardService";
-import { useFetchDevicesMutation, useFetchDeviceByIdMutation, device } from '../../services/deviceService'
+import { useFetchDevicesQuery } from '../../services/deviceService'
 import { ITEM_LIST_DISPLAY_CNT } from "../../constants";
-import { current } from "@reduxjs/toolkit";
-import ReactDOM from 'react-dom';
-import { renderToStaticMarkup } from "react-dom/server"
 import $ from 'jquery'
 
 
@@ -48,21 +43,24 @@ const intDevicesTable = {
 const DashboardEditor: React.FC = () => {
     // ToDo: Perform Proper validations
     const [dashEditViewState, setDashEditView] = useState(DASHBOARD_EDITOR_VIEW.HIDE);
-    const [getControls, {isSuccess: controlsLoaded, data: controls}] = useFetchControlsMutation();
-    const [getControlTypes, {isSuccess: controlTypesLoaded, data: availableControlTypes}] = useFetchControlsTypesMutation();
-    const [getControlById, {isSuccess: controlByIdLoaded, data: controlById}] = useFetchControlByIdMutation();
-    const [getControlTypeTemplate, {isSuccess: controlTypeTemplateLoaded, data: controlTypeTemplate}] = useGetControlTypeTemplateMutation();
-    const [saveControl, {isSuccess: controlSaved, isLoading: controlSaving}] = useSaveControlMutation();
-    const [deleteControlById, {isSuccess: controlDeleted, isLoading: controlDeleting}] = useDeleteControlByIdMutation();
-
-    const navigate = useNavigate();
     const [page, setPage] = useState<number>(0);
     const [devicePage, setDevicePage] = useState<number>(0);
     const [displayControls, setDisplayControls] = useState<tableInit>(initialTableState);
     const [selectedEditControl, setSelectedEditControl] = useState<Control>();
     const [devicesDisplay, setDevicesDisplay] = useState<tableInit>(intDevicesTable)
-    const [getDevices] = useFetchDevicesMutation()
     const [selectedDeviceId, setSelectedDeviceId] = useState<string>('')
+
+    const { data: controls = [], isSuccess: controlsLoaded, refetch: refetchControls } = useFetchControlsQuery({ page, size: ITEM_LIST_DISPLAY_CNT });
+    const { data: availableControlTypes = [] } = useFetchControlTypesQuery();
+    const { data: selectedControl } = useFetchControlByIdQuery(
+        { id: selectedEditControl?.idControl ?? -1 },
+        { skip: selectedEditControl?.idControl === undefined || selectedEditControl?.idControl === -1 }
+    );
+    const { data: devices = [] } = useFetchDevicesQuery({ pageCount: devicePage*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT });
+    const [saveControl, {isSuccess: controlSaved, isLoading: controlSaving}] = useSaveControlMutation();
+    const [deleteControl, {isSuccess: controlDeleted, isLoading: controlDeleting}] = useDeleteControlMutation();
+
+    const navigate = useNavigate();
 
     const [controlTypeSelected, setControlTypeSelected] = useState<number>(-1);
     const handleChangeControlType = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -115,56 +113,86 @@ const DashboardEditor: React.FC = () => {
 
     const saveControlChanges = async () => {
         try {
-            //build a new tmp control with newControlName, newLinkDeviceId, newControlParameters, controlTypeSelected
-            // perform validations
             if (!selectedEditControl?.idControl) {
                 return;
             }
 
-            let controlDataToSubmit = {
-                idControl: selectedEditControl?.idControl,
+            const controlDataToSubmit = {
+                idControl: selectedEditControl.idControl,
                 parameters: JSON.parse(newControlParameters.current),
-                Name: newControlName,
-                idType: controlTypeSelected == -1 ? selectedEditControl?.idType : controlTypeSelected
+                Name: newControlName || selectedEditControl.name,
+                idType: controlTypeSelected === -1 ? selectedEditControl?.idType ?? -1 : controlTypeSelected,
             };
-            saveControl(controlDataToSubmit);
+
+            await saveControl(controlDataToSubmit).unwrap();
+            refetchControls();
         } catch(err) {
-            // present a proper err message
+            console.error('Failed to save control', err);
         }
         cleanSelectedDevice();
     }
 
     const cleanSelectedDevice = () => {
-        setSelectedEditControl({idControl: -1, parameters: '', name: '', typename: '', idType: availableControlTypes ? availableControlTypes[0].idControlsTypes : -1 , username: '', controlTemplate: ''})
+        setSelectedEditControl({
+            idControl: -1,
+            parameters: '',
+            name: '',
+            typename: '',
+            idType: availableControlTypes?.[0]?.idControlsTypes ?? -1,
+            username: '',
+            controlTemplate: ''
+        })
         setSelectedDeviceId('')
     }
 
     useEffect(() => {
-        fetchDevices()
-        getControlTypes()
-    },[devicePage])
+        if (!devices?.length) {
+            setDevicesDisplay(intDevicesTable);
+            return;
+        }
+
+        const newTable = {
+            headers: ['Device id', 'Name', 'Mode', 'Type', 'Path', 'Parent node'],
+            rows: devices.map((device) => {return [device.idDevices.toString(), device.name, device.mode, device.type, device.channelPath, device.nodeName]}),
+            selectBtn: true,
+            selectCallback: (devDetails) => {
+                setSelectedDeviceId(devDetails[0]);
+            }
+        } as tableInit;
+        setDevicesDisplay(newTable);
+    }, [devices]);
 
     useEffect(() => {
-        if (!controlTypeSelected || controlTypeSelected === -1) {
+        if (!controlsLoaded || !controls || !controls.length) {
+            setDisplayControls(initialTableState);
             return
         }
-        getControlTypeTemplate({ idControlType: controlTypeSelected} as getControlTypeRequestInfo)
-        if (selectedEditControl && selectedEditControl?.idControl != -1) {
-            getControlById({ idControl: selectedEditControl?.idControl})
-        }
-    }, [controlTypeSelected])
+        //set ui fetched controls
+        const newTable = {
+            headers: ['id', 'name', 'parameters', 'type'],
+            rows: controls.map((control) => {return [control.idControl.toString(), control.name, control.parameters, control.typename]}),
+            detailBtn: false,
+            deleteBtn: true,
+            editBtn: true,
+            editCallback: (selectedControl) => {
+                handleEditControl(selectedControl[0]) 
+            },
+            deleteCallback: (selectedControl) => {
+                handleDeleteControl(selectedControl[0]) 
+            }
+        } as tableInit
+        setDisplayControls(newTable);
+    }, [controlsLoaded, controls])
 
     useEffect(() => {
-        if (!controlTypeTemplate || !controlTypeTemplateLoaded) {
-            return
+        if (!selectedControl || !selectedEditControl) {
+            return;
         }
-        let newCtrl = {
-            ...selectedEditControl,
-            controlTemplate: controlTypeTemplate[0].controlTemplate
-        } as Control;
-        setSelectedEditControl(newCtrl);
-        // build a control template and display it on the UI
-    }, [controlTypeTemplateLoaded, controlTypeTemplate, controlByIdLoaded])
+        if (selectedEditControl.idControl !== selectedControl.idControl) {
+            return;
+        }
+        setSelectedEditControl({ ...selectedEditControl, ...selectedControl });
+    }, [selectedControl, selectedEditControl]);
 
     const parseJsonInputData = (data: string) => {
         var decodedData = JSON.parse(data);
@@ -303,22 +331,22 @@ const DashboardEditor: React.FC = () => {
         }
     }
 
-    const fetchDevices = async () => {
-        try {
-            const devices = await getDevices({pageCount: devicePage*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT}).unwrap()
-            const newTable = {
-                headers: ['Device id', 'Name', 'Mode', 'Type', 'Path', 'Parent node'],
-                rows: devices.map((device) => {return [device.idDevices.toString(), device.name, device.mode, device.type, device.channelPath, device.nodeName]}),
-                selectBtn: true,
-                selectCallback: (devDetails) => { 
-                    setSelectedDeviceId(devDetails[0]) 
-                }
-            } as tableInit
-            setDevicesDisplay(newTable)
-        } catch (error) {
-            console.log(error);
+    useEffect(() => {
+        if (!devices?.length) {
+            setDevicesDisplay(intDevicesTable);
+            return;
         }
-    }
+
+        const newTable = {
+            headers: ['Device id', 'Name', 'Mode', 'Type', 'Path', 'Parent node'],
+            rows: devices.map((device) => {return [device.idDevices.toString(), device.name, device.mode, device.type, device.channelPath, device.nodeName]}),
+            selectBtn: true,
+            selectCallback: (devDetails) => {
+                setSelectedDeviceId(devDetails[0])
+            }
+        } as tableInit;
+        setDevicesDisplay(newTable);
+    }, [devices]);
 
     useEffect(() => {
         if (!controlsLoaded || !controls || !controls.length) {
@@ -357,16 +385,17 @@ const DashboardEditor: React.FC = () => {
         }
     }
 
-    const handleDeleteControl = (idSelectControl: string) => {
+    const handleDeleteControl = async (idSelectControl: string) => {
         if (window.confirm('Quieres elimiar el nodo: ' + idSelectControl + '?')) {
-            deleteControlById({idControl:parseInt(idSelectControl)});
-            getControls({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT});
+            try {
+                await deleteControl({id: parseInt(idSelectControl)}).unwrap();
+                refetchControls();
+            } catch (error) {
+                console.error('Failed to delete control', error);
+            }
         }
     }
 
-    useEffect(() => {
-        getControls({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT})
-    },[page, controlSaving, controlDeleting]);
 
     const hideEditor = () => {
         setDashEditView(DASHBOARD_EDITOR_VIEW.HIDE)
@@ -483,10 +512,10 @@ const DashboardEditor: React.FC = () => {
                     </Button>
                     <Button variant="primary" onClick={() => { 
                         setDashEditView(DASHBOARD_EDITOR_VIEW.SPECIFIC_PARAMETERS);
-                        if (!availableControlTypes) {
-                            return
+                        if (!availableControlTypes || !availableControlTypes.length) {
+                            return;
                         }
-                        getControlTypeTemplate({ idControlType: controlTypeSelected !== -1 ? controlTypeSelected : availableControlTypes[0].idControlsTypes} as getControlTypeRequestInfo); 
+                        setControlTypeSelected(controlTypeSelected !== -1 ? controlTypeSelected : availableControlTypes[0].idControlsTypes);
                         }}>
                         Next
                     </Button>

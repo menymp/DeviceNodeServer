@@ -5,9 +5,8 @@ import BaseTable from '../Table/Table';
 import { useNavigate } from "react-router-dom";
 import { WEB_SOCK_SERVER_ADDR, SHOW_CONTROL_SIZE } from '../../constants';
 import { 
-    useFetchControlsMutation, 
+    useFetchControlsQuery, 
     Control,
-    controlTemplate
 } from "../../services/dashboardService";
 import { reactUIControll, deviceCommand, CONTROL_TYPE} from '../../types/ControlTypes';
 import DigitalOutput from './controls/DigitalOutput';
@@ -16,22 +15,26 @@ import SensorRead from "./controls/SensorRead";
 import DigitalInput from "./controls/DigitalInput";
 import TextSender from "./controls/TextSender"
 import { CONTROLS_COLUMN_NUM, DISPLAY_CONTROLS_NUM } from '../../constants';
-import { create } from "domain";
 import { v4 as uuid } from 'uuid';
 
 const DashboardView: React.FC = () => {
     const [show, setShow] = useState(false);
     const [page, setPage] = useState<number>(0);
     const navigate = useNavigate();
-    const [getControls, {isSuccess: controlsLoaded, data: controls}] = useFetchControlsMutation();
     const [displayUIControls, setDisplayUIControls] = useState<Array<reactUIControll>>([]);
     const [controlsGrid, setControlsGrid] = useState<Array<React.ReactElement>>([]);
+    const { data: controls = [], isSuccess: controlsLoaded } = useFetchControlsQuery({ page, size: DISPLAY_CONTROLS_NUM });
 
     const handleClose = () => setShow(false);
 
     let ws = useRef<WebSocket|null>();
 
     useEffect(() => {
+        if (!WEB_SOCK_SERVER_ADDR) {
+            console.warn('WEB_SOCK_SERVER_ADDR is not defined');
+            return;
+        }
+
         ws.current = new WebSocket(WEB_SOCK_SERVER_ADDR);
         ws.current.onopen = () => console.log("ws opened");
         ws.current.onclose = () => console.log("ws closed");
@@ -50,10 +53,6 @@ const DashboardView: React.FC = () => {
 
         buildControlApperance(controls); // change for table logic
     }, [controlsLoaded, controls, ws.current?.readyState]);
-
-    useEffect(() => {
-        getControls({ pageCount: page*DISPLAY_CONTROLS_NUM, pageSize:  DISPLAY_CONTROLS_NUM });
-    }, [page]);
 
     useEffect(() => {
         if (!displayUIControls?.length) {

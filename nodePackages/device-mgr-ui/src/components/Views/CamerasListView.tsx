@@ -2,7 +2,7 @@ import React from "react";
 import { useState, useEffect } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable, { tableInit } from '../Table/Table'
-import { useFetchCamerasMutation, useAddCamMutation, useUpdateCamMutation, useDeleteCamMutation, camera} from '../../services/camerasService'
+import { useFetchCamerasQuery, Camera } from '../../services/camerasService'
 import { ITEM_LIST_DISPLAY_CNT } from '../../constants'
 
 const initialCamerasState = {
@@ -14,18 +14,14 @@ const initialCamerasState = {
 }
 
 const CamerasListView: React.FC = () => {
-    const [getCameras, {isSuccess: cammerasFetched, data: currentCameras}] = useFetchCamerasMutation()
-    const [addNewCamera, {isSuccess: successCreatedCam}] = useAddCamMutation()
-    const [updateCamera, {isSuccess: successUpdatedCam}] = useUpdateCamMutation()
-    const [deleteCamera, {isSuccess: successDeletedCam}] = useDeleteCamMutation()
+    const [page, setPage] = useState<number>(0)
+    const { data: currentCameras = [], isSuccess: camerasFetched } = useFetchCamerasQuery({ page, size: ITEM_LIST_DISPLAY_CNT });
     const [show, setShow] = useState(false);
-    const [selectedEditCamera, setSelectedEditCamera] = useState<camera>();
+    const [selectedEditCamera, setSelectedEditCamera] = useState<Camera>();
 
     const handleClose = () => setShow(false);
     const handleShow = () => setShow(true);
 
-
-    const [page, setPage] = useState<number>(0)
     const [camerasDisplay, setCamerasDisplay] = useState<tableInit>(initialCamerasState)
     const [newName, setNewName] = useState<string>();
     const handleChangeName = (event: React.ChangeEvent<HTMLInputElement>) => setNewName(event.target.value); //ToDo: perform validations
@@ -51,18 +47,11 @@ const CamerasListView: React.FC = () => {
         if (!newName || !newParameters || !selectedEditCamera?.idVideoSource) {
             return
         }
-        if (selectedEditCamera?.idVideoSource === -1) {
-            // create new camera
-            addNewCamera({name: newName, sourceParameters: newParameters})
-        }
-        else {
-            // update existing camera data
-            updateCamera({name: newName, sourceParameters: newParameters, idVideoSource: selectedEditCamera?.idVideoSource})
-        }
+        console.warn('Camera creation and update are not supported by the current camerasService contract.');
     }
 
     const cleanSelectedCam = () => {
-        setSelectedEditCamera({name: "", username: sessionStorage.getItem("user"), sourceParameters:"", idVideoSource: -1} as camera);
+        setSelectedEditCamera({name: "", username: sessionStorage.getItem("user"), sourceParameters:"", idVideoSource: -1} as Camera);
     }
 
     const deleteSelectedCamera = () => {
@@ -70,23 +59,15 @@ const CamerasListView: React.FC = () => {
             return
         }
         if (window.confirm('Quieres elimiar la camara: ' + selectedEditCamera?.name + '?')) {
-            deleteCamera({idVideoSource: selectedEditCamera?.idVideoSource});
+            console.warn('Camera delete is not supported by the current camerasService contract.');
             setShow(false);
             cleanSelectedCam();
         }
     }
 
-    const fetchCameras = async () => {
-        try {
-            setCamerasDisplay(initialCamerasState);
-            getCameras({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT})
-        } catch (error) {
-            console.log(error);
-        }
-    }
-
     useEffect(() => {
-        if (!cammerasFetched || !currentCameras?.length) {
+        if (!camerasFetched || !currentCameras?.length) {
+            setCamerasDisplay(initialCamerasState);
             return
         }
         const newTable = {
@@ -100,11 +81,7 @@ const CamerasListView: React.FC = () => {
             }
         } as tableInit
         setCamerasDisplay(newTable)
-    }, [cammerasFetched, currentCameras])
-
-    useEffect(() => {
-        fetchCameras()
-    },[page, successCreatedCam, successUpdatedCam, successDeletedCam])
+    }, [camerasFetched, currentCameras])
     
     return(
         <>

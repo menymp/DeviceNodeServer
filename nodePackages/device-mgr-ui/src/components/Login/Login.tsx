@@ -1,9 +1,9 @@
 // src/pages/Login.tsx
 import React, { useEffect, useState } from 'react';
 import { Container, Row, Col, Card, Form, Button } from 'react-bootstrap';
-import { useLoginMutation } from '../services/authService';
-import { useAppDispatch, useAppSelector } from '../storeHooks';
-import { setCredentials } from '../store';
+import { useLoginMutation } from '../../services/authService';
+import { useAppDispatch, useAppSelector } from '../../storeHooks';
+import { setCredentials } from '../../store';
 import { useNavigate } from 'react-router-dom';
 
 export default function Login() {

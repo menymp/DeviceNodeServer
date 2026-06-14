@@ -1,95 +1,103 @@
 import React from "react";
 import { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
-import BaseTable from '../Table/Table'
-import { useNavigate } from "react-router-dom";
-import WebSocket from 'ws';
-import { dashboardCameraConfigs, useFetchConfigsMutation, useDeleteByIdMutation, useSaveVideoDashboardMutation } from "../../services/camerasDashboardService";
+import {
+    useFetchDashboardsQuery,
+    useCreateDashboardMutation,
+    useUpdateDashboardMutation,
+    useDeleteDashboardMutation,
+    VideoDashboard,
+    ConfigCameraData,
+} from "../../services/camerasDashboardService";
 import { ITEM_LIST_DISPLAY_CNT } from '../../constants';
 
-const initialTableState = {
-    headers: ['Node id', 'Name', 'Path', 'Protocol', 'Owner', 'Parameters'],
-    rows: [],
-    detailBtn: false,
-    deleteBtn: false,
-    editBtn: false,
-}
-
 const CamerasDashboardView: React.FC = () => {
-    /* implement a editor function to create cameras */
-    const [show, setShow] = useState(false);
-    const navigate = useNavigate();
-    const [getConfigsFetch, {isSuccess: configsLoaded, data: dashConfigs}] = useFetchConfigsMutation();
-    const [deleteConfigById, {isSuccess: successDelete }] = useDeleteByIdMutation();
-    const [saveDashboardConfig, {isSuccess: successSave }] = useSaveVideoDashboardMutation();
+    const { data: dashConfigs = [], isSuccess: configsLoaded, refetch } = useFetchDashboardsQuery();
+    const [createDashboard] = useCreateDashboardMutation();
+    const [updateDashboard] = useUpdateDashboardMutation();
+    const [deleteDashboard] = useDeleteDashboardMutation();
 
+    const [show, setShow] = useState(false);
     const [page, setPage] = useState<number>(0);
     const [startVideo, setStartVideo] = useState<boolean>(false);
     const startVideoRef = useRef(false);
+    const [selectedConfig, setSelectedConfig] = useState<VideoDashboard | undefined>();
 
-    const [selectedConfig, setSelectedConfig] = useState<dashboardCameraConfigs>();
-    const currentCameraValues = selectedConfig?.configJsonFetch
+    const currentCameraValues: ConfigCameraData = selectedConfig?.config ?? {};
 
     const handleChangeConfig = (event: React.ChangeEvent<HTMLSelectElement>) => {
         if (!configsLoaded || !dashConfigs || !event.target.value) {
             return;
         }
-        const selectedConfigTmp = dashConfigs?.find((config) => config.idvideoDashboard === parseInt(event.target.value))
+        const selectedConfigTmp = dashConfigs.find((config) => config.id === parseInt(event.target.value, 10));
         if (selectedConfigTmp) {
-            setSelectedConfig(selectedConfigTmp)
+            setSelectedConfig(selectedConfigTmp);
         }
     }
 
-    const handleSaveConfigs = () => {
-        if (!selectedConfig) {
-            return
+    const handleSaveConfigs = async () => {
+        if (!selectedConfig || !selectedConfig.config) {
+            return;
         }
-        saveDashboardConfig(selectedConfig);
+
+        if (selectedConfig.id === -1) {
+            await createDashboard({ configJsonFetch: selectedConfig.config });
+        } else {
+            await updateDashboard({ id: selectedConfig.id, configJsonFetch: selectedConfig.config });
+        }
+
+        refetch();
     }
 
-    const handleDeleteConfigs = () => {
-        if (!selectedConfig) {
-            return
+    const handleDeleteConfigs = async () => {
+        if (!selectedConfig || selectedConfig.id === -1) {
+            return;
         }
-        if (window.confirm('Quieres elimiar la configuracion: ' + selectedConfig.idvideoDashboard + '?')) {
-            deleteConfigById(selectedConfig);
+        if (window.confirm('Quieres elimiar la configuracion: ' + selectedConfig.id + '?')) {
+            await deleteDashboard({ id: selectedConfig.id });
+            refetch();
+            setShow(false);
         }
-        
     }
 
     const handleClose = () => {
-        getConfigsFetch({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT});
+        refetch();
         setShow(false);
     }
+
     const handleShow = () => {
         setShow(true);
     }
 
     const handleNewDashConfig = () => {
-        // inits selected data with empty case
-        if (!sessionStorage.getItem("userId")) {
-            return
+        const userId = sessionStorage.getItem("userId");
+        if (!userId) {
+            return;
         }
-        setSelectedConfig({idOwnerUser: parseInt(sessionStorage.getItem("userId")!),idvideoDashboard: -1, configJsonFetch: {height: 400, width: 600, idText: 1, idList: []} });
+        setSelectedConfig({
+            id: -1,
+            config: { height: 400, width: 600, idText: 1, idList: [], rowLen: 0 },
+            idOwnerUser: parseInt(userId, 10),
+        });
         handleShow();
     }
 
     useEffect(() => {
         startVideoRef.current = startVideo;
-    }, [startVideo])
+    }, [startVideo]);
 
     useEffect(() => {
         setSelectedConfig(undefined);
-        getConfigsFetch({pageCount: page*ITEM_LIST_DISPLAY_CNT, pageSize: ITEM_LIST_DISPLAY_CNT});
-    },[page]);
+        refetch();
+    }, [page, refetch]);
 
     useEffect(() => {
-        if (!configsLoaded || !dashConfigs || selectedConfig) {
+        if (!dashConfigs || dashConfigs.length === 0 || selectedConfig) {
             return;
         }
         setSelectedConfig(dashConfigs[0]);
-    }, [configsLoaded, dashConfigs])
-    
+    }, [dashConfigs, selectedConfig]);
+
     const handleStartVideo = () => {
         setStartVideo(true);
         videoLoopStart();
@@ -100,11 +108,11 @@ const CamerasDashboardView: React.FC = () => {
     }
 
     const getFrame = () => {
-        var image = document.getElementById("videofield");
-        if (!image || !selectedConfig) {
+        const image = document.getElementById("videofield");
+        if (!image || !selectedConfig || !selectedConfig.config) {
             return;
         }
-        image.setAttribute('src', process.env.REACT_APP_VIDEO_SEED_URL+JSON.stringify(JSON.stringify(selectedConfig.configJsonFetch)));
+        image.setAttribute('src', `${process.env.REACT_APP_VIDEO_SEED_URL}${JSON.stringify(JSON.stringify(selectedConfig.config))}`);
     }
 
     const videoLoopStart = () => {
@@ -116,22 +124,18 @@ const CamerasDashboardView: React.FC = () => {
 
     const validateAndCreateArray = (input: string): number[] | null => {
         const parts = input.split(',');
-    
-        // Validate each part
+
         for (const part of parts) {
             const num = parseInt(part.trim(), 10);
             if (isNaN(num)) {
-                // Invalid integer found
                 return null;
             }
         }
-    
-        // Convert valid parts to an array of integers
-        const result = parts.map(part => parseInt(part.trim(), 10));
-        return result;
+
+        return parts.map(part => parseInt(part.trim(), 10));
     }
 
-    return(
+    return (
         <>
             <Modal show={show} onHide={handleClose}>
                 <Modal.Header closeButton>
@@ -144,14 +148,15 @@ const CamerasDashboardView: React.FC = () => {
                             <Form.Control
                                 type="text"
                                 placeholder="height ..."
-                                defaultValue={
-                                    selectedConfig?.configJsonFetch?.height? currentCameraValues?.height : ""
-                                }
+                                defaultValue={currentCameraValues.height ?? ""}
                                 onChange={(e) => {
                                     if (!selectedConfig) {
-                                        return
+                                        return;
                                     }
-                                    setSelectedConfig({...selectedConfig, configJsonFetch: {...currentCameraValues, height: parseInt(e.target.value)}});
+                                    setSelectedConfig({
+                                        ...selectedConfig,
+                                        config: { ...currentCameraValues, height: parseInt(e.target.value, 10) },
+                                    });
                                 }}
                                 autoFocus
                             />
@@ -159,35 +164,44 @@ const CamerasDashboardView: React.FC = () => {
                             <Form.Control
                                 type="text"
                                 placeholder="width ..."
-                                defaultValue={currentCameraValues?.width? currentCameraValues?.width : ""}
+                                defaultValue={currentCameraValues.width ?? ""}
                                 onChange={(e) => {
                                     if (!selectedConfig) {
-                                        return
+                                        return;
                                     }
-                                    setSelectedConfig({...selectedConfig, configJsonFetch: {...currentCameraValues, width: parseInt(e.target.value)}});
+                                    setSelectedConfig({
+                                        ...selectedConfig,
+                                        config: { ...currentCameraValues, width: parseInt(e.target.value, 10) },
+                                    });
                                 }}
                             />
                             <Form.Label>Row Length</Form.Label>
                             <Form.Control
                                 type="text"
                                 placeholder="row length ..."
-                                defaultValue={currentCameraValues?.rowLen? currentCameraValues?.rowLen : ""}
+                                defaultValue={currentCameraValues.rowLen ?? ""}
                                 onChange={(e) => {
                                     if (!selectedConfig) {
-                                        return
+                                        return;
                                     }
-                                    setSelectedConfig({...selectedConfig, configJsonFetch: {...currentCameraValues, rowLen: parseInt(e.target.value)}});
+                                    setSelectedConfig({
+                                        ...selectedConfig,
+                                        config: { ...currentCameraValues, rowLen: parseInt(e.target.value, 10) },
+                                    });
                                 }}
                             />
                             <Form.Label>Id List</Form.Label>
                             <Form.Control
                                 type="text"
                                 placeholder="id list ..."
-                                defaultValue={currentCameraValues?.idList? (currentCameraValues.idList.join(",")) : ""}
+                                defaultValue={currentCameraValues.idList ? currentCameraValues.idList.join(",") : ""}
                                 onChange={(e) => {
                                     const array = validateAndCreateArray(e.target.value);
                                     if (array && selectedConfig) {
-                                        setSelectedConfig({...selectedConfig, configJsonFetch: {...currentCameraValues, idList: array}});
+                                        setSelectedConfig({
+                                            ...selectedConfig,
+                                            config: { ...currentCameraValues, idList: array },
+                                        });
                                     }
                                 }}
                             />
@@ -195,38 +209,45 @@ const CamerasDashboardView: React.FC = () => {
                             <Form.Control
                                 type="text"
                                 placeholder="id text ..."
-                                defaultValue={currentCameraValues?.idText? currentCameraValues?.idText : ""}
+                                defaultValue={currentCameraValues.idText ?? ""}
                                 onChange={(e) => {
                                     if (!selectedConfig) {
-                                        return
+                                        return;
                                     }
-                                    setSelectedConfig({...selectedConfig, configJsonFetch: {...currentCameraValues, idText: parseInt(e.target.value)}});
+                                    setSelectedConfig({
+                                        ...selectedConfig,
+                                        config: { ...currentCameraValues, idText: parseInt(e.target.value, 10) },
+                                    });
                                 }}
                             />
                         </Form.Group>
                     </Form>
                 </Modal.Body>
                 <Modal.Footer>
-                    <Button variant="primary" onClick={() =>{
+                    <Button
+                        variant="primary"
+                        onClick={() => {
                             handleSaveConfigs();
                             handleClose();
-                        }}>
+                        }}
+                    >
                         Save
                     </Button>
-                    <Button variant="secondary" onClick={() =>{
+                    <Button
+                        variant="secondary"
+                        onClick={() => {
                             handleDeleteConfigs();
                             handleClose();
-                        }}>
+                        }}
+                    >
                         Delete
                     </Button>
-                    <Button variant="secondary" onClick={() =>{
-                            handleClose();
-                        }}>
+                    <Button variant="secondary" onClick={handleClose}>
                         Close
                     </Button>
                 </Modal.Footer>
             </Modal>
-            <Container >
+            <Container>
                 <Row className="p-3 mb-2 bg-success bg-gradient text-white rounded-3">
                     <Col xs={1}>
                         <Button onClick={handleShow}>Editor</Button>
@@ -244,7 +265,11 @@ const CamerasDashboardView: React.FC = () => {
                         <Form.Group className="mb-3" controlId="nodeDetails.protocol">
                             <Form.Label>Node protocol</Form.Label>
                             <Form.Select onChange={handleChangeConfig} aria-label="MQTT" id="selectedConfigItem">
-                                {dashConfigs?.map((value, index) => { return <option id={`${index}`} value={value.idvideoDashboard}>{value.idvideoDashboard}</option>})}
+                                {dashConfigs.map((value, index) => (
+                                    <option key={value.id} id={`${index}`} value={value.id}>
+                                        {value.id}
+                                    </option>
+                                ))}
                             </Form.Select>
                         </Form.Group>
                     </Col>
@@ -253,13 +278,13 @@ const CamerasDashboardView: React.FC = () => {
                             <Form.Group className="mb-3 form-check-inline" controlId="searchFilterField">
                                 <Row xs={12}>
                                     <Col xs={5}>
-                                        <Button onClick={() => {(page > 0) && setPage(page - 1)}}>Previous page</Button>
+                                        <Button onClick={() => page > 0 && setPage(page - 1)}>Previous page</Button>
                                     </Col>
                                     <Col xs={1}>
                                         <Form.Label>{page}</Form.Label>
                                     </Col>
                                     <Col xs={6}>
-                                        <Button onClick={() => {setPage(page + 1)}}>Next page</Button>
+                                        <Button onClick={() => setPage(page + 1)}>Next page</Button>
                                     </Col>
                                 </Row>
                             </Form.Group>
@@ -267,11 +292,11 @@ const CamerasDashboardView: React.FC = () => {
                     </Col>
                 </Row>
                 <Row>
-                    <img id="videofield" />
+                    <img id="videofield" alt="Video dashboard" />
                 </Row>
             </Container>
         </>
-    )
-}
+    );
+};
 
-export default CamerasDashboardView
+export default CamerasDashboardView;

@@ -2,7 +2,7 @@ import React from "react";
 import { useState, useEffect, useRef } from 'react';
 import { Container, Row, Col, Button, Form, Modal } from 'react-bootstrap';
 import BaseTable, { tableInit } from '../Table/Table'
-import { useFetchDevicesMutation, useFetchDeviceByIdMutation, device } from '../../services/deviceService'
+import { useFetchDeviceByIdentifierQuery } from '../../services/deviceService'
 import { ITEM_LIST_DISPLAY_CNT } from '../../constants'
 import useControlUtils from "../../hooks/useControlUtils";
 import { 
@@ -35,13 +35,15 @@ const initialTableState = {
 
 const DeviceHistory = (params:  DeviceHistoryParameters) => {
     const {ws, idDevice} = params
-    const [getDeviceById, {isSuccess: selectedDeviceFound, data: matchDevices}] = useFetchDeviceByIdMutation()
+    useFetchDeviceByIdentifierQuery(
+        { identifier: idDevice },
+        { skip: !idDevice }
+    );
     const [measuresDisplay, setMeasuresDisplay] = useState<tableInit>(initialTableState)
 
     useEffect(() => {
-        getDeviceById({deviceId: parseInt(idDevice)});
-
-    },[])
+        // Device history is driven by WebSocket updates; device details are available from query when needed.
+    }, [idDevice])
 
     const getControlParameters = () => {
         return {idDevice, servercommand: "getMeasures"} as GetHistoryParameters;

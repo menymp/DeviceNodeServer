@@ -93,10 +93,11 @@ export const dashboardService = createApi({
         body: payload,
         headers: { 'Content-Type': 'application/json' },
       }),
-      invalidatesTags: (result, error, arg) => {
-        const invalidates = [{ type: 'Controls', id: 'LIST' }];
-        if (arg.idControl) invalidates.push({ type: 'Controls', id: arg.idControl });
-        return invalidates;
+      invalidatesTags: (result, error, arg): Array<{ type: 'Controls'; id: string }> => {
+        return [
+          { type: 'Controls' as const, id: 'LIST' },
+          ...(arg.idControl ? [{ type: 'Controls' as const, id: String(arg.idControl) }] : []),
+        ];
       },
     }),
 
