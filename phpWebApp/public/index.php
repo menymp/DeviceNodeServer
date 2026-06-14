@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+header("Access-Control-Allow-Origin: *");
+header('Access-Control-Allow-Headers: Content-Type');
+
 use Slim\Factory\AppFactory;
 use App\Dependencies;
 use App\Config;
