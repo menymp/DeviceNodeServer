@@ -7,8 +7,8 @@ declare(strict_types=1);
 use Slim\Factory\AppFactory;
 use App\Dependencies;
 use App\Config;
-use App\Middleware\CorsMiddlewareFactory;
-use App\Middleware\AuthMiddleware;
+// use App\Middleware\CorsMiddlewareFactory;
+// use App\Middleware\AuthMiddleware;
 use Dotenv\Dotenv;
 
 require __DIR__ . '/../vendor/autoload.php';
@@ -19,6 +19,9 @@ $dotenv->safeLoad();
 // Build config and DI container
 $config = new Config($_ENV);
 $container = Dependencies::build($config);
+
+header("Access-Control-Allow-Origin: http://localhost:3000");
+header("Access-Control-Allow-Credentials: true");
 
 // Attach container to Slim
 AppFactory::setContainer($container);
