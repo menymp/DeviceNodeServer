@@ -20,8 +20,8 @@ $dotenv->safeLoad();
 $config = new Config($_ENV);
 $container = Dependencies::build($config);
 
-header("Access-Control-Allow-Origin: http://localhost:3000");
-header("Access-Control-Allow-Credentials: true");
+//header("Access-Control-Allow-Origin: http://localhost:3000");
+//header("Access-Control-Allow-Credentials: true");
 
 // Attach container to Slim
 AppFactory::setContainer($container);
