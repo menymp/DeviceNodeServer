@@ -23,8 +23,9 @@ $app = AppFactory::create();
 
 
 // Temporary test handler — insert before $app->add(...) in public/index.php
-
+// Temporary test handler — insert immediately after $app = AppFactory::create();
 $app->options('/auth/login', function ($request, $response) use ($config) {
+    file_put_contents('/tmp/test_options_hit', date('c') . " " . $request->getMethod() . " " . $request->getUri()->getPath() . PHP_EOL, FILE_APPEND);
     $origin = $request->getHeaderLine('Origin') ?: ($config->get('CORS_ORIGIN') ?? '');
     if ($origin) {
         $response = $response
@@ -46,3 +47,4 @@ $app->post('/auth/login', function ($request, $response) {
     ]));
     return $response->withHeader('Content-Type', 'application/json')->withStatus(200);
 });
+
