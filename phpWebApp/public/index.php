@@ -22,10 +22,13 @@ AppFactory::setContainer($container);
 $app = AppFactory::create();
 
 // register global OPTIONS route before middleware and routing
+// public/index.php — global OPTIONS handler (exact)
 $app->options('/{routes:.+}', function ($request, $response) use ($container, $config) {
-    // optional logging to confirm handler runs
+    // log immediately so we know Slim reached this handler
     if ($container->has('logger')) {
         $container->get('logger')->info('Global OPTIONS handler invoked for ' . $request->getUri()->getPath());
+    } else {
+        error_log('Global OPTIONS handler invoked for ' . $request->getUri()->getPath());
     }
 
     $origin = $request->getHeaderLine('Origin') ?: ($config->get('CORS_ORIGIN') ?? '');
