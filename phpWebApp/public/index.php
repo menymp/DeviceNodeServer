@@ -21,11 +21,6 @@ $container = Dependencies::build($config);
 AppFactory::setContainer($container);
 $app = AppFactory::create();
 
-// CORS
-$app->add(CorsMiddlewareFactory::create($config));
-
-$app->addBodyParsingMiddleware();
-
 // global OPTIONS handler to answer preflight early
 $app->options('/{routes:.+}', function ($request, $response, $args) use ($config) {
     $origin = $request->getHeaderLine('Origin') ?: ($config->get('CORS_ORIGIN') ?? '');
@@ -39,6 +34,11 @@ $app->options('/{routes:.+}', function ($request, $response, $args) use ($config
     }
     return $response->withStatus(204);
 });
+
+// CORS
+$app->add(CorsMiddlewareFactory::create($config));
+
+$app->addBodyParsingMiddleware();
 
 $app->addRoutingMiddleware();
 
