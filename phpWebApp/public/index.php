@@ -25,6 +25,7 @@ $app = AppFactory::create();
 // public/index.php — global OPTIONS handler (exact)
 $app->options('/{routes:.+}', function ($request, $response) use ($container, $config) {
     // log immediately so we know Slim reached this handler
+    error_log('GLOBAL_OPTIONS: ' . $request->getMethod() . ' ' . $request->getUri()->getPath());
     if ($container->has('logger')) {
         $container->get('logger')->info('Global OPTIONS handler invoked for ' . $request->getUri()->getPath());
     } else {
