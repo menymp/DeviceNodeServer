@@ -29,15 +29,15 @@ $app = AppFactory::create();
 // Temporary test handler — insert immediately after $app = AppFactory::create();
 $app->options('/auth/login', function ($request, $response) use ($config) {
     file_put_contents('/tmp/test_options_hit', date('c') . " " . $request->getMethod() . " " . $request->getUri()->getPath() . PHP_EOL, FILE_APPEND);
-    $origin = $request->getHeaderLine('Origin') ?: ($config->get('CORS_ORIGIN') ?? '');
-    if ($origin) {
-        $response = $response
-            ->withHeader('Access-Control-Allow-Origin', "localhost:3000") // or use $origin if you want to reflect the request origin
+    // $origin = $request->getHeaderLine('Origin') ?: ($config->get('CORS_ORIGIN') ?? ''); //NOT SENDING ORIGIN???
+    // if ($origin) {
+       $response = $response
+            ->withHeader('Access-Control-Allow-Origin', "http://localhost:3000") // or use $origin if you want to reflect the request origin
             ->withHeader('Access-Control-Allow-Credentials', 'true')
             ->withHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
             ->withHeader('Access-Control-Allow-Headers', $request->getHeaderLine('Access-Control-Request-Headers') ?: 'Content-Type, Authorization')
             ->withHeader('Vary', 'Origin');
-    }
+    // }
     return $response->withStatus(204);
 });
 
