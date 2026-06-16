@@ -17,12 +17,14 @@ $dotenv->safeLoad();
 $config = new Config($_ENV);
 $container = Dependencies::build($config);
 
+$logger = $container->get('logger');
+
 // Attach container to Slim
 AppFactory::setContainer($container);
 $app = AppFactory::create();
 
 // CORS
-$app->add(CorsMiddlewareFactory::create($config));
+$logger->error('LOADED ORIGINS MENYYYYYYYYYYYYY: .' . $config->get('CORS_ORIGIN') . '.');
 
 // register global OPTIONS route before middleware and routing
 // public/index.php — global OPTIONS handler (exact)
@@ -61,7 +63,6 @@ $app->get('/health', function ($req, $res) {
 // Resolve shared services from container
 /** @var Psr\Container\ContainerInterface $container */
 $tokenService = $container->get('tokenService');
-$logger = $container->get('logger');
 $db = $container->get('db');
 $userService = $container->get('userService');
 
