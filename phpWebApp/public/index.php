@@ -21,6 +21,9 @@ $container = Dependencies::build($config);
 AppFactory::setContainer($container);
 $app = AppFactory::create();
 
+// CORS
+$app->add(CorsMiddlewareFactory::create($config));
+
 // register global OPTIONS route before middleware and routing
 // public/index.php — global OPTIONS handler (exact)
 $app->options('/{routes:.+}', function ($request, $response) use ($container, $config) {
@@ -40,7 +43,7 @@ $app->options('/{routes:.+}', function ($request, $response) use ($container, $c
 });
 
 // CORS
-$app->add(CorsMiddlewareFactory::create($config));
+//$app->add(CorsMiddlewareFactory::create($config));
 
 $app->addBodyParsingMiddleware();
 
