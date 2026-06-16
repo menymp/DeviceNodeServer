@@ -24,14 +24,11 @@ AppFactory::setContainer($container);
 $app = AppFactory::create();
 
 // CORS
-$logger->error('LOADED ORIGINS MENYYYYYYYYYYYYY: .' . $config->get('CORS_ORIGIN') . '.');
 $app->add(CorsMiddlewareFactory::create($config, $logger));
 
 // register global OPTIONS route before middleware and routing
 // public/index.php — global OPTIONS handler (exact)
-$app->options('/{routes:.+}', function ($request, $response) use ($container, $config, $logger) {
-    // immediate, unmistakable log
-    $logger->error('LOADED ORIGINS MENYYYYYYYYYYYYY: .' . $config->get('CORS_ORIGIN') . '.');
+$app->options('/{routes:.+}', function ($request, $response) use ($container, $config) {
 
     $origin = $request->getHeaderLine('Origin') ?: ($config->get('CORS_ORIGIN') ?? '');
     if ($origin) {
@@ -57,7 +54,6 @@ $app->addErrorMiddleware($config->isDebug(), true, true);
 
 // Health check
 $app->get('/health', function ($req, $res, $logger) {
-    //$logger->error('LOADED Headers MENYYYYYYYYYYYYY: .' . $req->getHeaderLine('Origin') . '.');
     $res->getBody()->write(json_encode(['status' => 'ok']));
     return $res;
 });
