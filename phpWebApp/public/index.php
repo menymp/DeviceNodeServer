@@ -59,7 +59,7 @@ $app->addErrorMiddleware($config->isDebug(), true, true);
 $app->get('/health', function ($req, $res, $logger) {
     $logger->error('LOADED Headers MENYYYYYYYYYYYYY: .' . $req . '.');
     $res->getBody()->write(json_encode(['status' => 'ok']));
-    return $res->withHeader('Content-Type', 'application/json');
+    return $res;
 });
 
 // Resolve shared services from container
