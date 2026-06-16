@@ -29,9 +29,9 @@ $app->add(CorsMiddlewareFactory::create($config));
 
 // register global OPTIONS route before middleware and routing
 // public/index.php — global OPTIONS handler (exact)
-$app->options('/{routes:.+}', function ($request, $response) use ($container, $config) {
+$app->options('/{routes:.+}', function ($request, $response) use ($container, $config, $logger) {
     // immediate, unmistakable log
-    error_log('GLOBAL_OPTIONS_HANDLER: ' . $request->getMethod() . ' ' . $request->getUri()->getPath());
+    $logger->error('LOADED ORIGINS MENYYYYYYYYYYYYY: .' . $config->get('CORS_ORIGIN') . '.');
 
     $origin = $request->getHeaderLine('Origin') ?: ($config->get('CORS_ORIGIN') ?? '');
     if ($origin) {
@@ -56,7 +56,8 @@ $app->addRoutingMiddleware();
 $app->addErrorMiddleware($config->isDebug(), true, true);
 
 // Health check
-$app->get('/health', function ($req, $res) {
+$app->get('/health', function ($req, $res, $logger) {
+    $logger->error('LOADED ORIGINS MENYYYYYYYYYYYYY: .' . $req . '.');
     $res->getBody()->write(json_encode(['status' => 'ok']));
     return $res->withHeader('Content-Type', 'application/json');
 });
