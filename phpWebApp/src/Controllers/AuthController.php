@@ -199,7 +199,7 @@ class AuthController {
 
     private function json(Response $res, $data, $status = 200): Response {
         $res->getBody()->write(json_encode($data));
-        return $res->withHeader('Content-Type', 'application/json')->withStatus($status);
+        return $res->withStatus($status);
     }
 }
 
