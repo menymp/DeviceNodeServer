@@ -25,6 +25,7 @@ $app = AppFactory::create();
 
 // CORS
 $logger->error('LOADED ORIGINS MENYYYYYYYYYYYYY: .' . $config->get('CORS_ORIGIN') . '.');
+$app->add(CorsMiddlewareFactory::create($config));
 
 // register global OPTIONS route before middleware and routing
 // public/index.php — global OPTIONS handler (exact)
