@@ -57,7 +57,7 @@ $app->addErrorMiddleware($config->isDebug(), true, true);
 
 // Health check
 $app->get('/health', function ($req, $res, $logger) {
-    $logger->error('LOADED ORIGINS MENYYYYYYYYYYYYY: .' . $req . '.');
+    $logger->error('LOADED Headers MENYYYYYYYYYYYYY: .' . $req . '.');
     $res->getBody()->write(json_encode(['status' => 'ok']));
     return $res->withHeader('Content-Type', 'application/json');
 });
