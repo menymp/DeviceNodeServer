@@ -183,7 +183,7 @@ class AuthController {
         $ttl = $ttl ?? (int)($this->config['REFRESH_TOKEN_TTL'] ?? $_ENV['REFRESH_TOKEN_TTL'] ?? 1209600);
         $secure = ($this->config['APP_ENV'] ?? $_ENV['APP_ENV'] ?? 'production') !== 'development';
         $cookie = sprintf(
-            'refresh_token=%s; HttpOnly; Path=/; Max-Age=%d; SameSite=Lax%s',
+            'refresh_token=%s; HttpOnly; Path=/; Max-Age=%d; SameSite=None%s',
             $token,
             $ttl,
             $secure ? '; Secure' : ''
@@ -192,7 +192,15 @@ class AuthController {
     }
 
     private function clearRefreshCookie(Response $res): Response {
-        $cookie = 'refresh_token=deleted; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+        $secure = ($this->config['APP_ENV'] ?? $_ENV['APP_ENV'] ?? 'production') !== 'development';
+        $cookie = sprintf(
+            'refresh_token=deleted; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=None%s',
+            $secure ? '; Secure' : ''
+        )
+        $cookie = sprintf(
+            'refresh_token=deleted; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=None%s',
+            $secure ? '; Secure' : ''
+        );
         header('Set-Cookie: ' . $cookie, false);
         return $res;
     }

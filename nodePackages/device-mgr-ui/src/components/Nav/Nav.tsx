@@ -7,19 +7,17 @@ import Form from 'react-bootstrap/Form';
 import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Button from 'react-bootstrap/Button'
-import { useState, useEffect } from 'react';
+import { useAppDispatch } from "../../storeHooks";
+import { clearCredentials } from "../../store";
 import { isSessionActive } from "../../utils/sessionUtils";
 import { useNavigate } from "react-router-dom";
 
 const NavMenu: React.FC<{}> = () => {
     const navigate = useNavigate();
-
-    useEffect(() => {
-    },[sessionStorage])
+    const dispatch = useAppDispatch();
 
     const userLogOut  = () => {
-      sessionStorage.setItem("user", "");
-      sessionStorage.setItem("userId", "");
+      dispatch(clearCredentials());
       navigate('/Login');
     }
 

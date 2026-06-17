@@ -46,8 +46,7 @@ export const devicesService = createApi({
       // We use POST to support legacy clients that send body; backend accepts both.
       query: (params) => ({
         url: '/api/devices',
-        method: 'POST',
-        body: params ?? {},
+        method: 'GET',
       }),
       providesTags: (result) =>
         result
