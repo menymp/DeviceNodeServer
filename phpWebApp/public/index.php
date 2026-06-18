@@ -28,6 +28,7 @@ $app->add(CorsMiddlewareFactory::create($config, $logger));
 
 // register global OPTIONS route before middleware and routing
 // public/index.php — global OPTIONS handler (exact)
+/*
 $app->options('/{routes:.+}', function ($request, $response) use ($container, $config) {
 
     $origin = $request->getHeaderLine('Origin') ?: ($config->get('CORS_ORIGIN') ?? '');
@@ -39,6 +40,11 @@ $app->options('/{routes:.+}', function ($request, $response) use ($container, $c
             ->withHeader('Access-Control-Allow-Headers', $request->getHeaderLine('Access-Control-Request-Headers') ?: 'Content-Type, Authorization')
             ->withHeader('Vary', 'Origin');
     }
+    return $response->withStatus(204);
+});*/
+// Optional: keep a minimal OPTIONS handler that returns 204 but do NOT set CORS headers here.
+// Tuupola middleware will already set the CORS headers.
+$app->options('/{routes:.+}', function ($request, $response) {
     return $response->withStatus(204);
 });
 

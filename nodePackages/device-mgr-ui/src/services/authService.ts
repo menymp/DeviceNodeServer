@@ -37,8 +37,9 @@ const baseQuery = fetchBaseQuery({
 export const baseQueryWithReauth = async (args: string | FetchArgs, api: any, extraOptions: any) => {
   let result = await baseQuery(args, api, extraOptions);
 
+  // If unauthorized, attempt refresh and retry original request
   if (result.error && (result.error as FetchBaseQueryError).status === 401) {
-    // try refresh
+    // call refresh endpoint (will include cookie because credentials: 'include')
     const refreshResult = await baseQuery(
       {
         url: '/auth/refresh',
@@ -51,12 +52,25 @@ export const baseQueryWithReauth = async (args: string | FetchArgs, api: any, ex
     if (refreshResult.data) {
       // refresh returned new access token
       const data = refreshResult.data as LoginResponse;
-      api.dispatch(setCredentials({ accessToken: data.access_token }));
+      const userId = (data as any).user_id ?? (data as any).idUser ?? (data as any).userId ?? null;
+      api.dispatch(setCredentials({ accessToken: data.access_token, userId }));
+
+      // persist to sessionStorage
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.setItem('accessToken', data.access_token);
+        if (userId !== null) window.sessionStorage.setItem('userId', String(userId));
+      }
+
       // retry original request
       result = await baseQuery(args, api, extraOptions);
     } else {
       // refresh failed -> clear credentials
       api.dispatch(clearCredentials());
+      if (typeof window !== 'undefined' && window.sessionStorage) {
+        window.sessionStorage.removeItem('accessToken');
+        window.sessionStorage.removeItem('userId');
+        window.sessionStorage.removeItem('user');
+      }
     }
   }
 
@@ -72,10 +86,22 @@ export const authApi = createApi({
         url: '/auth/login',
         method: 'POST',
         body: credentials,
-        // credentials included by baseQuery
       }),
-      // on success, caller should dispatch setCredentials with returned token
+      async onQueryStarted(arg, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const userId = (data as any).user_id ?? (data as any).idUser ?? (data as any).userId ?? null;
+          dispatch(setCredentials({ accessToken: data.access_token, userId }));
+          if (typeof window !== 'undefined' && window.sessionStorage) {
+            window.sessionStorage.setItem('accessToken', data.access_token);
+            if (userId !== null) window.sessionStorage.setItem('userId', String(userId));
+          }
+        } catch {
+          // login failed — nothing to persist
+        }
+      },
     }),
+
     logout: builder.mutation<void, void>({
       query: () => ({
         url: '/auth/logout',
@@ -95,9 +121,23 @@ export const authApi = createApi({
         }
       },
     }),
-    // optional explicit refresh endpoint (used internally by baseQueryWithReauth)
+
+    // explicit refresh endpoint (used internally by baseQueryWithReauth or can be used directly)
     refresh: builder.mutation<LoginResponse, void>({
       query: () => ({ url: '/auth/refresh', method: 'POST' }),
+      async onQueryStarted(_, { dispatch, queryFulfilled }) {
+        try {
+          const { data } = await queryFulfilled;
+          const userId = (data as any).user_id ?? (data as any).idUser ?? (data as any).userId ?? null;
+          dispatch(setCredentials({ accessToken: data.access_token, userId }));
+          if (typeof window !== 'undefined' && window.sessionStorage) {
+            window.sessionStorage.setItem('accessToken', data.access_token);
+            if (userId !== null) window.sessionStorage.setItem('userId', String(userId));
+          }
+        } catch {
+          // refresh failed — handled by baseQueryWithReauth or caller
+        }
+      },
     }),
   }),
 });

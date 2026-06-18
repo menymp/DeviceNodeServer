@@ -46,16 +46,16 @@ class AuthController {
 
         // Create access token with admin claim
         $access = $this->tokenService->createAccessToken([
-            'sub' => $user['idUser'], 
+            'sub' => $user['idUser'],
             'username' => $user['username'],
             'is_admin' => (bool)($user['is_admin'] ?? false)
         ]);
 
-        // Create refresh token (rotateable, stored in DB)
+        // Create refresh token (rotatable, stored in DB)
         $refreshToken = $this->createAndStoreRefreshToken((int)$user['idUser']);
 
-        // Set refresh token as httpOnly secure cookie
-        $this->setRefreshCookie($res, $refreshToken);
+        // Set refresh token as httpOnly secure cookie (modify $res)
+        $res = $this->setRefreshCookie($res, $refreshToken);
 
         return $this->json($res, [
             'access_token' => $access,
@@ -121,8 +121,8 @@ class AuthController {
                 'is_admin' => $isAdmin
             ]);
 
-            // Set new refresh cookie
-            $this->setRefreshCookie($res, $newRefresh, $refreshTtl);
+            // Set new refresh cookie (modify $res)
+            $res = $this->setRefreshCookie($res, $newRefresh, $refreshTtl);
 
             return $this->json($res, [
                 'access_token' => $access,
@@ -141,8 +141,6 @@ class AuthController {
      * Revokes refresh token cookie and removes it from DB (or marks revoked).
      */
     public function logout(Request $req, Response $res): Response {
-        error_log('DEBUG cookies: ' . json_encode($req->getCookieParams()));
-        error_log('DEBUG $_COOKIE: ' . json_encode($_COOKIE));
         $cookies = $req->getCookieParams();
         $refresh = $cookies['refresh_token'] ?? null;
         if ($refresh) {
@@ -154,7 +152,7 @@ class AuthController {
             }
         }
 
-        // Clear cookie
+        // Clear cookie (modify $res)
         $res = $this->clearRefreshCookie($res);
 
         return $this->json($res, ['result' => 'ok']);
@@ -179,35 +177,66 @@ class AuthController {
         return rtrim(strtr(base64_encode(random_bytes($len)), '+/', '-_'), '=');
     }
 
-    private function setRefreshCookie(Response $res, string $token, ?int $ttl = null): void {
+    /**
+     * Set refresh cookie on the PSR-7 response and return the modified response.
+     * Uses SameSite=None and Secure in non-development environments.
+     */
+    private function setRefreshCookie(Response $res, string $token, ?int $ttl = null): Response {
         $ttl = $ttl ?? (int)($this->config['REFRESH_TOKEN_TTL'] ?? $_ENV['REFRESH_TOKEN_TTL'] ?? 1209600);
-        $secure = ($this->config['APP_ENV'] ?? $_ENV['APP_ENV'] ?? 'production') !== 'development';
-        $cookie = sprintf(
-            'refresh_token=%s; HttpOnly; Path=/; Max-Age=%d; SameSite=None%s',
-            $token,
-            $ttl,
-            $secure ? '; Secure' : ''
-        );
-        header('Set-Cookie: ' . $cookie, false);
+        $env = $this->config['APP_ENV'] ?? $_ENV['APP_ENV'] ?? 'production';
+        $secure = $env !== 'development';
+
+        // Use rawurlencode to ensure safe cookie value
+        $value = rawurlencode($token);
+
+        $parts = [
+            "refresh_token={$value}",
+            "Path=/",
+            "Max-Age={$ttl}",
+            "HttpOnly",
+            "SameSite=None"
+        ];
+        if ($secure) {
+            $parts[] = "Secure";
+        }
+
+        $cookie = implode('; ', $parts);
+
+        // Use withAddedHeader so we don't clobber other Set-Cookie headers
+        return $res->withAddedHeader('Set-Cookie', $cookie);
     }
 
+    /**
+     * Clear the refresh cookie by setting an expired cookie on the PSR-7 response.
+     */
     private function clearRefreshCookie(Response $res): Response {
-        $secure = ($this->config['APP_ENV'] ?? $_ENV['APP_ENV'] ?? 'production') !== 'development';
-        $cookie = sprintf(
-            'refresh_token=deleted; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=None%s',
-            $secure ? '; Secure' : ''
-        )
-        $cookie = sprintf(
-            'refresh_token=deleted; HttpOnly; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=None%s',
-            $secure ? '; Secure' : ''
-        );
-        header('Set-Cookie: ' . $cookie, false);
-        return $res;
+        $env = $this->config['APP_ENV'] ?? $_ENV['APP_ENV'] ?? 'production';
+        $secure = $env !== 'development';
+
+        $parts = [
+            "refresh_token=deleted",
+            "Path=/",
+            "Expires=Thu, 01 Jan 1970 00:00:00 GMT",
+            "HttpOnly",
+            "SameSite=None"
+        ];
+        if ($secure) {
+            $parts[] = "Secure";
+        }
+
+        $cookie = implode('; ', $parts);
+
+        return $res->withAddedHeader('Set-Cookie', $cookie);
     }
 
+    /**
+     * Write JSON to response body and set Content-Type header.
+     */
     private function json(Response $res, $data, $status = 200): Response {
-        $res->getBody()->write(json_encode($data));
-        return $res->withStatus($status);
+        $payload = json_encode($data);
+        $res->getBody()->write($payload);
+        return $res->withHeader('Content-Type', 'application/json')->withStatus($status);
     }
 }
+
 

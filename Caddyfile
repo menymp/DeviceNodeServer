@@ -1,0 +1,115 @@
+# Caddyfile for single-origin proxying of React, PHP API, WebSocket and Video service
+# Host / IP to serve (replace with your public domain in production)
+{$CADDY_HOST} {
+    # -------------------------
+    # Global defaults
+    # -------------------------
+    # Optional: enable local TLS for development (uncomment if you want Caddy to use internal CA)
+    # tls internal
+
+    # -------------------------
+    # API proxy: /api/*
+    # -------------------------
+    handle_path /api/* {
+        reverse_proxy php-node-service:80 {
+            header_up Host {host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-For {remote}
+            # preserve original client IP in X-Real-IP if needed
+            header_up X-Real-IP {remote_host}
+        }
+
+        # Reflect Origin and allow credentials so browser will accept refresh cookie
+        # NOTE: This reflects any Origin header. For production, replace with a matcher that only allows your trusted origins.
+        header_down Access-Control-Allow-Origin "{http.request.header.Origin}"
+        header_down Access-Control-Allow-Credentials "true"
+        header_down Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        header_down Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+        header_down Vary "Origin"
+    }
+
+    # -------------------------
+    # WebSocket proxy: /workHandler* (preserves Upgrade)
+    # -------------------------
+    handle_path /workHandler* {
+        reverse_proxy websocket-service:{$WEBSOCKET_PORT} {
+            header_up Host {host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-For {remote}
+            header_up X-Real-IP {remote_host}
+        }
+
+        # If your WS client relies on cookies for auth, ensure cookies are set for this host.
+        header_down Access-Control-Allow-Origin "{http.request.header.Origin}"
+        header_down Access-Control-Allow-Credentials "true"
+        header_down Vary "Origin"
+    }
+
+    # -------------------------
+    # Video feed proxy: /video_feed (or /video/*)
+    # -------------------------
+    handle_path /video_feed {
+        reverse_proxy video-composer-service:{$VIDEO_SEED_PORT} {
+            header_up Host {host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-For {remote}
+            header_up X-Real-IP {remote_host}
+        }
+
+        # If video endpoints require cookies, allow credentials
+        header_down Access-Control-Allow-Origin "{http.request.header.Origin}"
+        header_down Access-Control-Allow-Credentials "true"
+        header_down Vary "Origin"
+    }
+
+    # If you prefer a /video/* prefix instead:
+    # handle_path /video/* {
+    #   reverse_proxy video-composer-service:{$VIDEO_SEED_PORT}
+    #   ...
+    # }
+
+    # -------------------------
+    # Static / React UI proxy (everything else)
+    # -------------------------
+    # Proxy all other requests to the React service (or serve static files if you mount the build)
+    handle {
+        reverse_proxy react-device-manager-ui:{$REACT_MANAGER_PORT} {
+            header_up Host {host}
+            header_up X-Forwarded-Proto {scheme}
+            header_up X-Forwarded-For {remote}
+            header_up X-Real-IP {remote_host}
+        }
+
+        # Allow CORS headers for assets/requests if needed (usually not required for same-origin)
+        header_down Access-Control-Allow-Origin "{http.request.header.Origin}"
+        header_down Access-Control-Allow-Credentials "true"
+        header_down Vary "Origin"
+    }
+
+    # -------------------------
+    # Optional: health check path (forward to php or return simple 200)
+    # -------------------------
+    handle_path /health {
+        # If your PHP app has /api/health, you can proxy; otherwise return a simple 200
+        respond "ok" 200
+    }
+
+    # -------------------------
+    # Notes and recommended production changes
+    # -------------------------
+    # 1) Restrict reflected Origin to a whitelist:
+    #    Replace the header_down lines above with a handle_response block that only sets the headers
+    #    when the Origin matches an allowed list. Example (pseudo):
+    #
+    #    @allowed_origin header_regexp Origin ^(http://localhost:3000|https://app.example.com)$
+    #    handle_response @allowed_origin {
+    #      header_down Access-Control-Allow-Origin "{http.request.header.Origin}"
+    #      header_down Access-Control-Allow-Credentials "true"
+    #    }
+    #
+    # 2) In production use a real domain (e.g., app.example.com). Caddy will automatically obtain TLS.
+    # 3) Ensure your PHP refresh endpoint sets the cookie with:
+    #      Secure; HttpOnly; SameSite=None
+    #    and that the cookie domain matches this host (or is host-only).
+    # 4) For local development you can use `tls internal` above or run Caddy with mkcert-generated certs.
+}
