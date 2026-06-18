@@ -158,7 +158,7 @@ services:
       NODE_ENV: production
       # point to the public Caddy origin (frontend will use this)
       REACT_APP_BASE_ORIGIN: ${CADDY_ORIGIN}
-      REACT_APP_COMMAND_WEBSOCKET_URL: wss://${CADDY_HOST}/workHandler
+      REACT_APP_COMMAND_WEBSOCKET_URL: ws://${CADDY_HOST}/workHandler
       REACT_APP_DEVICE_SERVICE_URL: https://${CADDY_HOST}/api
       REACT_APP_VIDEO_SEED_URL: http://${CADDY_HOST}:${VIDEO_SEED_PORT}/video_feed?vidArgs=
     #ports:
