@@ -61,7 +61,14 @@ const DevicesListView: React.FC = () => {
 
   useEffect(() => {
     const wsEndpoint = WEB_SOCK_SERVER_ADDR || 'ws://localhost:8112';
-    const socket = new WebSocket(wsEndpoint);
+
+    const accessToken = sessionStorage.getItem('accessToken');
+    if (!accessToken) {
+      console.warn('Access token not found in sessionStorage');
+      return;
+    }
+
+    const socket = new WebSocket(`${WEB_SOCK_SERVER_ADDR}?access_token=${encodeURIComponent(accessToken)}`);
 
     socket.onopen = () => console.log('ws opened');
     socket.onclose = () => console.log('ws closed');

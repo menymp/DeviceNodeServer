@@ -34,8 +34,12 @@ const DashboardView: React.FC = () => {
             console.warn('WEB_SOCK_SERVER_ADDR is not defined');
             return;
         }
-
-        ws.current = new WebSocket(WEB_SOCK_SERVER_ADDR);
+        const accessToken = sessionStorage.getItem('accessToken');
+        if (!accessToken) {
+            console.warn('Access token not found in sessionStorage');
+            return;
+        }
+        ws.current = new WebSocket(`${WEB_SOCK_SERVER_ADDR}?access_token=${encodeURIComponent(accessToken)}`);
         ws.current.onopen = () => console.log("ws opened");
         ws.current.onclose = () => console.log("ws closed");
 
