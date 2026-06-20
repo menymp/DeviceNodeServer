@@ -55,7 +55,7 @@
     ]
   },
   "devDependencies": {
-    "@types/chroma-js": "^2.4.4",
+    "@types/chroma-js": "^3.1.2",
     "@types/react-gauge-chart": "^0.4.3"
   }
 }

@@ -1,10 +1,14 @@
+# Dockerfile for react-device-manager-ui
+
 # Stage 1: Build the React app
 FROM node:20-alpine AS build
 WORKDIR /app
 
 # Copy dependency files first for caching
 COPY package.json yarn.lock ./
-RUN yarn install --frozen-lockfile --non-interactive --production
+
+# Install all dependencies (devDependencies required for build)
+RUN yarn install --frozen-lockfile --non-interactive
 
 # Copy the rest of the source code
 COPY . .
@@ -23,8 +27,8 @@ RUN rm -rf ./*
 COPY --from=build /app/build .
 
 # Copy custom Nginx config (important for React Router)
+# This expects nginx.conf to be present in the build context (project root)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
-CMD ["nginx", "-g", "daemon off;"]
 
