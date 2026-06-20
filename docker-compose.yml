@@ -143,6 +143,8 @@ services:
       WEBSOCKET_PORT: "${WEBSOCKET_PORT}"   # pass compose env into caddy container
       VIDEO_SEED_PORT: "${VIDEO_SEED_PORT}"
       REACT_MANAGER_PORT: "${REACT_MANAGER_PORT}"
+      CADDY_HOST: "${CADDY_HOST}"
+      CADDY_ORIGIN: "${CADDY_ORIGIN}"
     depends_on:
       - php-node-service
       - websocket-service
