@@ -151,7 +151,7 @@ services:
 
   react-device-manager-ui:
     build:
-      context: .
+      context: ./nodePackages/device-mgr-ui/
       dockerfile: ./nodePackages/device-mgr-ui/Dockerfile
     restart: always
     environment:
