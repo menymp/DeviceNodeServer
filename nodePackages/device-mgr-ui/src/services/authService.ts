@@ -10,6 +10,7 @@ export type LoginRequest = {
 
 export type LoginResponse = {
   access_token: string;
+  refresh_token: string; // not the best practice to return it in body, but for testing
   token_type: string;
   expires_in: number;
   user_id?: number;
@@ -39,11 +40,13 @@ export const baseQueryWithReauth = async (args: string | FetchArgs, api: any, ex
 
   // If unauthorized, attempt refresh and retry original request
   if (result.error && (result.error as FetchBaseQueryError).status === 401) {
+    const refreshToken = sessionStorage.getItem("refreshToken");
     // call refresh endpoint (will include cookie because credentials: 'include')
     const refreshResult = await baseQuery(
       {
         url: '/auth/refresh',
         method: 'POST',
+        body: { refresh_token: refreshToken } // during testing, this is not a good practice since it nulls the purpose of cookies and refresh long live token
       },
       api,
       extraOptions
@@ -58,6 +61,7 @@ export const baseQueryWithReauth = async (args: string | FetchArgs, api: any, ex
       // persist to sessionStorage
       if (typeof window !== 'undefined' && window.sessionStorage) {
         window.sessionStorage.setItem('accessToken', data.access_token);
+        window.sessionStorage.setItem('refreshToken', data.refresh_token);
         if (userId !== null) window.sessionStorage.setItem('userId', String(userId));
       }
 
@@ -94,6 +98,7 @@ export const authApi = createApi({
           dispatch(setCredentials({ accessToken: data.access_token, userId }));
           if (typeof window !== 'undefined' && window.sessionStorage) {
             window.sessionStorage.setItem('accessToken', data.access_token);
+            window.sessionStorage.setItem('refreshToken', data.refresh_token);
             if (userId !== null) window.sessionStorage.setItem('userId', String(userId));
           }
         } catch {

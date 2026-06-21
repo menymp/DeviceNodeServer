@@ -59,6 +59,7 @@ class AuthController {
 
         return $this->json($res, [
             'access_token' => $access,
+            'refresh_token' => $refreshToken, // not the best practice to return it in body, but for testing
             'token_type' => 'Bearer',
             'expires_in' => (int)($this->config['ACCESS_TOKEN_TTL'] ?? $_ENV['ACCESS_TOKEN_TTL'] ?? 300)
         ]);
@@ -70,8 +71,8 @@ class AuthController {
      */
     public function refresh(Request $req, Response $res): Response {
         // Read cookie
-        $cookies = $req->getCookieParams();
-        $refresh = $cookies['refresh_token'] ?? null;
+        // $cookies = $req->getCookieParams(); NOT THE BEST PRACTICE, BUT IS TESTING FOR NOW
+        $refresh = $body['refresh_token'] ?? null;
         if (!$refresh) {
             return $this->json($res, ['error' => 'no_refresh_token'], 401);
         }
