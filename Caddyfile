@@ -2,7 +2,7 @@
 # Host / IP to serve (replace with your public domain in production)
 {$CADDY_HOST} {
     # Optional: enable local TLS for development
-    # tls internal
+    tls internal
 
     # -------------------------
     # API proxy: /api/*
