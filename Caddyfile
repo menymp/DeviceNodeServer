@@ -1,9 +1,6 @@
 {$CADDY_HOST} {
-    # Preflight responder for backend paths (unique matcher name)
-    @backendPreflight_opts method OPTIONS
-    @backendPreflight_opts path /backend/*
-
-    handle @backendPreflight_opts {
+    # Preflight responder for backend paths (inline matcher, no @name)
+    handle method OPTIONS path /backend/* {
         header Access-Control-Allow-Origin "{http.request.header.Origin}"
         header Access-Control-Allow-Credentials "true"
         header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
@@ -28,7 +25,7 @@
         header Vary "Origin"
     }
 
-    # WebSocket proxy: /socket*
+    # WebSocket proxy: /socket* (preserves Upgrade)
     handle_path /socket* {
         reverse_proxy websocket-service:{$WEBSOCKET_PORT} {
             header_up Host {host}
@@ -75,3 +72,4 @@
         header Vary "Origin"
     }
 }
+
