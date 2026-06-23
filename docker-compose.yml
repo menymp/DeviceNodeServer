@@ -116,7 +116,7 @@ services:
       JWT_PRIVATE_KEY_PATH: /var/www/html/secrets/jwt_private_key
       JWT_PUBLIC_KEY_PATH: /var/www/html/secrets/jwt_public_key
       # IMPORTANT: set to the Caddy origin (use https://your.domain)
-      CORS_ORIGIN: ${CADDY_ORIGIN}
+      CORS_ORIGIN: ${CORS_ORIGIN}
     secrets:
       - db_user_password
       - jwt_private_key
