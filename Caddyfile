@@ -2,6 +2,34 @@
 # Host / IP to serve (replace with your public domain in production)
 {$CADDY_HOST} {
 
+    # Auth proxy: /auth/*
+    handle_path /health {
+        reverse_proxy php-node-service:80 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+
+            header_down Access-Control-Allow-Origin "{http.request.header.Origin}"
+            header_down Access-Control-Allow-Credentials "true"
+            header_down Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+            header_down Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+            header_down Vary "Origin"
+        }
+    }
+
+    # Auth proxy: /auth/*
+    handle_path /auth/* {
+        reverse_proxy php-node-service:80 {
+            header_up Host {host}
+            header_up X-Real-IP {remote_host}
+
+            header_down Access-Control-Allow-Origin "{http.request.header.Origin}"
+            header_down Access-Control-Allow-Credentials "true"
+            header_down Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+            header_down Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+            header_down Vary "Origin"
+        }
+    }
+
     # -------------------------
     # API proxy: /api/*
     # -------------------------
@@ -60,13 +88,6 @@
             header_down Access-Control-Allow-Credentials "true"
             header_down Vary "Origin"
         }
-    }
-
-    # -------------------------
-    # Health check
-    # -------------------------
-    handle_path /health {
-        respond "ok" 200
     }
 }
 
