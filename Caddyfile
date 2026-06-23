@@ -4,7 +4,7 @@
     # -------------------------
     # API proxy: /api/*
     # -------------------------
-    handle_path /backend/* {
+    handle_path /backend* {
         reverse_proxy php-node-service:80 {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
@@ -19,9 +19,9 @@
     }
 
     # -------------------------
-    # WebSocket proxy: /workHandler* (preserves Upgrade)
+    # WebSocket proxy: /socket* (preserves Upgrade)
     # -------------------------
-    handle_path /workHandler* {
+    handle_path /socket* {
         reverse_proxy websocket-service:{$WEBSOCKET_PORT} {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
@@ -34,9 +34,9 @@
     }
 
     # -------------------------
-    # Video feed proxy: /video_feed
+    # Video feed proxy: /video
     # -------------------------
-    handle_path /video_feed {
+    handle_path /video* {
         reverse_proxy video-composer-service:{$VIDEO_SEED_PORT} {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
