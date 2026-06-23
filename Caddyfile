@@ -1,11 +1,9 @@
 {$CADDY_HOST} {
-    # -------------------------
-    # Preflight responder for backend paths (answer OPTIONS before proxying)
-    # -------------------------
-    @backendPreflight method OPTIONS
-    @backendPreflight path /backend/*
+    # Preflight responder for backend paths (unique matcher name)
+    @backendPreflight_opts method OPTIONS
+    @backendPreflight_opts path /backend/*
 
-    handle @backendPreflight {
+    handle @backendPreflight_opts {
         header Access-Control-Allow-Origin "{http.request.header.Origin}"
         header Access-Control-Allow-Credentials "true"
         header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
@@ -14,9 +12,7 @@
         respond "" 204
     }
 
-    # -------------------------
     # Backend proxy: /backend* (proxy real requests; add CORS headers on responses)
-    # -------------------------
     handle_path /backend* {
         reverse_proxy php-node-service:80 {
             header_up Host {host}
@@ -25,7 +21,6 @@
             header_up X-Forwarded-Proto {scheme}
         }
 
-        # CORS headers for actual responses
         header Access-Control-Allow-Origin "{http.request.header.Origin}"
         header Access-Control-Allow-Credentials "true"
         header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
@@ -33,9 +28,7 @@
         header Vary "Origin"
     }
 
-    # -------------------------
-    # WebSocket proxy: /socket* (preserves Upgrade)
-    # -------------------------
+    # WebSocket proxy: /socket*
     handle_path /socket* {
         reverse_proxy websocket-service:{$WEBSOCKET_PORT} {
             header_up Host {host}
@@ -49,9 +42,7 @@
         header Vary "Origin"
     }
 
-    # -------------------------
     # Video feed proxy: /video*
-    # -------------------------
     handle_path /video* {
         reverse_proxy video-composer-service:{$VIDEO_SEED_PORT} {
             header_up Host {host}
@@ -65,16 +56,12 @@
         header Vary "Origin"
     }
 
-    # -------------------------
     # Health check
-    # -------------------------
     handle_path /health {
         respond "ok" 200
     }
 
-    # -------------------------
     # Static / React UI proxy (everything else)
-    # -------------------------
     handle {
         reverse_proxy react-device-manager-ui:{$REACT_MANAGER_PORT} {
             header_up Host {host}
