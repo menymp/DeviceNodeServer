@@ -1,8 +1,6 @@
 # Caddyfile for single-origin proxying of React, PHP API, WebSocket and Video service
 # Host / IP to serve (replace with your public domain in production)
 {$CADDY_HOST} {
-    # Optional: enable local TLS for development
-    tls off
 
     # -------------------------
     # API proxy: /api/*
