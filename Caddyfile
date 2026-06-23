@@ -1,21 +1,36 @@
-# Caddyfile for single-origin proxying of React, PHP API, WebSocket and Video service
-# Host / IP to serve (replace with your public domain in production)
 {$CADDY_HOST} {
     # -------------------------
-    # API proxy: /api/*
+    # Preflight responder for backend paths (answer OPTIONS before proxying)
+    # -------------------------
+    @backendPreflight method OPTIONS
+    @backendPreflight path /backend/*
+
+    handle @backendPreflight {
+        header Access-Control-Allow-Origin "{http.request.header.Origin}"
+        header Access-Control-Allow-Credentials "true"
+        header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        header Access-Control-Allow-Headers "{http.request.header.Access-Control-Request-Headers}"
+        header Vary "Origin"
+        respond "" 204
+    }
+
+    # -------------------------
+    # Backend proxy: /backend* (proxy real requests; add CORS headers on responses)
     # -------------------------
     handle_path /backend* {
         reverse_proxy php-node-service:80 {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
-
-            # Add CORS response headers for API responses
-            header_down Access-Control-Allow-Origin "{http.request.header.Origin}"
-            header_down Access-Control-Allow-Credentials "true"
-            header_down Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
-            header_down Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
-            header_down Vary "Origin"
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
         }
+
+        # CORS headers for actual responses
+        header Access-Control-Allow-Origin "{http.request.header.Origin}"
+        header Access-Control-Allow-Credentials "true"
+        header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+        header Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+        header Vary "Origin"
     }
 
     # -------------------------
@@ -25,26 +40,36 @@
         reverse_proxy websocket-service:{$WEBSOCKET_PORT} {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
-
-            # If WS handshake responses need CORS headers (usually not), set them here
-            header_down Access-Control-Allow-Origin "{http.request.header.Origin}"
-            header_down Access-Control-Allow-Credentials "true"
-            header_down Vary "Origin"
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
         }
+
+        header Access-Control-Allow-Origin "{http.request.header.Origin}"
+        header Access-Control-Allow-Credentials "true"
+        header Vary "Origin"
     }
 
     # -------------------------
-    # Video feed proxy: /video
+    # Video feed proxy: /video*
     # -------------------------
     handle_path /video* {
         reverse_proxy video-composer-service:{$VIDEO_SEED_PORT} {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
-
-            header_down Access-Control-Allow-Origin "{http.request.header.Origin}"
-            header_down Access-Control-Allow-Credentials "true"
-            header_down Vary "Origin"
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
         }
+
+        header Access-Control-Allow-Origin "{http.request.header.Origin}"
+        header Access-Control-Allow-Credentials "true"
+        header Vary "Origin"
+    }
+
+    # -------------------------
+    # Health check
+    # -------------------------
+    handle_path /health {
+        respond "ok" 200
     }
 
     # -------------------------
@@ -54,11 +79,12 @@
         reverse_proxy react-device-manager-ui:{$REACT_MANAGER_PORT} {
             header_up Host {host}
             header_up X-Real-IP {remote_host}
-
-            header_down Access-Control-Allow-Origin "{http.request.header.Origin}"
-            header_down Access-Control-Allow-Credentials "true"
-            header_down Vary "Origin"
+            header_up X-Forwarded-For {remote_host}
+            header_up X-Forwarded-Proto {scheme}
         }
+
+        header Access-Control-Allow-Origin "{http.request.header.Origin}"
+        header Access-Control-Allow-Credentials "true"
+        header Vary "Origin"
     }
 }
-
