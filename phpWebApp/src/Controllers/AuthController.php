@@ -9,6 +9,7 @@ use App\Services\UserService;
 use App\Database;
 use DateTimeImmutable;
 use Exception;
+use PDO;
 
 class AuthController {
     private UserService $userService;
@@ -84,7 +85,7 @@ class AuthController {
             // Lookup refresh token in DB
             $stmt = $this->db->pdo()->prepare('SELECT id, user_id, expires_at, revoked FROM refresh_tokens WHERE token = :t LIMIT 1');
             $stmt->execute(['t' => $refresh]);
-            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
             if (!$row) {
                 return $this->json($res, ['error' => 'invalid_refresh_token'], 401);
