@@ -1,6 +1,7 @@
 // src/services/nodesService.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../store';
+import { baseQueryWithReauth } from './authService';
 
 export type RequestNodesInfo = {
   page?: number;
@@ -37,7 +38,7 @@ const baseQuery = fetchBaseQuery({
 
 export const nodesService = createApi({
   reducerPath: 'nodesApi',
-  baseQuery,
+  baseQuery: baseQueryWithReauth,
   tagTypes: ['Nodes', 'Protocols'],
   endpoints: (builder) => ({
     // GET /api/nodes?page=0&size=50

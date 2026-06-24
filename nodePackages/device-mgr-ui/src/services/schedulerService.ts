@@ -1,6 +1,7 @@
 // src/services/schedulerService.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../store';
+import { baseQueryWithReauth } from './authService';
 
 export type SchedulerRulePayload = {
   name: string;
@@ -33,7 +34,7 @@ const baseQuery = fetchBaseQuery({
 
 export const schedulerService = createApi({
   reducerPath: 'schedulerApi',
-  baseQuery,
+  baseQuery: baseQueryWithReauth,
   tagTypes: ['SchedulerRules'],
   endpoints: (builder) => ({
     // GET /api/scheduler/rules?page=0&size=50

@@ -1,6 +1,7 @@
 // src/services/rfidService.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../store';
+import { baseQueryWithReauth } from './authService';
 
 export type UserRfid = {
   id: number;
@@ -41,7 +42,7 @@ const baseQuery = fetchBaseQuery({
 
 export const rfidService = createApi({
   reducerPath: 'rfidApi',
-  baseQuery,
+  baseQuery: baseQueryWithReauth,
   tagTypes: ['UserRfids'],
   endpoints: (builder) => ({
     // GET /api/users/{id}/rfids

@@ -1,6 +1,7 @@
 /// src/services/userService.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../store';
+import { baseQueryWithReauth } from './authService';
 
 export type UserMe = {
   idUser: number;
@@ -25,7 +26,7 @@ const baseQuery = fetchBaseQuery({
 
 export const userService = createApi({
   reducerPath: 'userService',
-  baseQuery,
+  baseQuery: baseQueryWithReauth,
   endpoints: (builder) => ({
     getMe: builder.query<UserMe, void>({
       query: () => ({ url: '/api/users/me', method: 'GET' }),

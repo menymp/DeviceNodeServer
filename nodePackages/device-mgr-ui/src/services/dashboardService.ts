@@ -1,6 +1,7 @@
 // src/services/dashboardService.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../store';
+import { baseQueryWithReauth } from './authService';
 
 export type RequestControlsInfo = {
   page?: number; // 0-based
@@ -52,7 +53,7 @@ const baseQuery = fetchBaseQuery({
 
 export const dashboardService = createApi({
   reducerPath: 'dashboardApi',
-  baseQuery,
+  baseQuery: baseQueryWithReauth,
   tagTypes: ['Controls', 'ControlTypes'],
   endpoints: (builder) => ({
     // GET /api/controls?page=0&size=50

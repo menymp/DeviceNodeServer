@@ -72,7 +72,10 @@ class AuthController {
     public function refresh(Request $req, Response $res): Response {
         // Read cookie
         // $cookies = $req->getCookieParams(); NOT THE BEST PRACTICE, BUT IS TESTING FOR NOW
+        $body = (array)$req->getParsedBody();
+
         $refresh = $body['refresh_token'] ?? null;
+        //$this->logger->error('MENY REFRESH TOKEN: ' . $body);
         if (!$refresh) {
             return $this->json($res, ['error' => 'no_refresh_token'], 401);
         }

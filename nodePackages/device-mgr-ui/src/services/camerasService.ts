@@ -1,6 +1,7 @@
 // src/services/camerasService.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../store';
+import { baseQueryWithReauth } from './authService';
 
 export type RequestCamerasInfo = {
   page?: number;   // 0-based
@@ -28,7 +29,7 @@ const baseQuery = fetchBaseQuery({
 
 export const camerasService = createApi({
   reducerPath: 'camerasApi',
-  baseQuery,
+  baseQuery: baseQueryWithReauth,
   tagTypes: ['Cameras'],
   endpoints: (builder) => ({
     // GET /api/cameras?pageCount=0&pageSize=50

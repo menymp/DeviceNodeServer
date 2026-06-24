@@ -1,6 +1,7 @@
 // src/services/camerasDashboardService.ts
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { RootState } from '../store';
+import { baseQueryWithReauth } from './authService';
 
 export type ConfigCameraData = {
   width?: number;
@@ -39,7 +40,7 @@ const baseQuery = fetchBaseQuery({
 
 export const camerasDashboardService = createApi({
   reducerPath: 'camerasDashboardApi',
-  baseQuery,
+  baseQuery: baseQueryWithReauth,
   tagTypes: ['VideoDashboards'],
   endpoints: (builder) => ({
     // GET /api/video-dashboards
