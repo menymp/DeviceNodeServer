@@ -16,13 +16,14 @@ ENV REACT_APP_BASE_ORIGIN=${REACT_APP_BASE_ORIGIN}
 ENV REACT_APP_COMMAND_WEBSOCKET_URL=${REACT_APP_COMMAND_WEBSOCKET_URL}
 ENV REACT_APP_DEVICE_SERVICE_URL=${REACT_APP_DEVICE_SERVICE_URL}
 ENV REACT_APP_VIDEO_SEED_URL=${REACT_APP_VIDEO_SEED_URL}
-ENV NODE_ENV=${NODE_ENV}
 
 # Copy dependency files first for caching
 COPY package.json yarn.lock ./
 
 # Install all dependencies (devDependencies required for build)
 RUN yarn install --frozen-lockfile --non-interactive
+
+ENV NODE_ENV=${NODE_ENV}
 
 # Copy the rest of the source code
 COPY . .
