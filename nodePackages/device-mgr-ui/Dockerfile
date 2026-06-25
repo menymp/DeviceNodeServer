@@ -21,7 +21,7 @@ ENV REACT_APP_VIDEO_SEED_URL=${REACT_APP_VIDEO_SEED_URL}
 COPY package.json yarn.lock ./
 
 # Install all dependencies (devDependencies required for build)
-RUN yarn install --frozen-lockfile --non-interactive
+RUN yarn install --frozen-lockfile --non-interactive --production=false
 
 ENV NODE_ENV=${NODE_ENV}
 
