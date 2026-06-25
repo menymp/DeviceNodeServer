@@ -1,4 +1,4 @@
-{$CADDY_HOST} {
+{$CADDY_ORIGIN} {
     # -------------------------
     # Backend proxy: /backend* (proxy real requests; handle OPTIONS preflight locally)
     # -------------------------
