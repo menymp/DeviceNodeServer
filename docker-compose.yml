@@ -156,10 +156,10 @@ services:
       context: ./nodePackages/device-mgr-ui/
       dockerfile: Dockerfile
       args:
-        REACT_APP_BASE_ORIGIN=${CADDY_ORIGIN}
-        REACT_APP_COMMAND_WEBSOCKET_URL=ws://${CADDY_HOST}/socket/workHandler
-        REACT_APP_DEVICE_SERVICE_URL=http://${CADDY_HOST}/backend/
-        REACT_APP_VIDEO_SEED_URL=http://${CADDY_HOST}:${VIDEO_SEED_PORT}/video/video_feed?vidArgs=
+        - REACT_APP_BASE_ORIGIN=${CADDY_ORIGIN}
+        - REACT_APP_COMMAND_WEBSOCKET_URL=ws://${CADDY_HOST}/socket/workHandler
+        - REACT_APP_DEVICE_SERVICE_URL=http://${CADDY_HOST}/backend/
+        - REACT_APP_VIDEO_SEED_URL=http://${CADDY_HOST}:${VIDEO_SEED_PORT}/video/video_feed?vidArgs=
     restart: always
     environment:
       NODE_ENV: production
