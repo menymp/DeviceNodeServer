@@ -53,6 +53,7 @@ def stopLoadDevices(stopEvent):
 def processIncommingMessage(deviceManager, message):
     #Process Incomming message request from different processes
     commandObj = json.loads(message)
+    commandObj["args"] = json.loads(commandObj["args"]) # convert string to json object DUE TO javascript sending stringified json object
     logger.info("processIncommingMessage %s" % (message))
     try:
         if(commandObj["method"] == "executeCMDJson"):
