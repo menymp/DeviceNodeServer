@@ -159,7 +159,7 @@ services:
         - REACT_APP_BASE_ORIGIN=${CADDY_ORIGIN}
         - REACT_APP_COMMAND_WEBSOCKET_URL=ws://${CADDY_HOST}/socket/workHandler
         - REACT_APP_DEVICE_SERVICE_URL=http://${CADDY_HOST}/backend/
-        - REACT_APP_VIDEO_SEED_URL=http://${CADDY_HOST}:${VIDEO_SEED_PORT}/video/video_feed?vidArgs=
+        - REACT_APP_VIDEO_SEED_URL=http://${CADDY_HOST}:${VIDEO_SEED_PORT}/video/latest/
     restart: always
     environment:
       NODE_ENV: production
@@ -167,7 +167,7 @@ services:
       REACT_APP_BASE_ORIGIN: ${CADDY_ORIGIN}
       REACT_APP_COMMAND_WEBSOCKET_URL: ws://${CADDY_HOST}/socket/workHandler
       REACT_APP_DEVICE_SERVICE_URL: http://${CADDY_HOST}/backend/
-      REACT_APP_VIDEO_SEED_URL: http://${CADDY_HOST}:${VIDEO_SEED_PORT}/video/video_feed?vidArgs=
+      REACT_APP_VIDEO_SEED_URL: http://${CADDY_HOST}:${VIDEO_SEED_PORT}/video/latest/
     #ports:
     #  - "${REACT_MANAGER_PORT}:${REACT_MANAGER_PORT}"
     volumes:

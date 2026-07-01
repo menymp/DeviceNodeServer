@@ -36,7 +36,7 @@ const CamerasListView: React.FC = () => {
         if (selCamera) {
             setSelectedEditCamera(selCamera);
             setNewName(selCamera.name)
-            setNewParameters(selCamera.sourceParameters)
+            setNewParameters(JSON.stringify(selCamera.sourceParameters))
             handleShow();
         } else {
             setShow(false);
@@ -72,7 +72,10 @@ const CamerasListView: React.FC = () => {
         }
         const newTable = {
             headers: ['Camera id', 'Name', 'User', 'Source parameters'],
-            rows: currentCameras.map((camera) => {return [camera.idVideoSource.toString(), camera.name, camera.username, camera.sourceParameters]}),
+            rows: currentCameras.map((camera) => {
+                const data = camera;
+                return [camera.idVideoSource.toString(), camera.name, camera.username, JSON.stringify(camera.sourceParameters)]
+            }),
             detailBtn: false,
             deleteBtn: false,
             editBtn: true,
@@ -126,7 +129,7 @@ const CamerasListView: React.FC = () => {
                             <Form.Control
                                 type="text"
                                 placeholder="parameters..."
-                                defaultValue={selectedEditCamera?.sourceParameters}
+                                defaultValue={JSON.stringify(selectedEditCamera?.sourceParameters)}
                                 onChange={handleChangeParameters}
                                 autoFocus
                             />
