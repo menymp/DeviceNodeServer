@@ -255,8 +255,8 @@ class FrameServerConstructor:
         return frame, 'IMG'
 	
     def getJpg(self, sources, argsObj):
-        img = self.buildFrame(sources, argsObj)
-        logger.info(img)
+        img, _ = self.buildFrame(sources, argsObj)
+        logger.info("JPEG image resulted in shape: " + str(img.shape))
         if img is None:
             return None
         ret, jpeg = cv2.imencode('.jpg', img)
