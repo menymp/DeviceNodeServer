@@ -49,7 +49,7 @@ export const camerasDashboardService = createApi({
       transformResponse: (raw: Array<{ id: number; config: string | null; idOwnerUser?: number; created_at?: string }>) =>
         raw.map((r) => ({
           id: r.id,
-          config: r.config !== null && r.config !== '' ? JSON.parse(r.config) as ConfigCameraData : null,
+          config: r.config !== null && r.config !== '' ? r.config as ConfigCameraData : null,
           idOwnerUser: r.idOwnerUser,
           created_at: r.created_at,
         })),

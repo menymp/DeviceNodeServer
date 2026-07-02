@@ -107,12 +107,36 @@ const CamerasDashboardView: React.FC = () => {
         setStartVideo(false);
     }
 
+    // Helper: build query string from config object
+    function buildQueryFromConfig(config: ConfigCameraData) {
+        if (!config || typeof config !== 'object') return '';
+
+        const parts = Object.entries(config).flatMap(([key, value]) => {
+            if (value === undefined || value === null) return []; // skip empty
+            // If array, join with commas and keep literal commas (server expects commas)
+            if (Array.isArray(value)) {
+            // join with comma, then encode but keep commas literal
+            const joined = value.join(',');
+            return `${encodeURIComponent(key)}=${encodeURIComponent(joined).replace(/%2C/g, ',')}`;
+            }
+            // primitives: boolean/number/string
+            return `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`;
+        });
+
+        return parts.join('&'); // e.g. "height=600&width=400&idList=4,4&rowLen=1&idText=1"
+    }
+
+    // Use in your getFrame
     const getFrame = () => {
         const image = document.getElementById("videofield");
-        if (!image || !selectedConfig || !selectedConfig.config) {
-            return;
-        }
-        image.setAttribute('src', `${process.env.REACT_APP_VIDEO_SEED_URL}${JSON.stringify(JSON.stringify(selectedConfig.config))}`);
+        if (!image || !selectedConfig || !selectedConfig.config) return;
+
+        const base = process.env.REACT_APP_VIDEO_SEED_URL || '';
+        // ensure exactly one '?' between base and query
+        const separator = base.includes('?') ? (base.endsWith('?') || base.endsWith('&') ? '' : '&') : '?';
+
+        const qs = buildQueryFromConfig(selectedConfig.config);
+        image.setAttribute('src', `${base}${separator}${qs}`);
     }
 
     const videoLoopStart = () => {
