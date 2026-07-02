@@ -186,12 +186,12 @@ async def http_frame_Constructor(request: web.Request):
     if not frame:
         return web.Response(status=404, text="no frames")
 
-    ts, hdr, img = frame
+    img = frame
 
     headers = {
-        "X-Camera-TS": ts,
-        "X-Camera-Name": hdr.get("name", ""),
-        "X-Camera-MAC": hdr.get("mac", ""),
+        "X-Camera-TS": "",
+        "X-Camera-Name": "", #hdr.get("name", ""),
+        "X-Camera-MAC": "", #hdr.get("mac", ""),
         "Content-Type": "image/jpeg"
     }
 
