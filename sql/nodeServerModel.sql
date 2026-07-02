@@ -191,6 +191,8 @@ CREATE TABLE `videodashboard` (
   `idvideoDashboard` int NOT NULL AUTO_INCREMENT,
   `configJsonFetch` json DEFAULT NULL,
   `idOwnerUser` int NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`idvideoDashboard`),
   KEY `fk_videoDashboard_users1_idx` (`idOwnerUser`),
   CONSTRAINT `fk_videoDashboard_users1` FOREIGN KEY (`idOwnerUser`) REFERENCES `users` (`idUser`)
