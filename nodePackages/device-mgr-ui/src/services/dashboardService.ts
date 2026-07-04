@@ -17,8 +17,8 @@ export type ControlTemplate = {
 };
 
 export type ControlType = {
-  idControlsTypes: number;
-  TypeName: string;
+  id: number;
+  typename: string;
   controlTemplate: string;
 };
 
@@ -83,7 +83,7 @@ export const dashboardService = createApi({
     fetchControlTypes: builder.query<ControlType[], void>({
       query: () => ({ url: '/api/control-types', method: 'GET' }),
       providesTags: (result) =>
-        result ? result.map((t) => ({ type: 'ControlTypes' as const, id: t.idControlsTypes })) : [{ type: 'ControlTypes', id: 'LIST' }],
+        result ? result.map((t) => ({ type: 'ControlTypes' as const, id: t.id })) : [{ type: 'ControlTypes', id: 'LIST' }],
     }),
 
     // POST /api/controls  (create or update)

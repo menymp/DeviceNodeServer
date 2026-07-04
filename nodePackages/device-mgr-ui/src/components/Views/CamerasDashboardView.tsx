@@ -128,22 +128,30 @@ const CamerasDashboardView: React.FC = () => {
 
     // Use in your getFrame
     const getFrame = () => {
-        const image = document.getElementById("videofield");
-        if (!image || !selectedConfig || !selectedConfig.config) return;
+        const image = document.getElementById("videofield") as HTMLImageElement | null;
+        if (!image || !selectedConfig || !selectedConfig.config) 
+        {
+            return;
+        }
+            
 
         const base = process.env.REACT_APP_VIDEO_SEED_URL || '';
-        // ensure exactly one '?' between base and query
         const separator = base.includes('?') ? (base.endsWith('?') || base.endsWith('&') ? '' : '&') : '?';
-
         const qs = buildQueryFromConfig(selectedConfig.config);
-        image.setAttribute('src', `${base}${separator}${qs}`);
-    }
+        const url = `${base}${separator}${qs}`;
+
+        // Append timestamp to force a new network request
+        const finalUrl = `${url}${url.includes('?') ? '&' : '?'}_ts=${Date.now()}`;
+
+        // Clear src then reassign to force reload even if browser caches aggressively
+        image.src = finalUrl;
+    };
 
     const videoLoopStart = () => {
         getFrame();
         setTimeout(() => {
             startVideoRef.current && videoLoopStart();
-        }, 10);
+        }, 50);
     }
 
     const validateAndCreateArray = (input: string): number[] | null => {

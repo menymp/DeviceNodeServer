@@ -138,7 +138,7 @@ const DashboardEditor: React.FC = () => {
             parameters: '',
             name: '',
             typename: '',
-            idType: availableControlTypes?.[0]?.idControlsTypes ?? -1,
+            idType: availableControlTypes?.[0]?.id ?? -1,
             username: '',
             controlTemplate: ''
         })
@@ -515,7 +515,7 @@ const DashboardEditor: React.FC = () => {
                         if (!availableControlTypes || !availableControlTypes.length) {
                             return;
                         }
-                        setControlTypeSelected(controlTypeSelected !== -1 ? controlTypeSelected : availableControlTypes[0].idControlsTypes);
+                        setControlTypeSelected(controlTypeSelected !== -1 ? controlTypeSelected : availableControlTypes[0].id);
                         }}>
                         Next
                     </Button>
@@ -533,7 +533,7 @@ const DashboardEditor: React.FC = () => {
                         <Form.Group className="mb-3" controlId="controltype.template">
                             <Form.Label>Control type</Form.Label>
                             <Form.Select onChange={handleChangeControlType} id="selectedProtocolItem">
-                                {availableControlTypes?.map((value, index) => { return <option id={`${index}`} value={value.idControlsTypes}>{value.TypeName}</option>})}
+                                {availableControlTypes?.map((value, index) => { return <option id={`${index}`} value={value.id}>{value.typename}</option>})}
                             </Form.Select>
                         </Form.Group>
                         {selectedEditControl?.controlTemplate &&
