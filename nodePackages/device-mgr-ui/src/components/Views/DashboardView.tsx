@@ -27,7 +27,9 @@ const DashboardView: React.FC = () => {
 
     const handleClose = () => setShow(false);
 
-    let ws = useRef<WebSocket|null>();
+    // let ws = useRef<WebSocket|null>();
+    const [wsReady, setWsReady] = useState<number>(WebSocket.CLOSED);
+    const ws = useRef<WebSocket | null>(null);
 
     useEffect(() => {
         if (!WEB_SOCK_SERVER_ADDR) {
@@ -39,24 +41,58 @@ const DashboardView: React.FC = () => {
             console.warn('Access token not found in sessionStorage');
             return;
         }
-        ws.current = new WebSocket(`${WEB_SOCK_SERVER_ADDR}?access_token=${encodeURIComponent(accessToken)}`);
-        ws.current.onopen = () => console.log("ws opened");
-        ws.current.onclose = () => console.log("ws closed");
 
-        const wsCurrent = ws.current;
+        const socket = new WebSocket(`${WEB_SOCK_SERVER_ADDR}?access_token=${encodeURIComponent(accessToken)}`);
+        ws.current = socket;
 
-        return () => {
-            wsCurrent.close();
+        const handleOpen = () => {
+            console.log('ws opened');
+            setWsReady(socket.readyState); // should be WebSocket.OPEN
         };
-    }, []);
+        const handleClose = (ev?: CloseEvent) => {
+            console.log('ws closed', ev?.code, ev?.reason);
+            setWsReady(WebSocket.CLOSED);
+            // clear ref so future mounts start fresh
+            if (ws.current === socket) ws.current = null;
+        };
+        const handleError = (err: Event) => {
+            console.warn('ws error', err);
+        };
+        const handleMessage = (msg: MessageEvent) => {
+            // process messages if needed
+            // console.log('ws message', msg.data);
+        };
+
+        socket.addEventListener('open', handleOpen);
+        socket.addEventListener('close', handleClose);
+        socket.addEventListener('error', handleError);
+        socket.addEventListener('message', handleMessage);
+
+        // cleanup on unmount
+        return () => {
+            // remove listeners
+            socket.removeEventListener('open', handleOpen);
+            socket.removeEventListener('close', handleClose);
+            socket.removeEventListener('error', handleError);
+            socket.removeEventListener('message', handleMessage);
+
+            // close socket if still open/connecting
+            if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+                socket.close();
+            }
+            // ensure ref cleared if it still points to this socket
+            if (ws.current === socket) ws.current = null;
+            setWsReady(WebSocket.CLOSED);
+        };
+    }, []); // run on mount only
 
     useEffect(() => {
-        if (!controlsLoaded || !controls || !controls.length || !ws || ws.current?.readyState !== WebSocket.OPEN) {
+        // use wsReady state instead of ws.current?.readyState in deps
+        if (!controlsLoaded || !controls?.length || wsReady !== WebSocket.OPEN) {
             return;
         }
-
-        buildControlApperance(controls); // change for table logic
-    }, [controlsLoaded, controls, ws.current?.readyState]);
+        buildControlApperance(controls);
+    }, [controlsLoaded, controls, wsReady]);
 
     useEffect(() => {
         if (!displayUIControls?.length) {

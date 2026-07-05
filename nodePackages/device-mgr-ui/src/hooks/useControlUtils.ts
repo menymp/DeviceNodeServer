@@ -69,7 +69,11 @@ const useControlUtils = ({getControlParameters, ws, update}:controlUtilsParamete
 
             jsonStr = updateCommand; //already stringified
         }
-        ws_send(ws, jsonStr);
+
+        if (ws.readyState === WebSocket.OPEN) {
+            ws_send(ws, jsonStr);
+        }
+        
         responseTimeout.current = setTimeout(() => {
             commandScheduler();
         }, 3*POLL_INTERVAL_MS);

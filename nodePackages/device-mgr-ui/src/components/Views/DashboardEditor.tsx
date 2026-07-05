@@ -13,8 +13,7 @@ import {
 } from "../../services/dashboardService";
 import { useFetchDevicesQuery } from '../../services/deviceService'
 import { ITEM_LIST_DISPLAY_CNT } from "../../constants";
-import $ from 'jquery'
-import { ElementFlags } from "typescript";
+import $ from 'jquery';
 
 
 enum DASHBOARD_EDITOR_VIEW {
