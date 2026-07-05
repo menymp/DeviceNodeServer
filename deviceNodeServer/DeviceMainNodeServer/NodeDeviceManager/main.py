@@ -71,6 +71,11 @@ if __name__ == "__main__":
             socket.send_string(json.dumps(deviceData))
         except Exception as e:
             logger.error("an error ocurred %s", e)
+            try:
+                socket.send_string("GEN_ERR_KEY")
+            except Exception as e:
+                logger.error("ZMQ Socket issue handling error response exiting! %s", e)
+                exit(1)
     logger.info("ending main node server")
 
     socket.close()
