@@ -118,11 +118,12 @@ class deviceManager():
 
     def executeCMDJson(self, jsonArgs):
         # {'method': 'executeCMDJson', 'args': '"[{\\"idDevice\\":13,\\"servercommand\\":\\"getMeasures\\"}]"'}
-        logger.debug("running json command %s" % (jsonArgs))
+        logger.info("running json command")
+        logger.info(str(jsonArgs))
         cmdArrayObj = json.loads(jsonArgs["args"])
         #logger.info("parsed command " + str(cmdArrayObj1))
         #cmdArrayObj = json.loads(cmdArrayObj1)#ToDo: fix, for some weird reason, objects are stringified with dual quotes
-        logger.debug("parsed command 2" + str(cmdArrayObj))
+        logger.info("parsed command 2" + str(cmdArrayObj))
         results = []
         #print(cmdArrayObj)
         
