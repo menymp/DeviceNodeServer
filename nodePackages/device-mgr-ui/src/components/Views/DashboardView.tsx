@@ -111,7 +111,7 @@ const DashboardView: React.FC = () => {
         
         for (var i = 0, len = receivedControls.length; i < len; i++) 
         {
-            const idLinkedDevice = parseInt((JSON.parse(receivedControls[i].parameters) as { idDevice: string }).idDevice);
+            const idLinkedDevice = parseInt(receivedControls[i].parameters.idDevice);
             let outputControl;
             var id: string = uuid();
             const controlTypeName = receivedControls[i]["typename"]

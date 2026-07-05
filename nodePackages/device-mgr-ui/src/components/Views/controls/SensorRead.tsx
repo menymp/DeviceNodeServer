@@ -24,7 +24,7 @@ const SensorRead = (props: GenericUIControlParameters) => {
     const [currentValue, setCurrentValue] = useState<string>('');
 
     const getControlParameters = () => {
-        return JSON.parse(control.parameters) as SensorReadParameters;
+        return control.parameters as SensorReadParameters;
     }
     const parameters = getControlParameters();
 
@@ -46,7 +46,7 @@ const SensorRead = (props: GenericUIControlParameters) => {
     return (
         <>
             <Form>
-                <Form.Label>{control.name}</Form.Label>
+                <Form.Label>{control.Name}</Form.Label>
                 <Gauge
                     id={`gauge-chart${parameters.idDevice}${parameters.apperance}`}
                     value={parseInt(currentValue)}

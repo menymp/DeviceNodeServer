@@ -18,7 +18,7 @@ const TextSender = (props: GenericUIControlParameters) => {
     const [inputText, setInputText] = useState<string>('');
 
     const getControlParameters = () => {
-        return JSON.parse(control.parameters) as TextSenderParameters;
+        return control.parameters as TextSenderParameters;
     }
 
     const update = (response: updateResponse) => {
@@ -41,7 +41,7 @@ const TextSender = (props: GenericUIControlParameters) => {
     return (
         <>
             <Form>
-                <Form.Label>{control.name}</Form.Label>
+                <Form.Label>{control.Name}</Form.Label>
                 <Form.Label>{currentValue}</Form.Label>
                 <Form.Control // prettier-ignore
                     type="switch"

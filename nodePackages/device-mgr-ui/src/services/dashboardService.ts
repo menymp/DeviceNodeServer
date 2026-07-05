@@ -24,7 +24,7 @@ export type ControlType = {
 
 export type Control = {
   idControl: number;
-  name: string;
+  Name: string;
   parameters: any | null;
   typename?: string;
   idType?: number;

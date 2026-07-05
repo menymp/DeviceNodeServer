@@ -14,6 +14,7 @@ import {
 import { useFetchDevicesQuery } from '../../services/deviceService'
 import { ITEM_LIST_DISPLAY_CNT } from "../../constants";
 import $ from 'jquery'
+import { ElementFlags } from "typescript";
 
 
 enum DASHBOARD_EDITOR_VIEW {
@@ -63,9 +64,12 @@ const DashboardEditor: React.FC = () => {
     const navigate = useNavigate();
 
     const [controlTypeSelected, setControlTypeSelected] = useState<number>(-1);
-    const handleChangeControlType = (event: React.ChangeEvent<HTMLSelectElement>) => {
-        setControlTypeSelected(parseInt(event.target.value));
-    } //ToDo: perform validations
+
+    const getControlTypeTemplate = (idType: number) => {
+        const controlType = availableControlTypes?.find((type) => type.id === idType);
+        return controlType?.controlTemplate ?? '';
+    }
+
     const [newControlName, setNewControlName] = useState<string>('');
     const handleChangeControlName = (event: React.ChangeEvent<HTMLInputElement>) => {
         setNewControlName(event.target.value); //ToDo: perform validations
@@ -120,7 +124,7 @@ const DashboardEditor: React.FC = () => {
             const controlDataToSubmit = {
                 idControl: selectedEditControl.idControl,
                 parameters: JSON.parse(newControlParameters.current),
-                Name: newControlName || selectedEditControl.name,
+                Name: newControlName || selectedEditControl.Name,
                 idType: controlTypeSelected === -1 ? selectedEditControl?.idType ?? -1 : controlTypeSelected,
             };
 
@@ -136,7 +140,7 @@ const DashboardEditor: React.FC = () => {
         setSelectedEditControl({
             idControl: -1,
             parameters: '',
-            name: '',
+            Name: '',
             typename: '',
             idType: availableControlTypes?.[0]?.id ?? -1,
             username: '',
@@ -170,7 +174,7 @@ const DashboardEditor: React.FC = () => {
         //set ui fetched controls
         const newTable = {
             headers: ['id', 'name', 'parameters', 'type'],
-            rows: controls.map((control) => {return [control.idControl.toString(), control.name, control.parameters, control.typename]}),
+            rows: controls.map((control) => {return [control.idControl.toString(), control.Name, control.parameters, control.typename]}),
             detailBtn: false,
             deleteBtn: true,
             editBtn: true,
@@ -203,6 +207,17 @@ const DashboardEditor: React.FC = () => {
             console.log(decodedData['Message']);
         }
         return decodedData;
+    }
+
+    const handleDeleteControl = async (idSelectControl: string) => {
+        if (window.confirm('Quieres elimiar el nodo: ' + idSelectControl + '?')) {
+            try {
+                await deleteControl({id: parseInt(idSelectControl)}).unwrap();
+                refetchControls();
+            } catch (error) {
+                console.error('Failed to delete control', error);
+            }
+        }
     }
 
     const renderControlTypeTemplate = (controlBaseTemplate: string, currentValues: string | undefined) => {
@@ -331,6 +346,36 @@ const DashboardEditor: React.FC = () => {
         }
     }
 
+    const [controlElements, setControlElements] = useState<React.ReactNode[] | null>(null);
+
+    const handleEditControl = (idSelectControl: string) => {
+        const selectedEditControl = controls?.find((controlObj) => controlObj.idControl.toString() === idSelectControl)
+        if (selectedEditControl) {
+            setSelectedEditControl(selectedEditControl)
+            const devId = selectedEditControl.parameters.idDevice;
+            setSelectedDeviceId(devId);
+            setNewLinkDeviceId(devId);
+            setDashEditView(DASHBOARD_EDITOR_VIEW.INIT_DATA)
+        }
+        else
+        {
+            setDashEditView(DASHBOARD_EDITOR_VIEW.HIDE)
+        }
+    }
+
+    const handleChangeControlType = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        /* Sets type selected and renders the parameters */
+        setControlTypeSelected(parseInt(event.target.value));
+
+
+        const controlType  = getControlTypeTemplate(parseInt(event.target.value));
+        const elements = renderControlTypeTemplate(
+                controlType,
+                ""
+            );
+            setControlElements(elements as React.ReactNode[] | null);
+    } //ToDo: perform validations
+
     useEffect(() => {
         if (!devices?.length) {
             setDevicesDisplay(intDevicesTable);
@@ -356,7 +401,7 @@ const DashboardEditor: React.FC = () => {
         //set ui fetched controls
         const newTable = {
             headers: ['id', 'name', 'parameters', 'type'],
-            rows: controls.map((control) => {return [control.idControl.toString(), control.name, control.parameters, control.typename]}),
+            rows: controls.map((control) => {return [control.idControl.toString(), control.Name, JSON.stringify(control.parameters), control.typename]}),
             detailBtn: false,
             deleteBtn: true,
             editBtn: true,
@@ -369,32 +414,6 @@ const DashboardEditor: React.FC = () => {
         } as tableInit
         setDisplayControls(newTable);
     }, [controlsLoaded, controls])
-
-    const handleEditControl = (idSelectControl: string) => {
-        const selectedEditControl = controls?.find((controlObj) => controlObj.idControl.toString() === idSelectControl)
-        if (selectedEditControl) {
-            setSelectedEditControl(selectedEditControl)
-            const devId = JSON.parse(selectedEditControl.parameters).idDevice;
-            setSelectedDeviceId(devId);
-            setNewLinkDeviceId(devId);
-            setDashEditView(DASHBOARD_EDITOR_VIEW.INIT_DATA)
-        }
-        else
-        {
-            setDashEditView(DASHBOARD_EDITOR_VIEW.HIDE)
-        }
-    }
-
-    const handleDeleteControl = async (idSelectControl: string) => {
-        if (window.confirm('Quieres elimiar el nodo: ' + idSelectControl + '?')) {
-            try {
-                await deleteControl({id: parseInt(idSelectControl)}).unwrap();
-                refetchControls();
-            } catch (error) {
-                console.error('Failed to delete control', error);
-            }
-        }
-    }
 
 
     const hideEditor = () => {
@@ -419,7 +438,7 @@ const DashboardEditor: React.FC = () => {
                             <Form.Control
                                 type="text"
                                 placeholder="control name ..."
-                                defaultValue={selectedEditControl?.name}
+                                defaultValue={selectedEditControl?.Name}
                                 onChange={handleChangeControlName}
                                 autoFocus
                             />
@@ -515,7 +534,9 @@ const DashboardEditor: React.FC = () => {
                         if (!availableControlTypes || !availableControlTypes.length) {
                             return;
                         }
-                        setControlTypeSelected(controlTypeSelected !== -1 ? controlTypeSelected : availableControlTypes[0].id);
+                        if (controlTypeSelected === -1) {
+                            setControlTypeSelected(availableControlTypes[0].id);
+                        }
                         }}>
                         Next
                     </Button>
@@ -536,8 +557,7 @@ const DashboardEditor: React.FC = () => {
                                 {availableControlTypes?.map((value, index) => { return <option id={`${index}`} value={value.id}>{value.typename}</option>})}
                             </Form.Select>
                         </Form.Group>
-                        {selectedEditControl?.controlTemplate &&
-                            renderControlTypeTemplate(selectedEditControl?.controlTemplate,selectedEditControl?.parameters)?.map((element, index) => {
+                        {  controlElements?.map((element, index) => {
                                 return (
                                     <Form.Group className="mb-3" controlId={`controlparameters.field${index}`}>
                                         {element}

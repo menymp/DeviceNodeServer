@@ -20,7 +20,7 @@ const DigitalOutput = (props: GenericUIControlParameters) => {
     // depending on the output type, the component would have many apperances
 
     const getControlParameters = () => {
-        return JSON.parse(control.parameters) as DigitalOutputsControlParameters;
+        return control.parameters as DigitalOutputsControlParameters;
     }
     const parameters = getControlParameters();
 
@@ -62,7 +62,7 @@ const DigitalOutput = (props: GenericUIControlParameters) => {
     return (
         <>
             <Form>
-                <Form.Label>{control.name}</Form.Label>
+                <Form.Label>{control.Name}</Form.Label>
                 <Form.Check // prettier-ignore
                     type="switch"
                     id={`digital-output${control.idControl}${id}`}
