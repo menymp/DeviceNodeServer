@@ -67,8 +67,11 @@ if __name__ == "__main__":
                 logger.error("device id data not found %s" % deviceData)
                 socket.send_string("NOT_FOUND")
                 continue
-            logger.info("returning %s" % deviceData)
+            logger.info("checkpoint 1")
+            logger.info(deviceData)
+            logger.info("checkpoint 2")
             socket.send_string(json.dumps(deviceData))
+            logger.info("checkpoint 3")
         except Exception as e:
             logger.error("an error ocurred %s", e)
             try:

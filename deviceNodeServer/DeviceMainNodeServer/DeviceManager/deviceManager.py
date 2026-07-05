@@ -117,6 +117,7 @@ class deviceManager():
                 del deviceToDel
 
     def executeCMDJson(self, jsonArgs):
+        # {'method': 'executeCMDJson', 'args': '"[{\\"idDevice\\":13,\\"servercommand\\":\\"getMeasures\\"}]"'}
         logger.debug("running json command %s" % (jsonArgs))
         cmdArrayObj = json.loads(jsonArgs["args"])
         #logger.info("parsed command " + str(cmdArrayObj1))
@@ -158,9 +159,9 @@ class deviceManager():
 
 
             try:
-                logger.debug("Running raw command: " + str(cmd))
+                logger.info("Running raw command: " + str(cmd))
                 result = self.executeCMDraw(cmd['idDevice'], cmd['command'], cmd['args'])
-                logger.debug("raw command result %s" % (result))
+                logger.info("raw command result %s" % (result))
             except Exception as e:
                 logger.error("raw command error")
                 logger.error(e)
