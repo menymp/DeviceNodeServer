@@ -56,7 +56,7 @@ const AdminRfidManager: React.FC = () => {
 
   // --- RTK Query hooks
   const [resolveRfid, { isLoading: resolving }] = useResolveRfidMutation();
-  const [triggerFetchUserRfids, { data: lazyUserRfids, isFetching: lazyFetching }] = useLazyFetchUserRfidsQuery();
+  const [triggerFetchUserRfids] = useLazyFetchUserRfidsQuery();
   const [createUserRfid, { isLoading: creating }] = useCreateUserRfidMutation();
   const [deleteUserRfid, { isLoading: deleting }] = useDeleteUserRfidMutation();
 
@@ -127,7 +127,7 @@ const AdminRfidManager: React.FC = () => {
     }
     setSelectedUserId(Number(lookupUserId));
     // use the cached query refetch
-    refetchSelectedUserRfids();
+    await triggerFetchUserRfids({ userId: lookupUserId }).unwrap();
   };
 
   // Assign RFID to user (create)
@@ -167,7 +167,10 @@ const AdminRfidManager: React.FC = () => {
       showMsg('success', `Assigned RFID ${rfid} to user ${userId}. (record id ${created.id})`);
       setShowAssignModal(false);
       // refresh selected user rfids if it matches
-      if (selectedUserId === userId) refetchSelectedUserRfids();
+      if (selectedUserId === userId) {
+        // refresh via lazy trigger (safe even if the query was skipped earlier)
+        triggerFetchUserRfids({ userId }).catch(() => {});
+      }
     } catch (err: any) {
       console.error(err);
       showMsg('danger', `Failed to assign RFID: ${err?.data?.message || err?.message || 'unknown error'}`);

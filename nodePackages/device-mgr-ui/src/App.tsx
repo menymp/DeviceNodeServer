@@ -13,6 +13,7 @@ import DevicesListView from './components/Views/DevicesListView'
 import UserInfo from './components/Views/UserInfo';
 import DashboardView from  './components/Views/DashboardView'
 import DashboardEditor from './components/Views/DashboardEditor';
+import RfidAdmin from './components/Views/RfidAdmin';
 import Login from './components/Login/Login'
 import CamerasListView from './components/Views/CamerasListView';
 import CamerasDashboardView from './components/Views/CamerasDashboardView';
@@ -48,6 +49,7 @@ function App() {
                 <Route path="/Userinfo" element={<UserInfo></UserInfo>} />
                 <Route path="/Dashboard" element={<DashboardView />} />
                 <Route path="/DashboardEditor" element={<DashboardEditor />} />
+                <Route path="/RFIDAdmin" element={<RfidAdmin />} />
                 <Route path="/CamerasDashboard" element={<CamerasDashboardView />} />
             </Routes>
           ) : (
