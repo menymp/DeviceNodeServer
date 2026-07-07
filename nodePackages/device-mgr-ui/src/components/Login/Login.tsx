@@ -49,8 +49,9 @@ export default function Login() {
         const tokenPayload = decodeJwt(res.access_token);
         const userIdFromToken = tokenPayload.sub ? Number(tokenPayload.sub) : null;
         const userId = res.user_id ?? res.idUser ?? res.userId ?? userIdFromToken;
+        const isAdmin = tokenPayload.is_admin ?? false;
 
-        dispatch(setCredentials({ accessToken: res.access_token, userId }));
+        dispatch(setCredentials({ accessToken: res.access_token, userId, is_admin: isAdmin }));
 
         if (typeof window !== 'undefined' && window.sessionStorage) {
           window.sessionStorage.setItem('accessToken', res.access_token);

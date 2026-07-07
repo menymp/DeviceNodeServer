@@ -33,7 +33,7 @@ const AdminRfidManager: React.FC = () => {
 
   // --- Auth / admin guard
   const auth = useSelector((s: RootState) => s.auth);
-  const isAdmin = !!(auth?.user && (auth.user.role === 'admin' || auth.user.isAdmin));
+  const isAdmin = !!(auth?.is_admin);
 
   // --- Local UI state
   const scanInputRef = useRef<HTMLInputElement | null>(null);
@@ -303,7 +303,7 @@ const AdminRfidManager: React.FC = () => {
       <Row className="mb-4">
         <Col md={6}>
           <h5>Lookup RFIDs by User</h5>
-          <Form inline="true" className="d-flex gap-2 align-items-center">
+          <Form className="d-flex gap-2 align-items-center">
             <Form.Control
               type="number"
               placeholder="User ID"
