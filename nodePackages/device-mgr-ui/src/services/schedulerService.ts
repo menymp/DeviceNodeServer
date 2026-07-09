@@ -46,15 +46,31 @@ export const schedulerService = createApi({
         return { url: `/api/scheduler/rules${qp}`, method: 'GET' };
       },
       transformResponse: (raw: Array<any>) =>
-        raw.map((r) => ({
-          id: r.id,
-          name: r.name,
-          enabled: Number(r.enabled),
-          rule_json: r.rule_json !== null && r.rule_json !== '' ? JSON.parse(r.rule_json) : null,
-          safe_state: r.safe_state !== null && r.safe_state !== '' ? JSON.parse(r.safe_state) : null,
-          created_at: r.created_at,
-          updated_at: r.updated_at,
-        })),
+        raw.map((r) => {
+          const parseMaybe = (val: any) => {
+            if (val === null || val === '') return null;
+            if (typeof val === 'string') {
+              try {
+                return JSON.parse(val);
+              } catch {
+                // if it's a string but not valid JSON, return the raw string
+                return val;
+              }
+            }
+            // already an object/array/number/etc.
+            return val;
+          };
+
+          return {
+            id: r.id,
+            name: r.name,
+            enabled: Number(r.enabled),
+            rule_json: parseMaybe(r.rule_json),
+            safe_state: parseMaybe(r.safe_state),
+            created_at: r.created_at,
+            updated_at: r.updated_at,
+          };
+        }),
       providesTags: (result) =>
         result
           ? [
@@ -67,15 +83,31 @@ export const schedulerService = createApi({
     // GET /api/scheduler/rules/{id}
     fetchRuleById: builder.query<SchedulerRule, { id: number }>({
       query: ({ id }) => ({ url: `/api/scheduler/rules/${id}`, method: 'GET' }),
-      transformResponse: (raw: any) => ({
-        id: raw.id,
-        name: raw.name,
-        enabled: Number(raw.enabled),
-        rule_json: raw.rule_json !== null && raw.rule_json !== '' ? JSON.parse(raw.rule_json) : null,
-        safe_state: raw.safe_state !== null && raw.safe_state !== '' ? JSON.parse(raw.safe_state) : null,
-        created_at: raw.created_at,
-        updated_at: raw.updated_at,
-      }),
+      transformResponse: (raw: any) => {
+        const parseMaybe = (val: any) => {
+          if (val === null || val === '') return null;
+          if (typeof val === 'string') {
+            try {
+              return JSON.parse(val);
+            } catch {
+              // If it's a string but not valid JSON, return the raw string
+              return val;
+            }
+          }
+          // already an object/array/number/etc.
+          return val;
+        };
+
+        return {
+          id: raw.id,
+          name: raw.name,
+          enabled: Number(raw.enabled),
+          rule_json: parseMaybe(raw.rule_json),
+          safe_state: parseMaybe(raw.safe_state),
+          created_at: raw.created_at,
+          updated_at: raw.updated_at,
+        };
+      },
       providesTags: (result) => (result ? [{ type: 'SchedulerRules' as const, id: result.id }] : []),
     }),
 
