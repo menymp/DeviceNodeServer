@@ -1,0 +1,24 @@
+[Unit]
+Description=Pi Camera Sender (ESP32-compatible)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+Group=pi
+WorkingDirectory=/opt/RaspberryCam
+Environment=INGEST_SERVER_IP=
+Environment=INGEST_SERVER_PORT=8072
+Environment=CAMERA_NAME=
+Environment=CAMERA_TYPE=1
+Environment=CAPTURE_INTERVAL_MS=1000
+Environment=NET_INTERFACE=eth0
+ExecStart=/usr/bin/python3 /opt/RaspberryCam/picamclient.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=syslog
+StandardError=syslog
+
+[Install]
+WantedBy=multi-user.target
