@@ -2,13 +2,10 @@
 """
 picamclient.py
 
-Captures JPEG frames from Raspberry Pi Camera v1 with opencv and sends them to a TCP ingest server
-using the same framing/protocol as the provided ESP32 code:
+Captures JPEG frames from Raspberry Pi Camera v1 with opencv (via Picamera2) 
+and sends them to a TCP ingest server using the ESP32 framing/protocol.
 
 [4 bytes BE header_len][header_json bytes][4 bytes BE image_len][jpeg bytes]
-
-Header JSON example:
-{"name":"MenyPiCam1","camera_type":"1","mac":"AABBCCDDEEFF","ip_addr":"192.168.1.10","frame_size":12345}
 """
 
 import io
@@ -26,6 +23,11 @@ try:
     import cv2
 except Exception:
     cv2 = None
+
+try:
+    from picamera2 import Picamera2
+except Exception:
+    Picamera2 = None
 
 try:
     import netifaces
@@ -113,12 +115,13 @@ def connect_server(backoff_base=1.0, backoff_max=10.0):
             backoff = min(backoff * 2, backoff_max)
     return None
 
-def capture_jpeg_from_cv(cap):
-    # read frame
-    ret, frame = cap.read()
-    if not ret:
-        raise RuntimeError("cv2 capture failed")
-    # encode to JPEG
+def capture_jpeg_from_cv(picam2):
+    # Grab numpy array directly from the CSI camera via libcamera
+    frame = picam2.capture_array()
+    if frame is None:
+        raise RuntimeError("picamera2 capture failed")
+        
+    # encode to JPEG via OpenCV
     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), JPEG_QUALITY]
     ret, buf = cv2.imencode('.jpg', frame, encode_param)
     if not ret:
@@ -129,6 +132,9 @@ def main_loop():
     global sock, running
     if cv2 is None:
         LOG.error("cv2 not available. Install python3-opencv or opencv-python.")
+        return 1
+    if Picamera2 is None:
+        LOG.error("Picamera2 not available. Install python3-picamera2.")
         return 1
 
     mac = get_mac_no_colon(NET_INTERFACE)
@@ -141,16 +147,21 @@ def main_loop():
     except Exception:
         w, h = 800, 600
 
-    cap = cv2.VideoCapture(0)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, h)
+    # Initialize and configure Picamera2 for OpenCV BGR format
+    picam2 = Picamera2()
+    config = picam2.create_preview_configuration(
+        main={"format": "BGR888", "size": (w, h)}
+    )
+    picam2.configure(config)
+    picam2.start()
+    
     # allow warmup
     time.sleep(1.0)
 
     sock = connect_server()
     if sock is None:
         LOG.error("Could not connect to server")
-        cap.release()
+        picam2.stop()
         return 1
 
     backoff_base = 1.0
@@ -187,7 +198,7 @@ def main_loop():
                 ip_addr = get_ip_addr(NET_INTERFACE)
 
             try:
-                jpeg = capture_jpeg_from_cv(cap)
+                jpeg = capture_jpeg_from_cv(picam2)
             except Exception as e:
                 LOG.exception("Capture failed: %s", e)
                 time.sleep(1.0)
@@ -219,7 +230,7 @@ def main_loop():
                 sock.close()
         except Exception:
             pass
-        cap.release()
+        picam2.stop()
     return 0
 
 def handle_sigterm(signum, frame):
