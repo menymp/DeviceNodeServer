@@ -8,6 +8,7 @@ A maintained navigation layer for understanding this repository without rereadin
 - [Codebase tour](codebase-tour.md): Top-level directory ownership, shared infrastructure, and useful entry points.
 - [Firmware and tests](firmware-and-tests.md): Embedded firmware families and the currently identified test/example code.
 - [Manual device deployments](manual-device-deployments.md): Raspberry Pi camera systemd deployment, embedded firmware deployment boundary, and the Pi-to-video-server protocol.
+- [Development roadmap](development-roadmap.md): Proposed firmware deployment/testing and management UI/UX work, with open scope and acceptance questions.
 
 ## Sources Of Truth
 
