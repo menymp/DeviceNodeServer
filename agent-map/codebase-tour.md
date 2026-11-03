@@ -16,9 +16,9 @@ Repository map for locating implementation areas. The root directory mixes deplo
 | `ESP32 Nodes Network/` | ESP32 firmware projects, including camera, garden, node, RFID, PIR, output, OTA, and bridge examples. |
 | `microPythonNodes/` | MicroPython and Raspberry Pi Pico W projects, shared libraries, OTA, sensor and appliance examples. |
 | `reactor/handlers/` | Handler definitions/configuration mounted into the reactor; inspect handler folders and Dockerfiles for execution details. |
-| `nodePackages/device-mgr-ui/` | React device manager frontend. `src/` contains app, components, services, hooks, store, and types. |
-| `phpWebApp/` | PHP API application; `src/` contains controllers, middleware, repositories, services, and dependencies. |
-| `phpMpyOta/` | Separate PHP OTA application. |
+| `nodePackages/device-mgr-ui/` | Main system management frontend (React); start at `src/App.tsx`. It uses the PHP REST-like API plus WebSocket command and video services. Compose service: `react-device-manager-ui`; see [runtime architecture](runtime-architecture.md) for routes. |
+| `phpWebApp/` | REST-like PHP backend API for the management UI, not the frontend. `src/` contains Slim routes/controllers, middleware, repositories, services, and dependencies; Caddy exposes it under `/backend/`. |
+| `phpMpyOta/` | Intended future PHP server for MicroPython OTA updates. The version/rollback workflow is still a test/early implementation with TODOs; a Compose declaration does not mean the OTA system is complete. |
 | `sql/` | MySQL initialization/model scripts and seed data, plus model artifacts. |
 | `mosquitto/` | Broker configuration and host-mounted runtime data/log directories. |
 | `docker_base_image/` | Base image built by the Compose Kaniko helper for reactor handler workloads. |

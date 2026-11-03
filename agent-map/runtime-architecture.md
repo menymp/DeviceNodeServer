@@ -12,7 +12,7 @@ For the Pi camera path, the sender's default TCP port `8072` matches the current
 
 | Client path / interface | Compose destination | Notes |
 | --- | --- | --- |
-| `/backend/*` | `php-node-service:80` | PHP REST API; Caddy strips the `/backend` prefix with `handle_path`. |
+| `/backend/*` | `php-node-service:80` | REST-like PHP backend API for the management UI; Caddy strips the `/backend` prefix with `handle_path`. |
 | `/socket/*` | `websocket-service:${WEBSOCKET_PORT}` | WebSocket command interface; Caddy strips `/socket`. |
 | `/video/*` | `video-composer-service:${VIDEO_SEED_PORT}` | Video feed; Caddy strips `/video`. |
 | Other HTTP(S) paths | `react-device-manager-ui:${REACT_MANAGER_PORT}` | React device manager UI. |
@@ -29,16 +29,16 @@ For the Pi camera path, the sender's default TCP port `8072` matches the current
 | `node-device-manager-service` | `deviceNodeServer/DeviceMainNodeServer/NodeDeviceManager/`; Dockerfile builds `main.py` | Discovers nodes' child devices/manifests and updates database records; MySQL and Mosquitto. |
 | `video-composer-service` | `deviceNodeServer/DeviceMainNodeServer/VideoHandler_v2/`; Dockerfile builds `main.py` | Video/frame handling; MySQL, Mosquitto dependency, and published video/device socket ports. |
 | `websocket-service` | `deviceNodeServer/DeviceMainNodeServer/WSocketServerManager/`; Dockerfile builds `main.py` | WebSocket UI command transport; depends on device manager and PHP API. README describes a ZMQ connection to DeviceManager. |
-| `php-node-service` | `phpWebApp/` | Slim/PDO/JWT API for the UI; MySQL, Mosquitto dependency, database secret and JWT key secrets. Caddy routes `/backend/*` here. |
-| `react-device-manager-ui` | `nodePackages/device-mgr-ui/` | React UI; configured with API, command-WebSocket, and video URLs. Caddy routes the remaining web requests here. |
+| `php-node-service` | `phpWebApp/` | Slim/PDO/JWT REST-like backend API for the management UI; MySQL, Mosquitto dependency, database secret and JWT key secrets. Caddy routes `/backend/*` here. |
+| `react-device-manager-ui` | `nodePackages/device-mgr-ui/` | Main React system-management frontend; configured with API, command-WebSocket, and video URLs. Caddy routes the remaining web requests here. |
 | `caddy` | `caddy:2` | Public HTTP/HTTPS entry point on host ports 80 and 443; proxies UI, API, WebSocket, and video routes. |
 | `reactor-service` | `deviceNodeServer/DeviceMainNodeServer/event_reactor/` | Polls database script instances and can create/run handler containers through the Docker socket. Uses the registry/image builder workflow and shared Python modules mounted from the repository. |
 | `registry` | `registry:2` | Local container image registry, exposed on host port 5000 with persistent `registry_data`. |
 | `generic-builder` | Kaniko executor with `docker_base_image/` mounted as workspace | Builds/publishes `local/docker_base_image:dev` into the local registry; reactor waits for this image. |
-| `php-ota-service` | `phpMpyOta/` | PHP-based firmware/OTA endpoint; uses shared config mount and directly publishes `${PHP_OTA_PORT}`. Its README describes a versioned update/rollback workflow but is explicitly early-stage. |
+| `php-ota-service` | `phpMpyOta/` | Compose-declared future MicroPython OTA server; uses a shared config mount and directly publishes `${PHP_OTA_PORT}`. Keep the current Compose setup as-is for now; it is reported not to crash, but the version/rollback workflow remains an early test with TODOs and is not a complete or production-ready OTA system. |
 | `nodes-db` | `mysql:8.0` | Primary MySQL service; initializes from `sql/nodeServerModel.sql` and `sql/nodeServerSeeds.sql`, persists `db_data`, and has a health check. |
 | `mqtt-broker` | `eclipse-mosquitto:2.0` | Device messaging broker; config/data/log mounts under `mosquitto/`. |
-| `maintenance-service` | `deviceNodeServer/DeviceMainNodeServer/MaintenanceService/` | Database-backed maintenance process; waits for healthy MySQL. See its local README for details. |
+| `maintenance-service` | `deviceNodeServer/DeviceMainNodeServer/MaintenanceService/` | Waits for healthy MySQL and runs database cleanup every 24 hours. Deletes `devicesmeasures` older than 60 days and expired refresh tokens or revoked tokens older than 30 days. Scheduler: [`main.py`](../deviceNodeServer/DeviceMainNodeServer/MaintenanceService/main.py); cleanup queries: [`dbActions.py`](../deviceNodeServer/DeviceMainNodeServer/DButils/dbActions.py). |
 | `xbee-bridge-service` | `deviceNodeServer/xbeeNetwork/xbeeCoordinator/` | XBee network bridge; needs serial access, MySQL, Mosquitto, and NodeDeviceManager. The Compose declaration requests privileged mode. |
 | `telegram-executor-service` | `deviceNodeServer/DeviceMainNodeServer/TelegramCommandExecutor/` | Telegram command executor; integrates with device manager and video service. |
 | `scheduler-service` | `deviceNodeServer/DeviceMainNodeServer/SchedulerService/` | Database-backed scheduler with MQTT configuration and a 30-second DB poll setting. |
